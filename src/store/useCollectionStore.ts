@@ -14,6 +14,7 @@ interface CollectionState {
   removeCard: (cardId: string) => void;
   hasCard: (cardId: string) => boolean;
   getCardCount: () => number;
+  getSetCardCount: (setId: string) => number;
 }
 
 export const useCollectionStore = create<CollectionState>((set, get) => ({
@@ -32,4 +33,7 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   hasCard: (cardId) => get().cards.some((c) => c.id === cardId),
 
   getCardCount: () => get().cards.length,
+
+  getSetCardCount: (setId) =>
+    get().cards.filter((c) => c.setId === setId).length,
 }));

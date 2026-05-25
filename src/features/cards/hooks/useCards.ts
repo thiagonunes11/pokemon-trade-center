@@ -14,6 +14,7 @@ export function useSetCards(setId: string = SUPPORTED_SETS.FOGO_FANTASMAGORICO) 
       }
       return set;
     },
+    enabled: !!setId,
   });
 }
 

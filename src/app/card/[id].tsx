@@ -31,7 +31,7 @@ export default function CardDetailScreen() {
         id,
         name: card.name,
         imageUrl: card.image ? `${card.image}/high.webp` : null,
-        setId: "me02",
+        setId: card.set?.id ?? id.split("-")[0],
       });
     }
   };

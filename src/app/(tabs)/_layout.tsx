@@ -43,10 +43,10 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="catalog"
         options={{
           title: "Catálogo",
-          headerTitle: "🔥 Fogo Fantasmagórico",
+          headerShown: false,
           tabBarIcon: ({ size }) => (
             <Text style={{ fontSize: size - 4 }}>🃏</Text>
           ),
