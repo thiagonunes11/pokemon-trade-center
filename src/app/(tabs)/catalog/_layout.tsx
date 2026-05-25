@@ -1,9 +1,9 @@
 import { Stack } from "expo-router";
 import { Dimensions } from "react-native";
-
-import { colors } from "@/theme";
+import { useAppTheme } from "@/theme";
 
 export default function CatalogStackLayout() {
+  const { colors } = useAppTheme();
   const screenWidth = Dimensions.get("window").width;
   const isSmallScreen = screenWidth < 400;
 

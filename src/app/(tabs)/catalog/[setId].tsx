@@ -3,10 +3,10 @@ import { useCallback, useLayoutEffect } from "react";
 import { Dimensions, Platform, StyleSheet, Text, View } from "react-native";
 
 import { CardGrid, useSetCards } from "@/features/cards";
+import { useOwnedSetCount } from "@/hooks/useOwnedSetCount";
 import { getCollectionById, isSupportedSetId } from "@/lib/collections";
 import { formatCollectionProgress } from "@/lib/formatCollectionProgress";
-import { useOwnedSetCount } from "@/hooks/useOwnedSetCount";
-import { colors } from "@/theme";
+import { useAppTheme, useStyles } from "@/theme";
 
 const androidTextFix =
   Platform.OS === "android"
@@ -22,6 +22,7 @@ function CatalogHeaderTitle({
   progress: string;
   compact: boolean;
 }) {
+  const headerStyles = useStyles(headerStylesFactory);
   const titleSize = compact ? 16 : 17;
   const progressSize = compact ? 11 : 12;
   const lineHeight = compact ? 20 : 22;
@@ -58,6 +59,7 @@ export default function SetCatalogScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const collection = getCollectionById(setId);
+  const styles = useStyles(stylesFactory);
 
   const validSetId = setId && isSupportedSetId(setId) ? setId : null;
 
@@ -128,7 +130,7 @@ export default function SetCatalogScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const stylesFactory = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
@@ -160,7 +162,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const headerStyles = StyleSheet.create({
+const headerStylesFactory = (colors: any) => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",

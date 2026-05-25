@@ -1,10 +1,11 @@
-import { colors } from "@/theme";
+import { useAppTheme, useStyles } from "@/theme";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TradesScreen() {
   const insets = useSafeAreaInsets();
   const screenWidth = Dimensions.get("window").width;
+  const styles = useStyles(stylesFactory);
 
   // Responsive sizes
   const isSmallScreen = screenWidth < 400;
@@ -44,7 +45,7 @@ export default function TradesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const stylesFactory = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,

@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCard } from "@/features/cards";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { colors } from "@/theme";
+import { useAppTheme, useStyles } from "@/theme";
 
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,6 +21,8 @@ export default function CardDetailScreen() {
   const insets = useSafeAreaInsets();
   const { data: card, isLoading, error } = useCard(id);
   const { addCard, removeCard, hasCard } = useCollectionStore();
+  const { colors } = useAppTheme();
+  const styles = useStyles(stylesFactory);
 
   const isInCollection = hasCard(id);
 
@@ -58,7 +60,10 @@ export default function CardDetailScreen() {
       <View
         style={[
           styles.centerContainer,
-          { backgroundColor: colors.background.primary, paddingTop: insets.top + 32 },
+          {
+            backgroundColor: colors.background.primary,
+            paddingTop: insets.top + 32,
+          },
         ]}
       >
         <Text
@@ -81,8 +86,11 @@ export default function CardDetailScreen() {
 
   return (
     <View style={styles.pageContainer}>
-      <View style={[styles.customHeader, { paddingTop: insets.top + 12 }]}>        
-        <Pressable onPress={() => router.back()} style={styles.customHeaderBack}>
+      <View style={[styles.customHeader, { paddingTop: insets.top + 12 }]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.customHeaderBack}
+        >
           <Text style={styles.customHeaderBackText}>←</Text>
         </Pressable>
         <Text style={styles.customHeaderTitle}>{card.name}</Text>
@@ -101,185 +109,198 @@ export default function CardDetailScreen() {
           entering={FadeIn.duration(400)}
           style={styles.imageContainer}
         >
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={[styles.cardImage, { width: cardWidth, height: cardHeight }]}
-            contentFit="contain"
-            transition={400}
-          />
-        ) : (
-          <View
-            style={[
-              styles.cardImage,
-              styles.noImage,
-              { width: cardWidth, height: cardHeight },
-            ]}
-          >
-            <Text style={{ color: colors.text.muted }}>
-              Sem imagem disponível
-            </Text>
-          </View>
-        )}
-      </Animated.View>
-
-      {/* Card Info */}
-      <Animated.View entering={FadeInUp.delay(200).springify()}>
-        <View
-          style={[
-            styles.infoContainer,
-            { paddingHorizontal: isSmallScreen ? 16 : 20 },
-          ]}
-        >
-          {/* Name and ID */}
-          <View style={{ gap: 4 }}>
-            <Text
-              style={[styles.cardName, { fontSize: isSmallScreen ? 20 : 26 }]}
-            >
-              {card.name}
-            </Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.cardId}>#{card.localId}</Text>
-              {card.rarity && (
-                <>
-                  <Text style={styles.metaDot}>•</Text>
-                  <Text style={styles.rarity}>{card.rarity}</Text>
-                </>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.separator} />
-
-          {/* Details */}
-          <View style={{ gap: 12 }}>
-            {card.hp && <DetailRow label="HP" value={String(card.hp)} />}
-            {card.types && card.types.length > 0 && (
-              <DetailRow label="Tipo" value={card.types.join(", ")} />
-            )}
-            {card.illustrator && (
-              <DetailRow label="Ilustrador" value={card.illustrator} />
-            )}
-            {card.rarity && <DetailRow label="Raridade" value={card.rarity} />}
-            {card.category && (
-              <DetailRow label="Categoria" value={card.category} />
-            )}
-            {card.stage && <DetailRow label="Estágio" value={card.stage} />}
-          </View>
-
-          {/* Attacks */}
-          {card.attacks && card.attacks.length > 0 && (
-            <>
-              <View style={styles.separator} />
-              <View style={{ gap: 12 }}>
-                <Text style={styles.sectionTitle}>Ataques</Text>
-                {card.attacks.map((attack: any, index: number) => (
-                  <View key={index} style={styles.attackCard}>
-                    <View style={styles.attackHeader}>
-                      <Text style={styles.attackName}>{attack.name}</Text>
-                      {attack.damage && (
-                        <Text style={styles.attackDamage}>{attack.damage}</Text>
-                      )}
-                    </View>
-                    {attack.effect && (
-                      <Text style={styles.attackEffect}>{attack.effect}</Text>
-                    )}
-                    {attack.cost && attack.cost.length > 0 && (
-                      <Text style={styles.attackCost}>
-                        Custo: {attack.cost.join(", ")}
-                      </Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-
-          {/* Weaknesses and Resistances */}
-          {(card.weaknesses || card.resistances) && (
-            <>
-              <View style={styles.separator} />
-              <View style={{ flexDirection: "row", gap: 16 }}>
-                {card.weaknesses && card.weaknesses.length > 0 && (
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={styles.weakLabel}>Fraqueza</Text>
-                    {card.weaknesses.map((w: any, i: number) => (
-                      <Text key={i} style={styles.weakValue}>
-                        {w.type} {w.value}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-                {card.resistances && card.resistances.length > 0 && (
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={styles.weakLabel}>Resistência</Text>
-                    {card.resistances.map((r: any, i: number) => (
-                      <Text key={i} style={styles.resistValue}>
-                        {r.type} {r.value}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </>
-          )}
-
-          <View style={styles.separator} />
-
-          {/* Action Buttons */}
-          <View style={{ gap: 12, marginTop: 8 }}>
-            <Pressable
-              onPress={handleToggleCollection}
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
               style={[
-                styles.actionButton,
-                {
-                  backgroundColor: isInCollection
-                    ? colors.background.card
-                    : colors.primary[700],
-                  borderColor: isInCollection
-                    ? colors.error
-                    : colors.primary[600],
-                },
+                styles.cardImage,
+                { width: cardWidth, height: cardHeight },
+              ]}
+              contentFit="contain"
+              transition={400}
+            />
+          ) : (
+            <View
+              style={[
+                styles.cardImage,
+                styles.noImage,
+                { width: cardWidth, height: cardHeight },
               ]}
             >
+              <Text style={{ color: colors.text.muted }}>
+                Sem imagem disponível
+              </Text>
+            </View>
+          )}
+        </Animated.View>
+
+        {/* Card Info */}
+        <Animated.View entering={FadeInUp.delay(200).springify()}>
+          <View
+            style={[
+              styles.infoContainer,
+              { paddingHorizontal: isSmallScreen ? 16 : 20 },
+            ]}
+          >
+            {/* Name and ID */}
+            <View style={{ gap: 4 }}>
               <Text
+                style={[styles.cardName, { fontSize: isSmallScreen ? 20 : 26 }]}
+              >
+                {card.name}
+              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.cardId}>#{card.localId}</Text>
+                {card.rarity && (
+                  <>
+                    <Text style={styles.metaDot}>•</Text>
+                    <Text style={styles.rarity}>{card.rarity}</Text>
+                  </>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.separator} />
+
+            {/* Details */}
+            <View style={{ gap: 12 }}>
+              {card.hp && <DetailRow label="HP" value={String(card.hp)} />}
+              {card.types && card.types.length > 0 && (
+                <DetailRow label="Tipo" value={card.types.join(", ")} />
+              )}
+              {card.illustrator && (
+                <DetailRow label="Ilustrador" value={card.illustrator} />
+              )}
+              {card.rarity && (
+                <DetailRow label="Raridade" value={card.rarity} />
+              )}
+              {card.category && (
+                <DetailRow label="Categoria" value={card.category} />
+              )}
+              {card.stage && <DetailRow label="Estágio" value={card.stage} />}
+            </View>
+
+            {/* Attacks */}
+            {card.attacks && card.attacks.length > 0 && (
+              <>
+                <View style={styles.separator} />
+                <View style={{ gap: 12 }}>
+                  <Text style={styles.sectionTitle}>Ataques</Text>
+                  {card.attacks.map((attack: any, index: number) => (
+                    <View key={index} style={styles.attackCard}>
+                      <View style={styles.attackHeader}>
+                        <Text style={styles.attackName}>{attack.name}</Text>
+                        {attack.damage && (
+                          <Text style={styles.attackDamage}>
+                            {attack.damage}
+                          </Text>
+                        )}
+                      </View>
+                      {attack.effect && (
+                        <Text style={styles.attackEffect}>{attack.effect}</Text>
+                      )}
+                      {attack.cost && attack.cost.length > 0 && (
+                        <Text style={styles.attackCost}>
+                          Custo: {attack.cost.join(", ")}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Weaknesses and Resistances */}
+            {(card.weaknesses || card.resistances) && (
+              <>
+                <View style={styles.separator} />
+                <View style={{ flexDirection: "row", gap: 16 }}>
+                  {card.weaknesses && card.weaknesses.length > 0 && (
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={styles.weakLabel}>Fraqueza</Text>
+                      {card.weaknesses.map((w: any, i: number) => (
+                        <Text key={i} style={styles.weakValue}>
+                          {w.type} {w.value}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                  {card.resistances && card.resistances.length > 0 && (
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={styles.weakLabel}>Resistência</Text>
+                      {card.resistances.map((r: any, i: number) => (
+                        <Text key={i} style={styles.resistValue}>
+                          {r.type} {r.value}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </>
+            )}
+
+            <View style={styles.separator} />
+
+            {/* Action Buttons */}
+            <View style={{ gap: 12, marginTop: 8 }}>
+              <Pressable
+                onPress={handleToggleCollection}
                 style={[
-                  styles.actionButtonText,
+                  styles.actionButton,
                   {
-                    color: isInCollection ? colors.error : colors.text.primary,
+                    backgroundColor: isInCollection
+                      ? colors.background.card
+                      : colors.primary[700],
+                    borderColor: isInCollection
+                      ? colors.error
+                      : colors.primary[600],
                   },
                 ]}
               >
-                {isInCollection
-                  ? "✕ Remover da Coleção"
-                  : "+ Adicionar à Coleção"}
-              </Text>
-            </Pressable>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    {
+                      color: isInCollection
+                        ? colors.error
+                        : colors.text.primary,
+                    },
+                  ]}
+                >
+                  {isInCollection
+                    ? "✕ Remover da Coleção"
+                    : "+ Adicionar à Coleção"}
+                </Text>
+              </Pressable>
 
-            <Pressable
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: "transparent",
-                  borderColor: colors.accent[500],
-                },
-              ]}
-            >
-              <Text
-                style={[styles.actionButtonText, { color: colors.accent[500] }]}
+              <Pressable
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: "transparent",
+                    borderColor: colors.accent[500],
+                  },
+                ]}
               >
-                🔄 Quero Trocar
-              </Text>
-            </Pressable>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    { color: colors.accent[500] },
+                  ]}
+                >
+                  🔄 Quero Trocar
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </Animated.View>
-    </ScrollView>
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
+  const styles = useStyles(stylesFactory);
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -288,7 +309,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const stylesFactory = (colors: any) => StyleSheet.create({
   pageContainer: {
     flex: 1,
     backgroundColor: colors.background.primary,

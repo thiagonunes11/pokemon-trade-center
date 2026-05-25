@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useRouter, useNavigation } from "expo-router";
+import { useCallback, useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -10,22 +10,32 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CollectionPickerCard, useCollections } from "@/features/sets";
+import { useOwnedCountsBySet } from "@/hooks/useOwnedSetCount";
 import {
   COLLECTIONS,
   getCollectionAvailability,
   isCollectionOpenable,
 } from "@/lib/collections";
-import { useOwnedCountsBySet } from "@/hooks/useOwnedSetCount";
-import { colors } from "@/theme";
+import { useAppTheme, useStyles } from "@/theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function CollectionsScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const setQueries = useCollections();
   const ownedCountsBySet = useOwnedCountsBySet();
+  const { colors } = useAppTheme();
+  const styles = useStyles(stylesFactory);
 
   const isLoading = setQueries.some((q) => q.isLoading);
   const hasError = setQueries.some((q) => q.isError);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <ThemeToggle />,
+    });
+  }, [navigation]);
 
   const handleSelectCollection = useCallback(
     (setId: string, canOpen: boolean) => {
@@ -92,7 +102,7 @@ export default function CollectionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const stylesFactory = (colors: any) => StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: colors.background.primary,

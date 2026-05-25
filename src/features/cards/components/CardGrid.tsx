@@ -1,4 +1,4 @@
-import { colors } from "@/theme";
+import { useAppTheme, useStyles } from "@/theme";
 import { useCallback } from "react";
 import {
   ActivityIndicator,
@@ -36,6 +36,8 @@ export function CardGrid({
 }: CardGridProps) {
   const insets = useSafeAreaInsets();
   const screenWidth = Dimensions.get("window").width;
+  const { colors } = useAppTheme();
+  const styles = useStyles(stylesFactory);
 
   // Responsive number of columns based on screen width
   const numColumns = screenWidth > 600 ? 3 : 2;
@@ -52,7 +54,7 @@ export function CardGrid({
         />
       </View>
     ),
-    [onCardPress],
+    [onCardPress, styles.itemWrapper],
   );
 
   if (isLoading) {
@@ -103,7 +105,7 @@ export function CardGrid({
   );
 }
 
-const styles = StyleSheet.create({
+const stylesFactory = (colors: any) => StyleSheet.create({
   gridContainer: {
     padding: 10,
   },

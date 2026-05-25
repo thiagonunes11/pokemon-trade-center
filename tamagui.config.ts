@@ -71,6 +71,42 @@ export const tamaguiConfig = createTamagui({
       green3: phantasmalTheme.purple5,  // subtle
       green4: phantasmalTheme.purple6,  // muted text
     },
+    light_phantom: {
+      background: phantasmalTheme.purple12,
+      backgroundHover: phantasmalTheme.purple11,
+      backgroundPress: phantasmalTheme.purple10,
+      backgroundFocus: phantasmalTheme.purple11,
+      backgroundStrong: '#FFFFFF',
+      backgroundTransparent: 'rgba(245, 243, 255, 0)',
+      color: phantasmalTheme.purple1,
+      colorHover: phantasmalTheme.purple2,
+      colorPress: phantasmalTheme.purple3,
+      colorFocus: phantasmalTheme.purple2,
+      colorTransparent: 'rgba(15, 13, 21, 0)',
+      borderColor: phantasmalTheme.purple10,
+      borderColorHover: phantasmalTheme.purple9,
+      borderColorFocus: phantasmalTheme.purple8,
+      borderColorPress: phantasmalTheme.purple9,
+      placeholderColor: phantasmalTheme.purple8,
+      outlineColor: phantasmalTheme.purple8,
+      shadowColor: 'rgba(124, 58, 237, 0.10)',
+      shadowColorHover: 'rgba(124, 58, 237, 0.15)',
+      shadowColorPress: 'rgba(124, 58, 237, 0.05)',
+      shadowColorFocus: 'rgba(124, 58, 237, 0.15)',
+      // Custom semantic colors
+      blue1: phantasmalTheme.purple8,   // primary
+      blue2: phantasmalTheme.purple9,   // primary hover
+      blue3: phantasmalTheme.purple10,  // primary active
+      blue4: phantasmalTheme.purple7,   // primary text
+      red1: phantasmalTheme.orange5,    // accent
+      red2: phantasmalTheme.orange6,    // accent hover
+      red3: phantasmalTheme.orange9,    // accent light
+      red4: phantasmalTheme.orange2,    // accent dark
+      green1: '#FFFFFF',                // card background
+      green2: phantasmalTheme.purple11, // card border
+      green3: phantasmalTheme.purple10, // subtle
+      green4: phantasmalTheme.purple8,  // muted text
+    },
   },
 });
 

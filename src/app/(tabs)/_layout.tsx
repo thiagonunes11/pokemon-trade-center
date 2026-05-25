@@ -1,8 +1,9 @@
-import { colors } from "@/theme";
+import { useAppTheme } from "@/theme";
 import { Tabs } from "expo-router";
 import { Dimensions, Text } from "react-native";
 
 export default function TabLayout() {
+  const { colors } = useAppTheme();
   const screenWidth = Dimensions.get("window").width;
 
   // Responsive tab bar height

@@ -6,7 +6,7 @@ import type {
   CollectionConfig,
 } from "@/lib/collections";
 import { formatCollectionProgress } from "@/lib/formatCollectionProgress";
-import { colors } from "@/theme";
+import { useStyles } from "@/theme";
 
 type CollectionPickerCardProps = {
   collection: CollectionConfig;
@@ -40,6 +40,7 @@ export function CollectionPickerCard({
   onPress,
 }: CollectionPickerCardProps) {
   const disabled = availability !== "available";
+  const styles = useStyles(stylesFactory);
 
   return (
     <Pressable
@@ -90,7 +91,7 @@ export function CollectionPickerCard({
   );
 }
 
-const styles = StyleSheet.create({
+const stylesFactory = (colors: any) => StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",

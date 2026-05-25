@@ -10,10 +10,19 @@ import "@/lib/storagePolyfill";
 
 import { queryClient } from "@/lib/queryClient";
 import { restoreQueryCache, setupQueryCachePersistence } from "@/lib/queryPersister";
-import { colors } from "@/theme";
+import { ThemeProvider, useAppTheme } from "@/theme";
 import { tamaguiConfig } from "../../tamagui.config";
 
 export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
+  const { theme, colors: themeColors } = useAppTheme();
   const [isRestored, setIsRestored] = useState(false);
 
   useEffect(() => {
@@ -42,13 +51,13 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <TamaguiProvider
         config={tamaguiConfig as any}
-        defaultTheme="dark_phantom"
+        defaultTheme={theme === "dark" ? "dark_phantom" : "light_phantom"}
       >
-        <StatusBar style="light" />
+        <StatusBar style={theme === "dark" ? "light" : "dark"} />
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: colors.background.primary },
+            contentStyle: { backgroundColor: themeColors.background.primary },
             animation: "slide_from_right",
           }}
         >
@@ -56,7 +65,16 @@ export default function RootLayout() {
           <Stack.Screen
             name="card/[id]"
             options={{
-              headerShown: false,
+              headerShown: true,
+              headerTitle: "",
+              headerShadowVisible: false,
+              headerStyle: {
+                backgroundColor: themeColors.background.primary,
+                elevation: 0,
+                shadowOpacity: 0,
+              } as any,
+              headerTintColor: themeColors.text.primary,
+              headerBackButtonMenuEnabled: false,
               animation: "slide_from_bottom",
             }}
           />
@@ -67,7 +85,7 @@ export default function RootLayout() {
             style={[
               StyleSheet.absoluteFill,
               {
-                backgroundColor: colors.background.primary,
+                backgroundColor: themeColors.background.primary,
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 16,
@@ -75,8 +93,8 @@ export default function RootLayout() {
               },
             ]}
           >
-            <ActivityIndicator size="large" color={colors.primary[400]} />
-            <Text style={{ color: colors.text.secondary, fontSize: 14 }}>
+            <ActivityIndicator size="large" color={themeColors.primary[400]} />
+            <Text style={{ color: themeColors.text.secondary, fontSize: 14 }}>
               Carregando dados locais...
             </Text>
           </View>

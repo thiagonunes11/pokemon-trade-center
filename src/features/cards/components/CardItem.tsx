@@ -1,4 +1,4 @@
-import { colors } from "@/theme";
+import { useStyles } from "@/theme";
 import { Image } from "expo-image";
 import { memo } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
@@ -21,6 +21,7 @@ function CardItemComponent({
   onPress,
 }: CardItemProps) {
   const screenWidth = Dimensions.get("window").width;
+  const styles = useStyles(stylesFactory);
 
   const isSmallScreen = screenWidth < 400;
   const isMediumScreen = screenWidth < 600;
@@ -32,10 +33,7 @@ function CardItemComponent({
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.container,
-        pressed && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
       onPress={() => onPress(id)}
       android_ripple={{ color: "rgba(255,255,255,0.12)" }}
     >
@@ -78,7 +76,7 @@ function CardItemComponent({
 
 export const CardItem = memo(CardItemComponent);
 
-const styles = StyleSheet.create({
+const stylesFactory = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     margin: 5,
