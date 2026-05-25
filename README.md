@@ -51,11 +51,9 @@ Siga os passos na ordem:
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/SEU_USUARIO/pokemon-trade-center.git
+git clone https://github.com/thiagonunes11/pokemon-trade-center.git
 cd pokemon-trade-center
 ```
-
-Substitua `SEU_USUARIO` pelo seu usuário ou organização no GitHub.
 
 ### 2. Instalar dependências
 
