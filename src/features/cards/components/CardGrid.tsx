@@ -10,13 +10,15 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCollectionStore } from "@/store/useCollectionStore";
 import { CardItem } from "./CardItem";
 
-interface CardBrief {
+export interface CardBrief {
   id: string;
   localId: string;
   name: string;
   image?: string | null;
+  rarity?: string;
 }
 
 interface CardGridProps {
@@ -42,6 +44,10 @@ export function CardGrid({
   // Responsive number of columns based on screen width
   const numColumns = screenWidth > 600 ? 3 : 2;
 
+  // Subscribe to collection changes to re-render when cards are added/removed
+  const collectionCards = useCollectionStore((s) => s.cards);
+  const hasCard = useCollectionStore((s) => s.hasCard);
+
   const renderItem = useCallback(
     ({ item }: { item: CardBrief }) => (
       <View style={styles.itemWrapper}>
@@ -50,11 +56,13 @@ export function CardGrid({
           name={item.name}
           localId={item.localId}
           image={item.image ?? null}
+          rarity={item.rarity}
+          isInCollection={hasCard(item.id)}
           onPress={onCardPress}
         />
       </View>
     ),
-    [onCardPress, styles.itemWrapper],
+    [onCardPress, styles.itemWrapper, hasCard, collectionCards],
   );
 
   if (isLoading) {
@@ -80,6 +88,7 @@ export function CardGrid({
       renderItem={renderItem}
       keyExtractor={(item) => item.id}
       numColumns={numColumns}
+      extraData={collectionCards}
       initialNumToRender={8}
       maxToRenderPerBatch={8}
       windowSize={5}

@@ -1,6 +1,5 @@
 import { useStyles } from "@/theme";
 import { Image } from "expo-image";
-import { memo } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 interface CardItemProps {
@@ -9,6 +8,7 @@ interface CardItemProps {
   localId: string;
   image: string | null;
   rarity?: string;
+  isInCollection?: boolean;
   onPress: (id: string) => void;
 }
 
@@ -18,6 +18,7 @@ function CardItemComponent({
   localId,
   image,
   rarity,
+  isInCollection = false,
   onPress,
 }: CardItemProps) {
   const screenWidth = Dimensions.get("window").width;
@@ -29,7 +30,17 @@ function CardItemComponent({
   const nameFontSize = isSmallScreen ? 11 : isMediumScreen ? 12 : 13;
   const localIdFontSize = isSmallScreen ? 9 : isMediumScreen ? 10 : 11;
 
-  const imageUrl = image ? `${image}/high.webp` : null;
+  // Accept either a base image URL (e.g. '.../image') or a full URL
+  // that already includes the size suffix (e.g. '.../image/high.webp' or '.../image/high.png').
+  let imageUrl: string | null = null;
+  if (image) {
+    const lower = image.toLowerCase();
+    if (lower.endsWith("/high.webp") || lower.endsWith("/high.png")) {
+      imageUrl = image;
+    } else {
+      imageUrl = `${image}/high.webp`;
+    }
+  }
 
   return (
     <Pressable
@@ -37,7 +48,7 @@ function CardItemComponent({
       onPress={() => onPress(id)}
       android_ripple={{ color: "rgba(255,255,255,0.12)" }}
     >
-      <View style={styles.card}>
+      <View style={[styles.card, isInCollection && styles.cardInCollection]}>
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
@@ -74,7 +85,7 @@ function CardItemComponent({
   );
 }
 
-export const CardItem = memo(CardItemComponent);
+export const CardItem = CardItemComponent;
 
 const stylesFactory = (colors: any) => StyleSheet.create({
   container: {
@@ -95,6 +106,15 @@ const stylesFactory = (colors: any) => StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+  },
+  cardInCollection: {
+    borderColor: colors.primary[400],
+    borderWidth: 2,
+    backgroundColor: colors.primary[950],
+    shadowColor: colors.primary[400],
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
   cardImage: {
     width: "100%",

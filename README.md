@@ -2,258 +2,156 @@
 
 App mobile para explorar cartas do Pokémon TCG, montar sua coleção e preparar trocas com outros jogadores. Feito com **Expo** e **React Native**.
 
-> **Trabalho em andamento** — este app ainda está em desenvolvimento ativo. Várias telas e funções existem de forma parcial ou como placeholder; novas funcionalidades estão sendo implementadas e serão adicionadas em atualizações futuras. O que você vê hoje não representa a versão final do produto.
+> **Trabalho em andamento** — funcionalidades novas entram aos poucos; o app ainda não representa a versão final.
 
----
-
-## Status do projeto
-
-| Situação | Detalhe |
-|----------|---------|
-| **Estágio** | MVP / protótipo em evolução |
-| **Funcionalidades** | Em construção — algumas já funcionam, outras estão planejadas |
-| **Expectativa** | Comportamentos, layout e fluxos podem mudar sem aviso prévio |
-
-Se você clonar o repositório, espere encontrar código e telas em constante mudança. Sugestões e contribuições são bem-vindas enquanto o projeto amadurece.
-
-**Agentes de IA:** leia [AGENTS.md](./AGENTS.md) antes de implementar mudanças — contém arquitetura, fluxos, API, armadilhas e diretrizes de escopo.
+**Agentes de IA:** leia [AGENTS.md](./AGENTS.md) antes de alterar código.
 
 ---
 
 ## O que o app faz hoje
 
-### Fluxo principal (aba Catálogo)
+### Primeiro acesso
 
-1. **Coleções** — lista de expansões com logo oficial e progresso **`005/188 cartas`**
-2. Toque em uma expansão → **Catálogo** com grid de cartas (pull-to-refresh)
-3. Toque em uma carta → **Detalhe** com imagem, stats e botão para adicionar à coleção
+1. **Login local** — informe um nome; o app cria uma conta só neste dispositivo (sem servidor)
+2. Os dados da coleção e preferências ficam salvos localmente
 
-O contador **`owned/total cartas`** aparece na tela de Coleções (cada card) e no header do catálogo ao abrir um set — sempre com base na sua coleção local (Zustand) e no total do set na TCGdex.
+### Aba Catálogo
 
-### Abas
+1. **Coleções** — escolha a expansão (logo oficial + progresso `005/188 cartas`)
+2. **Grid** — todas as cartas do set (pull-to-refresh)
+3. **Detalhe** — imagem, informações e botão para adicionar/remover da sua coleção
 
-| Aba | Descrição |
-|-----|-----------|
-| **Catálogo** | Seleção de expansão → grid de cartas → detalhe |
-| **Coleção** | Contador de cartas salvas localmente (lista completa em desenvolvimento) |
-| **Trocas** | Apenas layout inicial — fluxo de troca será adicionado futuramente |
+### Aba Coleção
+
+- Lista das cartas que você salvou
+- Modos: **Todas**, **Por coleção** ou **Recentes**
+- Toque em uma carta para abrir o detalhe
+
+### Aba Trocas
+
+Placeholder — fluxo de troca ainda não implementado.
+
+### Outros
+
+- **Tema claro/escuro** (toggle no header da tela Coleções)
+- **Cache da API** — consultas TCGdex persistidas para abrir mais rápido na próxima vez
 
 ---
 
-## Expansões suportadas (série Megaevolução)
+## Expansões (série Megaevolução)
 
-Dados em português via [TCGdex API](https://tcgdex.dev/) (`pt`).
+Dados via [TCGdex](https://tcgdex.dev/) em português.
 
-| Expansão | ID API | Status no app |
-|----------|--------|---------------|
+| Expansão | ID | Status |
+|----------|-----|--------|
 | Megaevolução | `me01` | Disponível |
 | Fogo Fantasmagórico | `me02` | Disponível |
 | Heróis Excelsos | `me02.5` | Disponível |
 | Equilíbrio Perfeito | `me03` | Disponível |
-| Caos Ascendente | `me04` | **Catálogo em breve** — visível na lista, desabilitada até a TCGdex publicar as cartas |
-
-Quando a API passar a retornar cartas para `me04` (`cards.length > 0`), a expansão é liberada automaticamente no app, sem alteração de código.
-
-Outros sets da API (promos `mep`, energias `mee`, eras antigas etc.) ainda não estão na seleção.
+| Caos Ascendente | `me04` | Catálogo em breve (API sem cartas ainda) |
 
 ---
 
 ## Pré-requisitos
 
-Antes de começar, instale:
-
-1. **[Node.js](https://nodejs.org/)** — versão **20 LTS** ou superior (recomendado)
-2. **[Git](https://git-scm.com/)**
-3. Para **Android**:
-   - [Android Studio](https://developer.android.com/studio) com um emulador (AVD) criado, **ou**
-   - Celular Android com [modo desenvolvedor](https://developer.android.com/studio/debug/dev-options) e USB/debug ativo
-4. Para **iOS** (apenas macOS): Xcode e simulador iOS
-
-> **Dica:** na primeira vez no Android, o comando `npm run android` pode demorar alguns minutos (download do Gradle e build nativo).
+1. [Node.js](https://nodejs.org/) 20 LTS+
+2. [Git](https://git-scm.com/)
+3. Android: [Android Studio](https://developer.android.com/studio) + emulador, ou dispositivo com USB debug
+4. iOS (macOS): Xcode
 
 ---
 
-## Como rodar o projeto
-
-Siga os passos na ordem:
-
-### 1. Clonar o repositório
+## Como rodar
 
 ```bash
 git clone https://github.com/thiagonunes11/pokemon-trade-center.git
 cd pokemon-trade-center
-```
-
-### 2. Instalar dependências
-
-```bash
 npm install
-```
-
-### 3. Iniciar o servidor de desenvolvimento
-
-```bash
 npm start
 ```
 
-O terminal do Expo abrirá com um menu. Atalhos úteis:
-
 | Tecla | Ação |
 |-------|------|
-| `a` | Abrir no emulador/dispositivo **Android** |
-| `i` | Abrir no simulador **iOS** (macOS) |
-| `w` | Abrir no **navegador** |
-| `r` | Recarregar o app |
-| `m` | Abrir menu de desenvolvedor |
-
-### 4. Atalho direto para Android
-
-Com o emulador já ligado:
+| `a` | Android |
+| `i` | iOS |
+| `r` | Recarregar |
+| `m` | Menu dev |
 
 ```bash
-npm run android
-```
-
-Equivale a `expo run:android` — compila e instala o app nativo (pasta `android/` já existe no projeto).
-
-Ou, só para abrir no emulador sem build completo:
-
-```bash
-npx expo start --android
+npm run android          # build nativo + emulador
+npx expo start --android # só Metro + emulador
+npx expo start --clear   # limpar cache
 ```
 
 ---
 
-## Scripts disponíveis
+## Scripts
 
-| Comando | O que faz |
+| Comando | Descrição |
 |---------|-----------|
-| `npm start` | Inicia o Metro Bundler (Expo) |
-| `npm run android` | Build nativo + execução no Android |
-| `npm run ios` | Build nativo + execução no iOS (macOS) |
-| `npm run web` | Abre a versão web |
-| `npm run lint` | Verifica o código com ESLint do Expo |
+| `npm start` | Metro / Expo |
+| `npm run android` | Run Android nativo |
+| `npm run ios` | Run iOS |
+| `npm run web` | Web |
+| `npm run lint` | ESLint |
 
 ---
 
-## Estrutura do projeto
+## Estrutura
 
 ```
-pokemon-trade-center/
-├── src/
-│   ├── app/                      # Rotas (Expo Router)
-│   │   ├── (tabs)/
-│   │   │   ├── catalog/
-│   │   │   │   ├── _layout.tsx   # Stack (voltar entre telas)
-│   │   │   │   ├── index.tsx     # Seleção de expansões
-│   │   │   │   └── [setId].tsx   # Grid de cartas do set
-│   │   │   ├── collection.tsx
-│   │   │   └── trades.tsx
-│   │   ├── card/[id].tsx         # Detalhe da carta
-│   │   └── _layout.tsx
-│   ├── features/
-│   │   ├── cards/                # CardGrid, hooks TCGdex
-│   │   └── sets/                 # Cards de seleção de expansão
-│   ├── hooks/
-│   │   └── useOwnedSetCount.ts   # Progresso owned/total por set
-│   ├── store/                    # Coleção local (Zustand)
-│   ├── lib/
-│   │   ├── tcgdex.ts             # Cliente SDK + IDs dos sets
-│   │   ├── collections.ts        # Config + disponibilidade dos sets
-│   │   └── formatCollectionProgress.ts
-│   └── theme/
-├── AGENTS.md                     # Contexto para agentes de IA
-├── README.md
-├── assets/
-├── android/
-├── app.json
-└── tamagui.config.ts
+src/app/           # Rotas (Expo Router)
+  login.tsx
+  (tabs)/catalog/  # Coleções → catálogo por set
+  (tabs)/collection.tsx
+  card/[id].tsx
+src/features/      # cards, sets
+src/hooks/         # useOwnedSetCount, tema
+src/store/         # auth + coleção (persist)
+src/lib/           # TCGdex, cache, collections
+src/theme/         # claro/escuro
+AGENTS.md          # Contexto para IAs
 ```
 
-O código das telas fica em **`src/app`**, não na pasta `app` na raiz (configuração deste template).
+Telas em **`src/app`**, não em `/app` na raiz.
 
 ---
 
 ## Tecnologias
 
-- [Expo SDK 56](https://docs.expo.dev/) + [Expo Router](https://docs.expo.dev/router/introduction/)
-- [React Native](https://reactnative.dev/) 0.85 + [React](https://react.dev/) 19
-- [Tamagui](https://tamagui.dev/) — UI e tema escuro *phantom*
-- [TanStack Query](https://tanstack.com/query) — cache e requisições
-- [TCGdex SDK](https://tcgdex.dev/) — dados das cartas em **pt-BR**
-- [Zustand](https://zustand.docs.pmnd.dev/) — coleção local (em memória)
+Expo 56 · React Native 0.85 · Expo Router · Tamagui · TanStack Query · TCGdex SDK · Zustand · AsyncStorage
 
 ---
 
 ## Problemas comuns
 
-### Metro não inicia ou porta ocupada
+**Metro / cache:** `npx expo start --clear`
 
-```bash
-npx expo start --clear
-```
+**Emulador:** Android Studio → Device Manager → iniciar AVD → `a` no Expo
 
-### Emulador Android não aparece
+**Erro `getSetCardCount`:** reload com `--clear`; ver [AGENTS.md](./AGENTS.md)
 
-1. Abra o **Android Studio** → **Device Manager**
-2. Inicie um AVD (ex.: Pixel com API 34+)
-3. Rode de novo `npm run android` ou pressione `a` no terminal do Expo
-
-### Erro após mudar dependências
-
-```bash
-rm -rf node_modules
-npm install
-npx expo start --clear
-```
-
-No Windows (PowerShell):
-
-```powershell
-Remove-Item -Recurse -Force node_modules
-npm install
-npx expo start --clear
-```
-
-### App não atualiza após editar código
-
-No terminal do Expo, pressione **`r`** para reload. Se persistir, reinicie com `--clear`.
-
-### Erro `Property 'getSetCardCount' doesn't exist`
-
-Geralmente cache do Metro após refatoração. Use `npx expo start --clear`. Nos componentes, use os hooks `useOwnedSetCount` / `useOwnedCountsBySet` (`src/hooks/useOwnedSetCount.ts`), não chame `getSetCardCount` direto no JSX.
-
-### Expansão aparece desabilitada (“Catálogo em breve”)
-
-A expansão só abre quando a TCGdex retorna cartas no endpoint do set. Confira o status em [api.tcgdex.net/v2/pt/sets/{id}](https://api.tcgdex.net/v2/pt/sets/me04) (ex.: `me04`).
+**Expansão desabilitada:** normal para `me04` até a TCGdex publicar cartas
 
 ---
 
-## Funcionalidades planejadas
+## Roadmap
 
-Itens abaixo estão no radar e serão inseridos aos poucos — não há prazo fixo:
+- [ ] Fluxo de trocas
+- [ ] Conta/sync na nuvem
+- [ ] Promos (`mep`) e mais sets
+- [ ] Busca no catálogo
 
-- [ ] Listar e filtrar cartas na aba Coleção
-- [ ] Fluxo completo de trocas entre jogadores
-- [ ] Suporte a promos (`mep`) e energias (`mee`)
-- [ ] Persistência da coleção com AsyncStorage
-- [ ] Melhorias de UI/UX e performance
-
-A lista pode crescer conforme o desenvolvimento avança. Acompanhe os commits e as **Issues** do repositório para ver o que entrou em cada versão.
-
-Contribuições e sugestões são bem-vindas via **Issues** e **Pull Requests**.
+Contribuições via Issues e Pull Requests.
 
 ---
 
 ## Licença
 
-Este projeto utiliza dependências open source. Consulte o arquivo [LICENSE](./LICENSE) no repositório.
+Ver [LICENSE](./LICENSE).
 
----
+## Links
 
-## Links úteis
-
-- [Documentação Expo](https://docs.expo.dev/)
-- [TCGdex — API de cartas](https://tcgdex.dev/)
-- [TCGdex — Sets em PT-BR](https://api.tcgdex.net/v2/pt/series/me)
-- [Expo Router](https://docs.expo.dev/router/introduction/)
+- [Expo](https://docs.expo.dev/)
+- [TCGdex](https://tcgdex.dev/)
+- [Sets Megaevolução (API)](https://api.tcgdex.net/v2/pt/series/me)

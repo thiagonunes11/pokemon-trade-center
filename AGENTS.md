@@ -1,346 +1,323 @@
 # AGENTS.md — Contexto para agentes de IA
 
-Leia este arquivo **antes** de implementar mudanças neste repositório. Ele descreve o propósito do projeto, arquitetura, convenções e armadilhas conhecidas.
+Leia este arquivo **antes** de implementar mudanças.
 
-Documentação para humanos: [README.md](./README.md)  
-Troubleshooting só de boot Expo: [.agent.md](./.agent.md)
+| Documento | Público |
+|-----------|---------|
+| [README.md](./README.md) | Humanos (setup, visão do produto) |
+| [.agent.md](./.agent.md) | Boot Expo / emulador Android apenas |
+| **AGENTS.md** (este) | Arquitetura, convenções, armadilhas |
+
+**Repositório:** `https://github.com/thiagonunes11/pokemon-trade-center.git`
 
 ---
 
 ## 1. Visão geral
 
-| Campo                | Valor                                                              |
-| -------------------- | ------------------------------------------------------------------ |
-| **Nome**             | Pokemon Trade Center                                               |
-| **Tipo**             | App mobile MVP (Expo / React Native)                               |
-| **Domínio**          | Pokémon TCG — catálogo de cartas, coleção pessoal, trocas (futuro) |
-| **Idioma da UI**     | Português (Brasil)                                                 |
-| **Idioma dos dados** | Português via TCGdex (`pt`)                                        |
-| **Estágio**          | Trabalho em andamento; várias telas são placeholder                |
-| **Repositório**      | `https://github.com/thiagonunes11/pokemon-trade-center.git`        |
+| Campo | Valor |
+|-------|--------|
+| **Nome** | Pokemon Trade Center |
+| **Tipo** | App mobile MVP (Expo / React Native) |
+| **Domínio** | Pokémon TCG — catálogo, coleção pessoal, trocas (futuro) |
+| **UI** | Português (Brasil); evitar jargão técnico na interface |
+| **Dados remotos** | [TCGdex](https://tcgdex.dev/) locale `pt` |
+| **Conta** | Local por dispositivo (sem servidor) |
 
-### Objetivo do produto
-
-Permitir que o usuário:
-
-1. Escolha uma **expansão** (set) da série Megaevolução
-2. Navegue o **catálogo** de cartas com imagens e metadados da API
-3. Veja **detalhe** da carta e **adicione/remova** da coleção local
-4. (Futuro) Gerencie coleção completa e **trocas** com outros jogadores
-
-Não é escopo atual: backend próprio, autenticação, chat, pagamentos, scanner de cartas.
+**Fora de escopo:** backend, OAuth, sync na nuvem, chat, pagamentos, scanner.
 
 ---
 
-## 2. Stack técnica
+## 2. Stack e versões
 
-| Camada        | Tecnologia                | Versão relevante                                                           |
-| ------------- | ------------------------- | -------------------------------------------------------------------------- |
-| Runtime       | Expo SDK                  | ~56                                                                        |
-| Framework UI  | React Native              | 0.85                                                                       |
-| UI library    | React                     | 19                                                                         |
-| Rotas         | Expo Router (file-based)  | ~56                                                                        |
-| Estilo / tema | Tamagui + `src/theme`     | Temas `dark_phantom` e `light_phantom` reativos                            |
-| API cartas    | `@tcgdex/sdk`             | TCGdex REST, locale `pt`                                                   |
-| Cache remoto  | TanStack React Query      | query keys por set/card + Persistência (safeStorage + getCircularReplacer) |
-| Estado local  | Zustand                   | Coleção persistida (safeStorage + AsyncStorage)                            |
-| Imagens       | `expo-image`              | URLs `{base}/high.png` ou `.webp`                                          |
-| Animações     | `react-native-reanimated` | telas de detalhe / grid                                                    |
-| TypeScript    | strict                    | paths `@/*` → `./src/*`                                                    |
-| Nativo        | pasta `android/`          | development build (`expo run:android`)                                     |
-
-**Experiments ativos** (`app.json`): `typedRoutes`, `reactCompiler`.
+| Camada | Pacote / nota |
+|--------|----------------|
+| Expo ~56, RN 0.85, React 19 | `package.json` |
+| Expo Router | Rotas em `src/app/` (não `/app` na raiz) |
+| Tamagui | `tamagui.config.ts` na raiz; temas `dark_phantom` / `light_phantom` |
+| `@tcgdex/sdk` | `new TCGdex("pt")` em `src/lib/tcgdex.ts` |
+| TanStack Query v5 | Cache persistido via `queryPersister.ts` |
+| Zustand v5 + persist | Auth + coleção em `safeStorage` |
+| `expo-image` | Thumbnails e arte das cartas |
+| Path alias | `@/*` → `src/*` (`tsconfig.json`) |
 
 ---
 
-## 3. Estrutura de diretórios (crítico)
+## 3. Estrutura de diretórios
 
 ```
-src/app/                    ← Rotas Expo Router (NÃO usar /app na raiz)
-  _layout.tsx               ← Root: QueryClient, Tamagui, Stack global
+src/app/
+  index.tsx                 → Redirect href="/catalog"
+  login.tsx                 → Conta local (nome → UUID)
+  _layout.tsx               → ThemeProvider, Query, splash cache, auth guard
   (tabs)/
-    _layout.tsx             ← Tab bar: Catálogo, Coleção, Trocas
+    _layout.tsx             → 3 abas: Catálogo, Coleção, Trocas
     catalog/
-      _layout.tsx           ← Stack interno (necessário para botão voltar)
-      index.tsx             ← Lista de expansões (picker)
-      [setId].tsx           ← Grid de cartas do set
-    collection.tsx          ← Placeholder: só contador
-    trades.tsx              ← Placeholder: texto estático
-  card/[id].tsx             ← Detalhe da carta (Stack global, header nativo)
-  index.tsx                 ← Redireciona `/` para `/catalog`
+      _layout.tsx           → Stack interno (voltar Coleções ↔ grid)
+      index.tsx             → Picker de expansões + ThemeToggle
+      [setId].tsx           → Grid + CatalogHeaderTitle (000/188)
+    collection.tsx          → Lista da coleção (all / por set / recentes)
+    trades.tsx              → Placeholder
+  card/[id].tsx             → Detalhe + toggle coleção
 
 src/features/
-  cards/                    ← CardGrid, CardItem, useSetCards, useCard
-  sets/                     ← CollectionPickerCard, useCollections
+  cards/                    → CardGrid, CardItem, useSetCards, useCard
+  sets/                     → CollectionPickerCard, useCollections
 
 src/hooks/
-  useOwnedSetCount.ts       ← useOwnedSetCount, useOwnedCountsBySet (progresso local)
+  useOwnedSetCount.ts         → useOwnedSetCount, useOwnedCountsBySet
 
 src/lib/
-  tcgdex.ts                 ← Cliente SDK + SUPPORTED_SETS
-  collections.ts            ← COLLECTIONS[], disponibilidade, helpers
-  formatCollectionProgress.ts  ← "005/188 cartas"
-  queryClient.ts
-  queryPersister.ts         ← Cache offline-first do React Query (debounced)
-  safeStorage.ts            ← Invólucro resiliente com fallback (Web/Expo Go)
-  storagePolyfill.ts        ← Importar antes do SDK (side effect)
-
-src/components/             ← Componentes globais e reutilizáveis
-  ThemeToggle.tsx           ← Botão animado de alternância de tema no header
+  tcgdex.ts, collections.ts, formatCollectionProgress.ts
+  queryClient.ts, queryPersister.ts, safeStorage.ts, storagePolyfill.ts
 
 src/store/
-  useCollectionStore.ts     ← Zustand: cards[], add/remove/has (getSetCardCount só na store)
+  useAuthStore.ts           → ptc-auth-storage
+  useCollectionStore.ts     → pokemon-collection-storage (ownerId)
 
-src/theme/                  ← colors, typography, ThemeContext (ThemeProvider, useAppTheme, useStyles)
-tamagui.config.ts           ← temas Tamagui (dark_phantom e light_phantom) na raiz do projeto
+src/theme/
+  ThemeContext.tsx, colors.ts, useAppTheme, useStyles
+
+src/components/
+  ThemeToggle.tsx           → Usado no header de catalog/index (Coleções)
 ```
-
-**Regra:** telas e rotas vivem em `src/app/`. O Expo detecta `src/app` como router root automaticamente.
 
 ---
 
-## 4. Navegação e fluxos
+## 4. Ciclo de vida ao abrir o app
+
+```mermaid
+sequenceDiagram
+  participant App
+  participant QP as QueryPersister
+  participant Auth as useAuthStore
+  participant Router
+
+  App->>QP: restoreQueryCache()
+  QP-->>App: isRestored = true
+  alt sem userId
+    App->>Router: replace /login
+  else com userId
+    App->>Router: (tabs) via index → /catalog
+  end
+```
+
+1. `storagePolyfill` importado cedo (`_layout.tsx`, `tcgdex.ts`).
+2. `restoreQueryCache` → overlay **"Carregando dados locais..."** até `isRestored`.
+3. `useEffect`: se `isRestored && !userId` → `router.replace('/login')`.
+4. Login: `login(name)` → `router.replace('/')` → `index` redireciona para `/catalog`.
+
+**Ordem obrigatória em `_layout.tsx`:** declarar `useState(isRestored)` **antes** de qualquer `useEffect` que leia `isRestored`.
+
+`login.tsx` não aparece em `<Stack.Screen>` explícito — o Expo Router descobre pelo filesystem (`src/app/login.tsx` → `/login`).
+
+---
+
+## 5. Navegação
 
 ```mermaid
 flowchart TD
-  Tabs[(tabs)]
-  Pick[catalog/index - Coleções]
-  Grid[catalog/setId - Catálogo]
-  Detail[card/id - Detalhe]
-  Coll[collection]
-  Trades[trades]
-
-  Tabs --> Pick
-  Pick -->|router.push /catalog/me01| Grid
-  Grid -->|router.push /card/me01-001| Detail
-  Tabs --> Coll
-  Tabs --> Trades
+  Login[login.tsx] --> Tabs[(tabs)]
+  Tabs --> Colecoes[catalog/index - Coleções]
+  Colecoes --> Grid["catalog/[setId]"]
+  Grid --> Detail["card/[id]"]
+  Tabs --> MinhaCol[collection.tsx]
+  Tabs --> Trocas[trades.tsx]
 ```
 
-| Rota                      | Arquivo               | Header                                                 |
-| ------------------------- | --------------------- | ------------------------------------------------------ |
-| `/(tabs)/catalog`         | `catalog/index.tsx`   | Stack: "Coleções"; cada card mostra `000/188 cartas`   |
-| `/(tabs)/catalog/[setId]` | `catalog/[setId].tsx` | Stack: título + badge `000/188` (`CatalogHeaderTitle`) |
-| `/card/[id]`              | `card/[id].tsx`       | Stack global, opaco, botão voltar                      |
+| Rota | Tela |
+|------|------|
+| `/login` | Criar conta local |
+| `/catalog` | Lista de expansões (tab Catálogo, header oculto na tab) |
+| `/catalog/[setId]` | Grid do set |
+| `/card/[id]` | Detalhe (Stack root, header opaco) |
+| `/(tabs)/collection` | Minha coleção |
 
-**Importante:** o fluxo Catálogo usa **Stack dentro da tab** (`catalog/_layout.tsx`). Tabs sozinhas **não** exibem botão voltar entre `index` e `[setId]`.
+**Stack em `catalog/_layout.tsx`** é obrigatório: sem ele não há botão voltar entre Coleções e o grid. `headerBackTitle: "Coleções"` no Android/iOS.
 
-Navegação típica:
-
-```ts
-router.push({ pathname: "/catalog/[setId]", params: { setId } });
-router.push({ pathname: "/card/[id]", params: { id: cardId } });
-```
+**Header do grid:** componente local `CatalogHeaderTitle` em `[setId].tsx` — título + badge `formatCollectionProgress` via `useLayoutEffect`.
 
 ---
 
-## 5. Dados — TCGdex API
+## 6. Autenticação e coleção
 
-### Cliente
+### Auth (`useAuthStore`)
 
-```ts
-// src/lib/tcgdex.ts
-const tcgdex = new TCGdex("pt");
-```
+| Campo / método | Comportamento |
+|----------------|---------------|
+| `login(username)` | Gera `userId` (UUID v4), persiste em `ptc-auth-storage` |
+| `logout()` | Limpa `userId` e `username` — **sem UI** hoje |
+| Guard | `_layout.tsx` após restore do cache |
 
-Sempre importar `@/lib/storagePolyfill` antes do SDK (já feito em `_layout.tsx` e `tcgdex.ts`).
-
-### Expansões configuradas no app
-
-Definidas em `SUPPORTED_SETS` + `COLLECTIONS` (`src/lib/collections.ts`):
-
-| Constante             | ID API   | Nome exibido        | Catálogo no app           |
-| --------------------- | -------- | ------------------- | ------------------------- |
-| `MEGAEVOLUCAO`        | `me01`   | Megaevolução        | Sim                       |
-| `FOGO_FANTASMAGORICO` | `me02`   | Fogo Fantasmagórico | Sim                       |
-| `HEROIS_EXCELSOS`     | `me02.5` | Heróis Excelsos     | Sim                       |
-| `EQUILIBRIO_PERFEITO` | `me03`   | Equilíbrio Perfeito | Sim                       |
-| `CAOS_ASCENDENTE`     | `me04`   | Caos Ascendente     | **Não** (0 cartas na API) |
-
-### Disponibilidade de coleção
-
-Lógica em `getCollectionAvailability()`:
-
-- `loading` → query em andamento
-- `available` → `set.cards.length > 0`
-- `unavailable` → sem cartas na resposta (ex.: `me04` hoje)
-
-UI: card desabilitado, `unavailableMessage` (ex.: "Catálogo em breve" para Caos Ascendente). **Não** depender de flag manual — habilita automaticamente quando a API passar a retornar cartas.
-
-### Contador de progresso (`owned/total`)
-
-Função: `formatCollectionProgress(owned, total)` em `src/lib/formatCollectionProgress.ts` → string `"005/188 cartas"` (padding mínimo 3 dígitos no owned).
-
-| Onde                  | Como obter owned               | Como obter total                                 |
-| --------------------- | ------------------------------ | ------------------------------------------------ |
-| `catalog/index.tsx`   | `useOwnedCountsBySet()`        | `set.cardCount.total` ou `cards.length` da query |
-| `catalog/[setId].tsx` | `useOwnedSetCount(validSetId)` | `setData.cardCount.total` ou `cards.length`      |
-
-**Não** usar `useCollectionStore((s) => s.getSetCardCount)` em componentes — o selector de função não re-renderiza bem e já causou `Property 'getSetCardCount' doesn't exist` com hot reload. Preferir sempre os hooks em `src/hooks/useOwnedSetCount.ts`.
-
-### URLs de imagem
-
-- Logo do set: `https://assets.tcgdex.net/pt/me/{id}/logo.webp`
-- Carta alta resolução: `${card.image}/high.png` (detalhe) ou `/high.webp` (coleção)
-- IDs de carta: `{setId}-{localId}` (ex. `me02.5-042` — setId pode conter ponto)
-
-### React Query keys
-
-| Hook                 | queryKey                                      |
-| -------------------- | --------------------------------------------- |
-| `useSetCards(setId)` | `['set-cards', setId]`                        |
-| `useCard(cardId)`    | `['card', cardId]`                            |
-| `useSet(setId)`      | `['set', setId]`                              |
-| `useCollections()`   | um `['set', id]` por entrada em `COLLECTIONS` |
-
-### Adicionar nova expansão
-
-1. Confirmar ID em `https://api.tcgdex.net/v2/pt/sets/{id}` (verificar `cards.length > 0`)
-2. Adicionar em `SUPPORTED_SETS` (`tcgdex.ts`)
-3. Adicionar objeto em `COLLECTIONS` (`collections.ts`) com `logoUrl`
-4. Opcional: `unavailableMessage` se quiser texto customizado antes das cartas existirem
-
-**Não** instalar `@react-navigation/elements` — não está no projeto; usar `useLayoutEffect` + `navigation.setOptions` para header customizado.
-
----
-
-## 6. Estado local — coleção do usuário
-
-`src/store/useCollectionStore.ts`:
+### Coleção (`useCollectionStore`)
 
 ```ts
 interface CollectionCard {
-  id: string; // ex. me02-001
+  id: string;           // ex: "me02-15"
   name: string;
   imageUrl: string | null;
-  setId: string; // ex. me02 — usar card.set?.id ao adicionar
+  setId: string;
+  ownerId?: string | null;
   addedAt: Date;
 }
 ```
 
-- **Persistência:** Sim, automática via Zustand `persist` e invólucro resiliente `safeStorage` (falls back para Web `localStorage` ou memória caso módulo nativo esteja offline)
-- **Duplicatas:** `addCard` não verifica duplicata; `hasCard` usado na UI
-- **Progresso:** `useOwnedSetCount` / `useOwnedCountsBySet` + `formatCollectionProgress`
-- **Ao adicionar carta:** `setId: card.set?.id ?? id.split("-")[0]` em `card/[id].tsx`
+| Método | Regra |
+|--------|--------|
+| `addCard` | Grava `ownerId` = `useAuthStore.getState().userId` |
+| `hasCard` / `removeCard` / `getSetCardCount` | Filtram por `ownerId` atual |
+
+**Em componentes React:** preferir `useOwnedSetCount` / `useOwnedCountsBySet` para exibir progresso — eles leem `cards` + `userId` com `useMemo`.
+
+**Evitar** no JSX: `useCollectionStore((s) => s.getSetCardCount)` — quebrou com hot reload (`Property 'getSetCardCount' doesn't exist`).
+
+### Formato do progresso
+
+`formatCollectionProgress(owned, total)` → `"005/188 cartas"` (padding mínimo 3 dígitos no owned, largura segue `total`).
+
+Usado em: `CollectionPickerCard`, header do catálogo (`[setId].tsx`).
+
+### Aba Coleção (`collection.tsx`)
+
+- Filtra `cards` onde `ownerId === authUserId` no componente.
+- Modos: `all` | `bySet` | `recent` (ordenado por `addedAt`).
+- Navega para `/card/[id]` ao tocar na carta.
+- **Não** tem `ThemeToggle` — toggle de tema só em **Coleções** (`catalog/index`).
 
 ---
 
-## 7. UI e tema
+## 7. Cache React Query
 
-- **Tema reativo Claro/Escuro** (`userInterfaceStyle: "automatic"` no `app.json`) com preferência do usuário persistida no `safeStorage` via `ThemeProvider`.
-- Cores: `src/theme/colors.ts` — paletas `darkColors` (roxo fantasma + laranja fogo) e `lightColors` sob a mesma interface rigorosa `ColorPalette`. O export default aponta para `darkColors` para compatibilidade retroativa.
-- Tamagui: Temas `dark_phantom` e `light_phantom` configurados em `tamagui.config.ts` e selecionados no root `_layout.tsx`.
-- **Atenção**: atualmente o `TamaguiProvider` usa `defaultTheme`, o que pode travar o app no tema inicial e impedir a alternância de `ThemeToggle` de ser realmente reativa.
-- **Estilos Dinâmicos (`useStyles`)**: Componentes que usam `StyleSheet` tradicional **não** re-renderizam automaticamente com mudanças de tema se usarem cores estáticas. Use obrigatoriamente o hook customizado `useStyles(stylesFactory)` do `ThemeContext.tsx` para definir folhas de estilo reativas dependentes de tema.
-- **Alternador de Tema**: Componente `ThemeToggle` posicionado no header nativo da lista de coleções (`catalog/index.tsx`) para alternar manualmente entre claro, escuro ou automático (sistema).
-- Android: `includeFontPadding: false` no header customizado para alinhamento.
+| Chave | Onde | staleTime |
+|-------|------|-----------|
+| `["set", setId]` | `useCollections`, `useSet` | 30 min (picker) / default 7d (`queryClient`) |
+| `["set-cards", setId]` | `useSetCards` | default 7d |
+| `["card", cardId]` | `useCard` | default 7d |
+
+- Persistência: `REACT_QUERY_PERSISTENT_CACHE` em AsyncStorage, debounce 1,5s.
+- Só queries com `status === 'success'` são desidratadas.
+- `refetchOnWindowFocus: false` (mobile).
 
 ---
 
-## 8. O que está pronto vs. planejado
+## 8. Expansões (série Megaevolução)
 
-### Implementado
+Fonte de verdade: `SUPPORTED_SETS` em `tcgdex.ts` + `COLLECTIONS` em `collections.ts`.
 
-- [x] Lista de expansões com logo (me01–me04)
-- [x] Catálogo por set com grid, pull-to-refresh
-- [x] Detalhe da carta (imagem, stats, ataques)
-- [x] Adicionar/remover da coleção (Zustand) com persistência offline robusta (`safeStorage`)
-- [x] Cache persistido de dados das cartas da API com debouncing e suporte offline-first
-- [x] Contador `owned/total` na tela Coleções e no header do catálogo
-- [x] Desabilitar sets sem cartas na API (Caos Ascendente / `me04`)
-- [x] Stack com voltar na navegação do catálogo
-- [x] Suporte de tema implementado com `ThemeProvider`, `ThemeToggle` e `useStyles`, mas o `TamaguiProvider` ainda deve usar `theme` em vez de `defaultTheme` para que a troca seja totalmente reativa.
+| ID | Nome | UI |
+|----|------|-----|
+| `me01` | Megaevolução | Aberto |
+| `me02` | Fogo Fantasmagórico | Aberto |
+| `me02.5` | Heróis Excelsos | Aberto |
+| `me03` | Equilíbrio Perfeito | Aberto |
+| `me04` | Caos Ascendente | Bloqueado se API retorna 0 cartas |
 
-### Placeholder / incompleto
+Disponibilidade: `getCollectionAvailability(cardCount, isLoading)` → `loading` | `available` | `unavailable`.  
+`me04` usa `unavailableMessage: "Catálogo em breve"`.
 
-- [ ] Aba **Coleção**: só exibe quantidade, sem lista de cartas (fundações e persistência de dados já ativas)
-- [ ] Aba **Trocas**: copy estático, sem lógica
-- [ ] Sets `mep` (promos), `mee` (energias)
-- [ ] Busca, filtros, ordenação no grid
+**Checklist — nova expansão**
+
+1. Confirmar no TCGdex: `tcgdex.set.get('meXX')` com `cards.length > 0`.
+2. Adicionar constante em `SUPPORTED_SETS` (`tcgdex.ts`).
+3. Entrada em `COLLECTIONS` com `logoUrl` (`https://assets.tcgdex.net/pt/me/meXX/logo.webp`).
+4. `useCollections` e picker passam a incluir automaticamente (mapeia `COLLECTIONS`).
+5. Se API ainda vazia: opcional `unavailableMessage` — card desabilitado no picker.
+
+**IDs de carta:** formato `me02-15` (set + localId). Detalhe usa `tcgdex.card.get(cardId)`.
+
+Sets futuros mencionados no roadmap: `mep` (promos), `mee` — ainda não configurados.
+
+---
+
+## 9. Tema claro/escuro
+
+- `ThemeProvider` envolve o app em `_layout.tsx`.
+- Preferência: `pokemon-theme-preference` em `safeStorage`.
+- Sem preferência salva: segue `useColorScheme()` do sistema.
+- Telas: `const { colors } = useAppTheme()` + `const styles = useStyles(stylesFactory)` onde `stylesFactory` recebe `colors`.
+- **Não** importar `colors` estático em telas novas.
+- Tamagui: `theme={theme === "dark" ? "dark_phantom" : "light_phantom"}`.
+
+---
+
+## 10. Implementado vs. pendente
+
+### Pronto
+
+- [x] Login local + guard de rota
+- [x] Picker de 5 expansões (me04 condicional à API)
+- [x] Catálogo por set, pull-to-refresh, detalhe da carta
+- [x] Add/remove na coleção (persistido)
+- [x] Progresso `000/188 cartas` no picker e no header do grid
+- [x] Aba Coleção com modos Todas / Por coleção / Recentes
+- [x] Persistência Zustand + cache React Query
+- [x] Tema claro/escuro (toggle em Coleções)
+
+### Pendente
+
+- [ ] Trocas (`trades.tsx`)
+- [ ] UI de logout / troca de usuário local
+- [ ] Auth real / sync nuvem
+- [ ] Sets `mep`, `mee`
+- [ ] Busca e filtros no grid
 - [ ] Testes automatizados
 
 ---
 
-## 9. Comandos úteis
+## 11. Armadilhas conhecidas
+
+| Problema | Causa / solução |
+|----------|------------------|
+| Sem botão voltar no catálogo | Manter `src/app/(tabs)/catalog/_layout.tsx` como Stack |
+| `getSetCardCount doesn't exist` | Usar hooks `useOwnedSetCount`; `npx expo start --clear` |
+| `isRestored` usado antes do state | `useState` antes do `useEffect` que depende dele |
+| Contador errado com vários usuários locais | Hooks/contagens devem comparar `ownerId === userId` |
+| Detalhe mostra carta “na coleção” errado | Em `card/[id].tsx`, `isInCollection` usa `cards.some` **sem** `ownerId` — preferir `hasCard(id)` da store |
+| `@react-navigation/elements` | Não está no projeto — header custom via `useLayoutEffect` |
+| Imagem coberta no detalhe | Header opaco; título no header nativo |
+| me04 desabilitado | Normal até TCGdex publicar cartas |
+| Grep com path `D:\...` no Windows | Usar path relativo ou Shell |
+| Router durante render | Redirect de auth só em `useEffect`, não no corpo do componente |
+
+---
+
+## 12. Diretrizes para agentes
+
+1. **Escopo mínimo** — não refatorar fora do pedido.
+2. **Convenções** — `useAppTheme` + `useStyles`; textos em PT-BR.
+3. **Rotas** — apenas em `src/app/`.
+4. **Commits** — só se o usuário pedir explicitamente.
+5. **Docs** — atualizar README + AGENTS.md se mudar fluxo, auth, sets ou persistência.
+6. **Sets** — validar TCGdex antes de habilitar no picker.
+7. **Multi-usuário local** — qualquer leitura de coleção deve respeitar `ownerId`.
+
+---
+
+## 13. Mapa rápido: arquivo → tarefa
+
+| Tarefa | Arquivos principais |
+|--------|---------------------|
+| Nova expansão | `tcgdex.ts`, `collections.ts` |
+| Login / guard | `useAuthStore.ts`, `login.tsx`, `_layout.tsx` |
+| Progresso owned/total | `useOwnedSetCount.ts`, `formatCollectionProgress.ts`, `CollectionPickerCard.tsx` |
+| Picker / disponibilidade | `catalog/index.tsx`, `useCollections.ts` |
+| Grid do set | `catalog/[setId].tsx`, `CardGrid.tsx`, `useSetCards` |
+| Detalhe + coleção | `card/[id].tsx`, `useCollectionStore.ts` |
+| Lista “Minha Coleção” | `collection.tsx` |
+| Tema | `ThemeContext.tsx`, `colors.ts`, `ThemeToggle.tsx` |
+| Cache API | `queryPersister.ts`, `queryClient.ts` |
+| Boot Expo | [.agent.md](./.agent.md) |
+
+---
+
+## 14. Comandos úteis
 
 ```bash
 npm install
-npm start                    # Metro + menu Expo
-npx expo start --android     # Abre no emulador
-npm run android              # Build nativo + run (pasta android/)
-npx expo start --clear       # Limpar cache Metro
+npx expo start --android
+npx expo start --clear    # após erros de bundle / hot reload
 npm run lint
 ```
 
-Verificar cartas de um set (Node):
-
-```bash
-node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').then(s=>console.log(s?.cards?.length,s?.cardCount))"
-```
-
 ---
 
-## 10. Armadilhas e erros já vistos
-
-| Problema                                          | Causa                                                     | Solução                                                                                              |
-| ------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Sem botão voltar no catálogo                      | Rota `[setId]` direto nas Tabs                            | Manter `catalog/_layout.tsx` como Stack                                                              |
-| Topo da imagem coberto no detalhe                 | `headerTransparent` + padding só `insets.top`             | Header opaco; conteúdo abaixo do header nativo                                                       |
-| `Unable to resolve @react-navigation/elements`    | Pacote não instalado                                      | Não usar `useHeaderHeight`; padding manual ou header opaco                                           |
-| `useSafeAreaInsets` ReferenceError                | Import removido com hot reload                            | Garantir imports corretos; reload completo                                                           |
-| `getSetCardCount doesn't exist`                   | Hot reload / selector de função no Zustand                | `useOwnedSetCount`; `expo start --clear`                                                             |
-| Set `me04` clicável sem cartas                    | API retorna `cards: []`                                   | Usar `getCollectionAvailability`                                                                     |
-| ID `me02.5` no split                              | `id.split('-')[0]` funciona                               | Preferir `card.set?.id` ao salvar na coleção                                                         |
-| Grep/Glob em paths `d:\...`                       | Ferramenta às vezes falha no Windows                      | Usar Shell `Get-ChildItem` ou paths relativos                                                        |
-| `TypeError: cyclical structure`                   | SDK retorna objetos com referências circulares            | Usar `getCircularReplacer` debounced em `JSON.stringify`                                             |
-| `AsyncStorage native module null`                 | Rodando em Web sandbox ou Expo Go sem compilar nativo     | Usar `safeStorage` (inicia no modo fallback localStorage/memória)                                    |
-| `TamaguiProvider` não atualiza o tema             | `defaultTheme` é usado em vez de `theme`, travando o app no tema inicial | Usar `theme={theme === 'dark' ? 'dark_phantom' : 'light_phantom'}` no `TamaguiProvider` e garantir preferência carregada antes de renderizar |
-| Raiz `/` sem `src/app/index.tsx`                  | Expo Router mostra `Unmatched Route` ao abrir o app       | Criar `src/app/index.tsx` com `Redirect href="/catalog"`                                             |
-| `INSTALL_FAILED_INSUFFICIENT_STORAGE` no emulador | APK antigo ou espaço cheio no dispositivo virtual         | Desinstalar pacote com `adb uninstall com.pokemontradecenter.app` ou limpar dados do emulador        |
-| VirtualizedList lento ao rolar                    | `FlatList` com renderItem pesado / animações em cada item | Memoizar `CardItem`, usar `FlatList` com `initialNumToRender`, `windowSize`, `removeClippedSubviews` |
-| Estilos estáticos não reagem a mudança de tema    | `StyleSheet.create` é avaliado uma vez na inicialização   | Usar o hook `useStyles(theme => StyleSheet.create(...))` em vez de `StyleSheet.create` estático       |
-| Erro `unmatched route` ao iniciar o app           | Retornar tela de carregamento condicional no root layout  | Sempre renderizar a `<Stack>` global e cobrir com overlay absoluto (`StyleSheet.absoluteFill`)        |
-| Incompatibilidade de cores literais TypeScript    | Cores hexadecimais inferidas como literais estritos       | Tipar os objetos de cor explicitamente com a interface comum `ColorPalette`                           |
-
----
-
-## 11. Diretrizes para contribuir (agentes)
-
-1. **Escopo mínimo** — altere só o necessário para a tarefa; evite refatorações amplas.
-2. **Convenções existentes** — StyleSheet + `colors`, hooks em `features/`, config em `lib/`.
-3. **Sem novas deps** sem necessidade clara (projeto enxuto).
-4. **Textos de UI** em português brasileiro, tom claro (evitar "API" na interface do usuário).
-5. **Commits** — só quando o usuário pedir explicitamente.
-6. **README** — atualizar se mudar fluxo, sets ou comandos de setup.
-7. **Novos sets** — validar dados na TCGdex antes de habilitar na UI.
-8. **Não** mover rotas para `/app` na raiz; manter `src/app`.
-
----
-
-## 12. Arquivos-chave por tarefa
-
-| Tarefa                     | Arquivos                                                                     |
-| -------------------------- | ---------------------------------------------------------------------------- |
-| Nova expansão na lista     | `src/lib/tcgdex.ts`, `src/lib/collections.ts`                                |
-| Texto / disabled no picker | `CollectionPickerCard.tsx`, `collections.ts`                                 |
-| Contador owned/total       | `formatCollectionProgress.ts`, `useOwnedSetCount.ts`, picker + `[setId].tsx` |
-| Grid / item de carta       | `src/features/cards/components/*`                                            |
-| Detalhe da carta           | `src/app/card/[id].tsx`                                                      |
-| Header catálogo            | `src/app/(tabs)/catalog/[setId].tsx` (`CatalogHeaderTitle`)                  |
-| Navegação tabs/stack       | `src/app/(tabs)/_layout.tsx`, `catalog/_layout.tsx`                          |
-| Coleção do usuário         | `src/store/useCollectionStore.ts`, `src/hooks/useOwnedSetCount.ts`           |
-| Cores / tema / provider    | `src/theme/colors.ts`, `src/theme/ThemeContext.tsx`, `tamagui.config.ts`     |
-| Botão toggle de tema       | `src/components/ThemeToggle.tsx`                                             |
-| Boot / Expo                | `package.json`, `app.json`, `babel.config.js`, `.agent.md`                   |
-
----
-
-## 13. Contato com o ecossistema
-
-- [TCGdex API PT](https://api.tcgdex.net/v2/pt/series/me) — série Megaevolução
-- [TCGdex SDK docs](https://tcgdex.dev/)
-- [Expo Router](https://docs.expo.dev/router/introduction/)
-
----
-
-_Última revisão: Suporte completo e reativo a Modo Claro e Escuro (Claro/Escuro) reativo e persistido localmente via `safeStorage` com hook customizado `useStyles` e componente animado `ThemeToggle` integrado com Tamagui._
+*Última revisão: login local, persistência auth/coleção/query, tema claro/escuro, me01–me04, contador owned/total, aba Coleção com filtros, Stack do catálogo.*

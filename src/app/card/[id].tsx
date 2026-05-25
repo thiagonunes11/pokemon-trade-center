@@ -1,5 +1,6 @@
+import React, { useLayoutEffect } from "react";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import {
   Dimensions,
   Pressable,
@@ -18,13 +19,25 @@ import { useAppTheme, useStyles } from "@/theme";
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { data: card, isLoading, error } = useCard(id);
-  const { addCard, removeCard, hasCard } = useCollectionStore();
+  const addCard = useCollectionStore((s) => s.addCard);
+  const removeCard = useCollectionStore((s) => s.removeCard);
+  const isInCollection = useCollectionStore((s) =>
+    s.cards.some((c) => c.id === id),
+  );
   const { colors } = useAppTheme();
   const styles = useStyles(stylesFactory);
 
-  const isInCollection = hasCard(id);
+  // Update the stack header with the card name
+  useLayoutEffect(() => {
+    if (card?.name) {
+      navigation.setOptions({
+        headerTitle: card.name,
+      });
+    }
+  }, [navigation, card?.name]);
 
   const handleToggleCollection = () => {
     if (!card) return;
@@ -86,21 +99,11 @@ export default function CardDetailScreen() {
 
   return (
     <View style={styles.pageContainer}>
-      <View style={[styles.customHeader, { paddingTop: insets.top + 12 }]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.customHeaderBack}
-        >
-          <Text style={styles.customHeaderBackText}>←</Text>
-        </Pressable>
-        <Text style={styles.customHeaderTitle}>{card.name}</Text>
-      </View>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: 8, paddingBottom: insets.bottom + 24 },
+          { paddingTop: 12, paddingBottom: insets.bottom + 24 },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -273,24 +276,26 @@ export default function CardDetailScreen() {
                 </Text>
               </Pressable>
 
-              <Pressable
-                style={[
-                  styles.actionButton,
-                  {
-                    backgroundColor: "transparent",
-                    borderColor: colors.accent[500],
-                  },
-                ]}
-              >
-                <Text
+              {isInCollection && (
+                <Pressable
                   style={[
-                    styles.actionButtonText,
-                    { color: colors.accent[500] },
+                    styles.actionButton,
+                    {
+                      backgroundColor: "transparent",
+                      borderColor: colors.accent[500],
+                    },
                   ]}
                 >
-                  🔄 Quero Trocar
-                </Text>
-              </Pressable>
+                  <Text
+                    style={[
+                      styles.actionButtonText,
+                      { color: colors.accent[500] },
+                    ]}
+                  >
+                    🔄 Quero Trocar
+                  </Text>
+                </Pressable>
+              )}
             </View>
           </View>
         </Animated.View>
@@ -309,166 +314,146 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const stylesFactory = (colors: any) => StyleSheet.create({
-  pageContainer: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  customHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.elevated,
-  },
-  customHeaderBack: {
-    padding: 10,
-  },
-  customHeaderBackText: {
-    color: colors.text.primary,
-    fontSize: 18,
-  },
-  customHeaderTitle: {
-    color: colors.text.primary,
-    fontSize: 18,
-    fontWeight: "700",
-    flexShrink: 1,
-  },
-  centerContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  scrollContent: {
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  imageContainer: {
-    alignItems: "center",
-    paddingBottom: 8,
-  },
-  cardImage: {
-    borderRadius: 12,
-  },
-  noImage: {
-    backgroundColor: colors.background.card,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    marginTop: 16,
-    padding: 12,
-  },
-  infoContainer: {
-    paddingVertical: 20,
-    gap: 16,
-  },
-  cardName: {
-    color: colors.text.primary,
-    fontWeight: "800",
-  },
-  metaRow: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  cardId: {
-    color: colors.text.muted,
-    fontSize: 13,
-  },
-  metaDot: {
-    color: colors.text.muted,
-  },
-  rarity: {
-    color: colors.accent[400],
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.background.elevated,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  detailLabel: {
-    color: colors.text.muted,
-    fontSize: 13,
-  },
-  detailValue: {
-    color: colors.text.primary,
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  sectionTitle: {
-    color: colors.text.primary,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  attackCard: {
-    backgroundColor: colors.background.card,
-    borderRadius: 10,
-    padding: 14,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.background.elevated,
-  },
-  attackHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  attackName: {
-    color: colors.text.primary,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  attackDamage: {
-    color: colors.accent[500],
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  attackEffect: {
-    color: colors.text.secondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  attackCost: {
-    color: colors.text.muted,
-    fontSize: 11,
-  },
-  weakLabel: {
-    color: colors.text.muted,
-    fontSize: 12,
-  },
-  weakValue: {
-    color: colors.error,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  resistValue: {
-    color: colors.success,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  actionButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    alignItems: "center",
-  },
-  actionButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-});
+const stylesFactory = (colors: any) =>
+  StyleSheet.create({
+    pageContainer: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+
+    centerContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    scrollView: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    scrollContent: {
+      paddingTop: 16,
+      paddingBottom: 40,
+    },
+    imageContainer: {
+      alignItems: "center",
+      paddingBottom: 8,
+    },
+    cardImage: {
+      borderRadius: 12,
+    },
+    noImage: {
+      backgroundColor: colors.background.card,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    backButton: {
+      marginTop: 16,
+      padding: 12,
+    },
+    infoContainer: {
+      paddingVertical: 20,
+      gap: 16,
+    },
+    cardName: {
+      color: colors.text.primary,
+      fontWeight: "800",
+    },
+    metaRow: {
+      flexDirection: "row",
+      gap: 8,
+      alignItems: "center",
+    },
+    cardId: {
+      color: colors.text.muted,
+      fontSize: 13,
+    },
+    metaDot: {
+      color: colors.text.muted,
+    },
+    rarity: {
+      color: colors.accent[400],
+      fontSize: 13,
+      fontWeight: "500",
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.background.elevated,
+    },
+    detailRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    detailLabel: {
+      color: colors.text.muted,
+      fontSize: 13,
+    },
+    detailValue: {
+      color: colors.text.primary,
+      fontSize: 13,
+      fontWeight: "500",
+    },
+    sectionTitle: {
+      color: colors.text.primary,
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    attackCard: {
+      backgroundColor: colors.background.card,
+      borderRadius: 10,
+      padding: 14,
+      gap: 6,
+      borderWidth: 1,
+      borderColor: colors.background.elevated,
+    },
+    attackHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    attackName: {
+      color: colors.text.primary,
+      fontSize: 15,
+      fontWeight: "600",
+    },
+    attackDamage: {
+      color: colors.accent[500],
+      fontSize: 16,
+      fontWeight: "800",
+    },
+    attackEffect: {
+      color: colors.text.secondary,
+      fontSize: 12,
+      lineHeight: 18,
+    },
+    attackCost: {
+      color: colors.text.muted,
+      fontSize: 11,
+    },
+    weakLabel: {
+      color: colors.text.muted,
+      fontSize: 12,
+    },
+    weakValue: {
+      color: colors.error,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    resistValue: {
+      color: colors.success,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    actionButton: {
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      alignItems: "center",
+    },
+    actionButtonText: {
+      fontSize: 15,
+      fontWeight: "700",
+      textAlign: "center",
+    },
+  });
