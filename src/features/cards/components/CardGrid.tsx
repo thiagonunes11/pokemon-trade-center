@@ -9,7 +9,6 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CardItem } from "./CardItem";
 
@@ -42,11 +41,8 @@ export function CardGrid({
   const numColumns = screenWidth > 600 ? 3 : 2;
 
   const renderItem = useCallback(
-    ({ item, index }: { item: CardBrief; index: number }) => (
-      <Animated.View
-        entering={FadeInDown.delay(Math.min(index * 50, 500)).springify()}
-        style={styles.itemWrapper}
-      >
+    ({ item }: { item: CardBrief }) => (
+      <View style={styles.itemWrapper}>
         <CardItem
           id={item.id}
           name={item.name}
@@ -54,7 +50,7 @@ export function CardGrid({
           image={item.image ?? null}
           onPress={onCardPress}
         />
-      </Animated.View>
+      </View>
     ),
     [onCardPress],
   );
@@ -82,6 +78,12 @@ export function CardGrid({
       renderItem={renderItem}
       keyExtractor={(item) => item.id}
       numColumns={numColumns}
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={5}
+      removeClippedSubviews={true}
+      updateCellsBatchingPeriod={80}
+      columnWrapperStyle={styles.columnWrapper}
       contentContainerStyle={[
         styles.gridContainer,
         { paddingBottom: 100 + insets.bottom },
@@ -117,6 +119,9 @@ const styles = StyleSheet.create({
   loadingText: {
     color: colors.text.secondary,
     fontSize: 14,
+  },
+  columnWrapper: {
+    justifyContent: "space-between",
   },
   emptyContainer: {
     flex: 1,

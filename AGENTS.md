@@ -42,8 +42,8 @@ Não é escopo atual: backend próprio, autenticação, chat, pagamentos, scanne
 | Rotas | Expo Router (file-based) | ~56 |
 | Estilo / tema | Tamagui + `src/theme` | tema `dark_phantom` |
 | API cartas | `@tcgdex/sdk` | TCGdex REST, locale `pt` |
-| Cache remoto | TanStack React Query | query keys por set/card |
-| Estado local | Zustand | coleção em memória (sem persistência) |
+| Cache remoto | TanStack React Query | query keys por set/card + Persistência (safeStorage + getCircularReplacer) |
+| Estado local | Zustand | Coleção persistida (safeStorage + AsyncStorage) |
 | Imagens | `expo-image` | URLs `{base}/high.png` ou `.webp` |
 | Animações | `react-native-reanimated` | telas de detalhe / grid |
 | TypeScript | strict | paths `@/*` → `./src/*` |
@@ -80,6 +80,8 @@ src/lib/
   collections.ts            ← COLLECTIONS[], disponibilidade, helpers
   formatCollectionProgress.ts  ← "005/188 cartas"
   queryClient.ts
+  queryPersister.ts         ← Cache offline-first do React Query (debounced)
+  safeStorage.ts            ← Invólucro resiliente com fallback (Web/Expo Go)
   storagePolyfill.ts        ← Importar antes do SDK (side effect)
 
 src/store/
@@ -212,7 +214,7 @@ interface CollectionCard {
 }
 ```
 
-- **Persistência:** nenhuma (reinicia ao fechar app)  
+- **Persistência:** Sim, automática via Zustand `persist` e invólucro resiliente `safeStorage` (falls back para Web `localStorage` ou memória caso módulo nativo esteja offline)  
 - **Duplicatas:** `addCard` não verifica duplicata; `hasCard` usado na UI  
 - **Progresso:** `useOwnedSetCount` / `useOwnedCountsBySet` + `formatCollectionProgress`  
 - **Ao adicionar carta:** `setId: card.set?.id ?? id.split("-")[0]` em `card/[id].tsx`
@@ -237,16 +239,16 @@ interface CollectionCard {
 - [x] Lista de expansões com logo (me01–me04)  
 - [x] Catálogo por set com grid, pull-to-refresh  
 - [x] Detalhe da carta (imagem, stats, ataques)  
-- [x] Adicionar/remover da coleção (Zustand)  
+- [x] Adicionar/remover da coleção (Zustand) com persistência offline robusta (`safeStorage`)  
+- [x] Cache persistido de dados das cartas da API com debouncing e suporte offline-first  
 - [x] Contador `owned/total` na tela Coleções e no header do catálogo  
 - [x] Desabilitar sets sem cartas na API (Caos Ascendente / `me04`)  
 - [x] Stack com voltar na navegação do catálogo  
 
 ### Placeholder / incompleto
 
-- [ ] Aba **Coleção**: só exibe quantidade, sem lista de cartas  
+- [ ] Aba **Coleção**: só exibe quantidade, sem lista de cartas (fundações e persistência de dados já ativas)  
 - [ ] Aba **Trocas**: copy estático, sem lógica  
-- [ ] Persistência AsyncStorage / SQLite  
 - [ ] Sets `mep` (promos), `mee` (energias)  
 - [ ] Busca, filtros, ordenação no grid  
 - [ ] Testes automatizados  
@@ -284,6 +286,8 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Set `me04` clicável sem cartas | API retorna `cards: []` | Usar `getCollectionAvailability` |
 | ID `me02.5` no split | `id.split('-')[0]` funciona | Preferir `card.set?.id` ao salvar na coleção |
 | Grep/Glob em paths `d:\...` | Ferramenta às vezes falha no Windows | Usar Shell `Get-ChildItem` ou paths relativos |
+| `TypeError: cyclical structure` | SDK retorna objetos com referências circulares | Usar `getCircularReplacer` debounced em `JSON.stringify` |
+| `AsyncStorage native module null` | Rodando em Web sandbox ou Expo Go sem compilar nativo | Usar `safeStorage` (inicia no modo fallback localStorage/memória) |
 
 ---
 
@@ -325,4 +329,4 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 ---
 
-*Última revisão: expansões me01–me04 (me04 desabilitado), contador owned/total na Coleções + catálogo, hooks `useOwnedSetCount`, stack de catálogo com voltar.*
+*Última revisão: Persistência local da coleção (Zustand) + cache offline-first de dados da API (React Query) resilientes com `safeStorage` e `getCircularReplacer`, expansões me01-me04.*

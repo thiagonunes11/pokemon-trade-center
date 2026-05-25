@@ -36,7 +36,7 @@ class StoragePolyfill implements Storage {
 if (typeof window === "undefined") {
   // In React Native environment, window is undefined
   // Create a mock window object with storage
-  (global as any).window = {
+  (globalThis as any).window = {
     localStorage: new StoragePolyfill(),
     sessionStorage: new StoragePolyfill(),
   };

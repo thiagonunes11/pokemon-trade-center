@@ -30,7 +30,7 @@ export default function CollectionsScreen() {
   const handleSelectCollection = useCallback(
     (setId: string, canOpen: boolean) => {
       if (!canOpen) return;
-      router.push(`/catalog/${setId}`);
+      router.push({ pathname: "/catalog/[setId]", params: { setId } });
     },
     [router],
   );

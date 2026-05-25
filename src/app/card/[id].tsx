@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCard } from "@/features/cards";
 import { useCollectionStore } from "@/store/useCollectionStore";
@@ -17,6 +18,7 @@ import { colors } from "@/theme";
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { data: card, isLoading, error } = useCard(id);
   const { addCard, removeCard, hasCard } = useCollectionStore();
 
@@ -56,7 +58,7 @@ export default function CardDetailScreen() {
       <View
         style={[
           styles.centerContainer,
-          { backgroundColor: colors.background.primary, padding: 32 },
+          { backgroundColor: colors.background.primary, paddingTop: insets.top + 32 },
         ]}
       >
         <Text
@@ -78,16 +80,27 @@ export default function CardDetailScreen() {
   const cardHeight = cardWidth * (392 / 280); // Mantém aspect ratio
 
   return (
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Card Image */}
-      <Animated.View
-        entering={FadeIn.duration(400)}
-        style={styles.imageContainer}
+    <View style={styles.pageContainer}>
+      <View style={[styles.customHeader, { paddingTop: insets.top + 12 }]}>        
+        <Pressable onPress={() => router.back()} style={styles.customHeaderBack}>
+          <Text style={styles.customHeaderBackText}>←</Text>
+        </Pressable>
+        <Text style={styles.customHeaderTitle}>{card.name}</Text>
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: 8, paddingBottom: insets.bottom + 24 },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
+        {/* Card Image */}
+        <Animated.View
+          entering={FadeIn.duration(400)}
+          style={styles.imageContainer}
+        >
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
@@ -262,6 +275,7 @@ export default function CardDetailScreen() {
         </View>
       </Animated.View>
     </ScrollView>
+    </View>
   );
 }
 
@@ -275,6 +289,32 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  pageContainer: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  customHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background.elevated,
+  },
+  customHeaderBack: {
+    padding: 10,
+  },
+  customHeaderBackText: {
+    color: colors.text.primary,
+    fontSize: 18,
+  },
+  customHeaderTitle: {
+    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
   centerContainer: {
     flex: 1,
     alignItems: "center",

@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { safeStorage } from '@/lib/safeStorage';
 
 interface CollectionCard {
   id: string;
@@ -17,23 +19,31 @@ interface CollectionState {
   getSetCardCount: (setId: string) => number;
 }
 
-export const useCollectionStore = create<CollectionState>((set, get) => ({
-  cards: [],
+export const useCollectionStore = create<CollectionState>()(
+  persist(
+    (set, get) => ({
+      cards: [],
 
-  addCard: (card) =>
-    set((state) => ({
-      cards: [...state.cards, { ...card, addedAt: new Date() }],
-    })),
+      addCard: (card) =>
+        set((state) => ({
+          cards: [...state.cards, { ...card, addedAt: new Date() }],
+        })),
 
-  removeCard: (cardId) =>
-    set((state) => ({
-      cards: state.cards.filter((c) => c.id !== cardId),
-    })),
+      removeCard: (cardId) =>
+        set((state) => ({
+          cards: state.cards.filter((c) => c.id !== cardId),
+        })),
 
-  hasCard: (cardId) => get().cards.some((c) => c.id === cardId),
+      hasCard: (cardId) => get().cards.some((c) => c.id === cardId),
 
-  getCardCount: () => get().cards.length,
+      getCardCount: () => get().cards.length,
 
-  getSetCardCount: (setId) =>
-    get().cards.filter((c) => c.setId === setId).length,
-}));
+      getSetCardCount: (setId) =>
+        get().cards.filter((c) => c.setId === setId).length,
+    }),
+    {
+      name: 'pokemon-collection-storage',
+      storage: createJSONStorage(() => safeStorage),
+    }
+  )
+);

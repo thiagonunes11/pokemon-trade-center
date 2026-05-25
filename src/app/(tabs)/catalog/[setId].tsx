@@ -90,7 +90,7 @@ export default function SetCatalogScreen() {
 
   const handleCardPress = useCallback(
     (cardId: string) => {
-      router.push(`/card/${cardId}` as any);
+      router.push({ pathname: "/card/[id]", params: { id: cardId } });
     },
     [router],
   );

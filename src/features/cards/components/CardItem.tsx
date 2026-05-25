@@ -1,11 +1,7 @@
 import { colors } from "@/theme";
 import { Image } from "expo-image";
+import { memo } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
 
 interface CardItemProps {
   id: string;
@@ -16,9 +12,7 @@ interface CardItemProps {
   onPress: (id: string) => void;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-export function CardItem({
+function CardItemComponent({
   id,
   name,
   localId,
@@ -26,36 +20,24 @@ export function CardItem({
   rarity,
   onPress,
 }: CardItemProps) {
-  const scale = useSharedValue(1);
   const screenWidth = Dimensions.get("window").width;
 
-  // Responsive font sizes
   const isSmallScreen = screenWidth < 400;
   const isMediumScreen = screenWidth < 600;
 
   const nameFontSize = isSmallScreen ? 11 : isMediumScreen ? 12 : 13;
   const localIdFontSize = isSmallScreen ? 9 : isMediumScreen ? 10 : 11;
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-  };
-
   const imageUrl = image ? `${image}/high.webp` : null;
 
   return (
-    <AnimatedPressable
-      style={[styles.container, animatedStyle]}
+    <Pressable
+      style={({ pressed }) => [
+        styles.container,
+        pressed && styles.pressed,
+      ]}
       onPress={() => onPress(id)}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+      android_ripple={{ color: "rgba(255,255,255,0.12)" }}
     >
       <View style={styles.card}>
         {imageUrl ? (
@@ -90,14 +72,19 @@ export function CardItem({
           </View>
         </View>
       </View>
-    </AnimatedPressable>
+    </Pressable>
   );
 }
+
+export const CardItem = memo(CardItemComponent);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     margin: 5,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   card: {
     backgroundColor: colors.background.card,
