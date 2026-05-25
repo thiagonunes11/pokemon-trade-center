@@ -67,6 +67,7 @@ src/app/                    ← Rotas Expo Router (NÃO usar /app na raiz)
     collection.tsx          ← Placeholder: só contador
     trades.tsx              ← Placeholder: texto estático
   card/[id].tsx             ← Detalhe da carta (Stack global, header nativo)
+  index.tsx                 ← Redireciona `/` para `/catalog`
 
 src/features/
   cards/                    ← CardGrid, CardItem, useSetCards, useCard
@@ -124,8 +125,8 @@ flowchart TD
 Navegação típica:
 
 ```ts
-router.push(`/catalog/${setId}`);      // da lista de coleções
-router.push(`/card/${cardId}`);       // do grid (cardId = ex. me02-001)
+router.push({ pathname: "/catalog/[setId]", params: { setId } });
+router.push({ pathname: "/card/[id]", params: { id: cardId } });
 ```
 
 ---
@@ -288,6 +289,9 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Grep/Glob em paths `d:\...` | Ferramenta às vezes falha no Windows | Usar Shell `Get-ChildItem` ou paths relativos |
 | `TypeError: cyclical structure` | SDK retorna objetos com referências circulares | Usar `getCircularReplacer` debounced em `JSON.stringify` |
 | `AsyncStorage native module null` | Rodando em Web sandbox ou Expo Go sem compilar nativo | Usar `safeStorage` (inicia no modo fallback localStorage/memória) |
+| Raiz `/` sem `src/app/index.tsx` | Expo Router mostra `Unmatched Route` ao abrir o app | Criar `src/app/index.tsx` com `Redirect href="/catalog"` |
+| `INSTALL_FAILED_INSUFFICIENT_STORAGE` no emulador | APK antigo ou espaço cheio no dispositivo virtual | Desinstalar pacote com `adb uninstall com.pokemontradecenter.app` ou limpar dados do emulador |
+| VirtualizedList lento ao rolar | `FlatList` com renderItem pesado / animações em cada item | Memoizar `CardItem`, usar `FlatList` com `initialNumToRender`, `windowSize`, `removeClippedSubviews` |
 
 ---
 
@@ -329,4 +333,4 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 ---
 
-*Última revisão: Persistência local da coleção (Zustand) + cache offline-first de dados da API (React Query) resilientes com `safeStorage` e `getCircularReplacer`, expansões me01-me04.*
+*Última revisão: Persistência local da coleção (Zustand) + cache offline-first de dados da API (React Query) resilientes com `safeStorage` e `getCircularReplacer`; rota raiz redirecionando `/` para `/catalog`; otimizações de `FlatList` para scroll; expansões me01-me04.*
