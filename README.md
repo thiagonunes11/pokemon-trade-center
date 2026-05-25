@@ -24,11 +24,11 @@ Se você clonar o repositório, espere encontrar código e telas em constante mu
 
 ### Fluxo principal (aba Catálogo)
 
-1. **Coleções** — lista de expansões com logo oficial e contagem de cartas
+1. **Coleções** — lista de expansões com logo oficial e progresso **`005/188 cartas`**
 2. Toque em uma expansão → **Catálogo** com grid de cartas (pull-to-refresh)
 3. Toque em uma carta → **Detalhe** com imagem, stats e botão para adicionar à coleção
 
-O header do catálogo mostra o progresso no formato **`005/188 cartas`** (quantas você já tem na coleção local / total do set).
+O contador **`owned/total cartas`** aparece na tela de Coleções (cada card) e no header do catálogo ao abrir um set — sempre com base na sua coleção local (Zustand) e no total do set na TCGdex.
 
 ### Abas
 
@@ -50,9 +50,9 @@ Dados em português via [TCGdex API](https://tcgdex.dev/) (`pt`).
 | Fogo Fantasmagórico | `me02` | Disponível |
 | Heróis Excelsos | `me02.5` | Disponível |
 | Equilíbrio Perfeito | `me03` | Disponível |
-| Caos Ascendente | `me04` | **Em breve** — aparece na lista, mas fica desabilitada até o catálogo de cartas estar disponível na API |
+| Caos Ascendente | `me04` | **Catálogo em breve** — visível na lista, desabilitada até a TCGdex publicar as cartas |
 
-Quando a API passar a retornar cartas para `me04`, a expansão é liberada automaticamente no app, sem alteração de código.
+Quando a API passar a retornar cartas para `me04` (`cards.length > 0`), a expansão é liberada automaticamente no app, sem alteração de código.
 
 Outros sets da API (promos `mep`, energias `mee`, eras antigas etc.) ainda não estão na seleção.
 
@@ -154,12 +154,16 @@ pokemon-trade-center/
 │   ├── features/
 │   │   ├── cards/                # CardGrid, hooks TCGdex
 │   │   └── sets/                 # Cards de seleção de expansão
+│   ├── hooks/
+│   │   └── useOwnedSetCount.ts   # Progresso owned/total por set
 │   ├── store/                    # Coleção local (Zustand)
 │   ├── lib/
 │   │   ├── tcgdex.ts             # Cliente SDK + IDs dos sets
-│   │   ├── collections.ts        # Config das expansões exibidas
+│   │   ├── collections.ts        # Config + disponibilidade dos sets
 │   │   └── formatCollectionProgress.ts
 │   └── theme/
+├── AGENTS.md                     # Contexto para agentes de IA
+├── README.md
 ├── assets/
 ├── android/
 ├── app.json
@@ -214,6 +218,10 @@ npx expo start --clear
 ### App não atualiza após editar código
 
 No terminal do Expo, pressione **`r`** para reload. Se persistir, reinicie com `--clear`.
+
+### Erro `Property 'getSetCardCount' doesn't exist`
+
+Geralmente cache do Metro após refatoração. Use `npx expo start --clear`. Nos componentes, use os hooks `useOwnedSetCount` / `useOwnedCountsBySet` (`src/hooks/useOwnedSetCount.ts`), não chame `getSetCardCount` direto no JSX.
 
 ### Expansão aparece desabilitada (“Catálogo em breve”)
 

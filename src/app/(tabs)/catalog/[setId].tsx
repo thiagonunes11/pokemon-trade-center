@@ -5,7 +5,7 @@ import { Dimensions, Platform, StyleSheet, Text, View } from "react-native";
 import { CardGrid, useSetCards } from "@/features/cards";
 import { getCollectionById, isSupportedSetId } from "@/lib/collections";
 import { formatCollectionProgress } from "@/lib/formatCollectionProgress";
-import { useCollectionStore } from "@/store/useCollectionStore";
+import { useOwnedSetCount } from "@/hooks/useOwnedSetCount";
 import { colors } from "@/theme";
 
 const androidTextFix =
@@ -61,9 +61,7 @@ export default function SetCatalogScreen() {
 
   const validSetId = setId && isSupportedSetId(setId) ? setId : null;
 
-  const ownedCount = useCollectionStore((state) =>
-    validSetId ? state.getSetCardCount(validSetId) : 0,
-  );
+  const ownedCount = useOwnedSetCount(validSetId);
 
   const {
     data: setData,

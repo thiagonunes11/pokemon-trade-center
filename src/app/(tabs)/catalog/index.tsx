@@ -15,12 +15,14 @@ import {
   getCollectionAvailability,
   isCollectionOpenable,
 } from "@/lib/collections";
+import { useOwnedCountsBySet } from "@/hooks/useOwnedSetCount";
 import { colors } from "@/theme";
 
 export default function CollectionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const setQueries = useCollections();
+  const ownedCountsBySet = useOwnedCountsBySet();
 
   const isLoading = setQueries.some((q) => q.isLoading);
   const hasError = setQueries.some((q) => q.isError);
@@ -64,9 +66,12 @@ export default function CollectionsScreen() {
       <View style={styles.list}>
         {COLLECTIONS.map((collection, index) => {
           const query = setQueries[index];
-          const cardCount = query.data?.cards?.length;
+          const apiCardCount = query.data?.cards?.length;
+          const totalCards =
+            query.data?.cardCount?.total ?? apiCardCount ?? undefined;
+          const ownedCount = ownedCountsBySet[collection.id] ?? 0;
           const availability = getCollectionAvailability(
-            cardCount,
+            apiCardCount,
             query.isLoading,
           );
           const canOpen = isCollectionOpenable(availability);
@@ -75,7 +80,8 @@ export default function CollectionsScreen() {
             <CollectionPickerCard
               key={collection.id}
               collection={collection}
-              cardCount={cardCount}
+              ownedCount={ownedCount}
+              totalCards={totalCards}
               availability={availability}
               onPress={() => handleSelectCollection(collection.id, canOpen)}
             />

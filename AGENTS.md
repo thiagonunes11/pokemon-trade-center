@@ -72,6 +72,9 @@ src/features/
   cards/                    ← CardGrid, CardItem, useSetCards, useCard
   sets/                     ← CollectionPickerCard, useCollections
 
+src/hooks/
+  useOwnedSetCount.ts       ← useOwnedSetCount, useOwnedCountsBySet (progresso local)
+
 src/lib/
   tcgdex.ts                 ← Cliente SDK + SUPPORTED_SETS
   collections.ts            ← COLLECTIONS[], disponibilidade, helpers
@@ -80,7 +83,7 @@ src/lib/
   storagePolyfill.ts        ← Importar antes do SDK (side effect)
 
 src/store/
-  useCollectionStore.ts     ← Zustand: cards[], add/remove/has/getSetCardCount
+  useCollectionStore.ts     ← Zustand: cards[], add/remove/has (getSetCardCount só na store)
 
 src/theme/                  ← colors, typography
 tamagui.config.ts           ← tema Tamagui na raiz do projeto
@@ -110,8 +113,8 @@ flowchart TD
 
 | Rota | Arquivo | Header |
 |------|---------|--------|
-| `/(tabs)/catalog` | `catalog/index.tsx` | Stack: "Coleções" |
-| `/(tabs)/catalog/[setId]` | `catalog/[setId].tsx` | Stack: título + badge `000/188 cartas` (custom `headerTitle`) |
+| `/(tabs)/catalog` | `catalog/index.tsx` | Stack: "Coleções"; cada card mostra `000/188 cartas` |
+| `/(tabs)/catalog/[setId]` | `catalog/[setId].tsx` | Stack: título + badge `000/188` (`CatalogHeaderTitle`) |
 | `/card/[id]` | `card/[id].tsx` | Stack global, opaco, botão voltar |
 
 **Importante:** o fluxo Catálogo usa **Stack dentro da tab** (`catalog/_layout.tsx`). Tabs sozinhas **não** exibem botão voltar entre `index` e `[setId]`.
@@ -158,6 +161,17 @@ Lógica em `getCollectionAvailability()`:
 
 UI: card desabilitado, `unavailableMessage` (ex.: "Catálogo em breve" para Caos Ascendente). **Não** depender de flag manual — habilita automaticamente quando a API passar a retornar cartas.
 
+### Contador de progresso (`owned/total`)
+
+Função: `formatCollectionProgress(owned, total)` em `src/lib/formatCollectionProgress.ts` → string `"005/188 cartas"` (padding mínimo 3 dígitos no owned).
+
+| Onde | Como obter owned | Como obter total |
+|------|------------------|------------------|
+| `catalog/index.tsx` | `useOwnedCountsBySet()` | `set.cardCount.total` ou `cards.length` da query |
+| `catalog/[setId].tsx` | `useOwnedSetCount(validSetId)` | `setData.cardCount.total` ou `cards.length` |
+
+**Não** usar `useCollectionStore((s) => s.getSetCardCount)` em componentes — o selector de função não re-renderiza bem e já causou `Property 'getSetCardCount' doesn't exist` com hot reload. Preferir sempre os hooks em `src/hooks/useOwnedSetCount.ts`.
+
 ### URLs de imagem
 
 - Logo do set: `https://assets.tcgdex.net/pt/me/{id}/logo.webp`  
@@ -200,7 +214,8 @@ interface CollectionCard {
 
 - **Persistência:** nenhuma (reinicia ao fechar app)  
 - **Duplicatas:** `addCard` não verifica duplicata; `hasCard` usado na UI  
-- **Progresso no header:** `getSetCardCount(setId)` vs `setData.cardCount.total`
+- **Progresso:** `useOwnedSetCount` / `useOwnedCountsBySet` + `formatCollectionProgress`  
+- **Ao adicionar carta:** `setId: card.set?.id ?? id.split("-")[0]` em `card/[id].tsx`
 
 ---
 
@@ -219,12 +234,12 @@ interface CollectionCard {
 
 ### Implementado
 
-- [x] Lista de expansões com logo e contagem via API  
+- [x] Lista de expansões com logo (me01–me04)  
 - [x] Catálogo por set com grid, pull-to-refresh  
 - [x] Detalhe da carta (imagem, stats, ataques)  
 - [x] Adicionar/remover da coleção (Zustand)  
-- [x] Contador `owned/total` no header do catálogo  
-- [x] Desabilitar sets sem cartas na API  
+- [x] Contador `owned/total` na tela Coleções e no header do catálogo  
+- [x] Desabilitar sets sem cartas na API (Caos Ascendente / `me04`)  
 - [x] Stack com voltar na navegação do catálogo  
 
 ### Placeholder / incompleto
@@ -265,6 +280,7 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Topo da imagem coberto no detalhe | `headerTransparent` + padding só `insets.top` | Header opaco; conteúdo abaixo do header nativo |
 | `Unable to resolve @react-navigation/elements` | Pacote não instalado | Não usar `useHeaderHeight`; padding manual ou header opaco |
 | `useSafeAreaInsets` ReferenceError | Import removido com hot reload | Garantir imports corretos; reload completo |
+| `getSetCardCount doesn't exist` | Hot reload / selector de função no Zustand | `useOwnedSetCount`; `expo start --clear` |
 | Set `me04` clicável sem cartas | API retorna `cards: []` | Usar `getCollectionAvailability` |
 | ID `me02.5` no split | `id.split('-')[0]` funciona | Preferir `card.set?.id` ao salvar na coleção |
 | Grep/Glob em paths `d:\...` | Ferramenta às vezes falha no Windows | Usar Shell `Get-ChildItem` ou paths relativos |
@@ -290,11 +306,12 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 |--------|----------|
 | Nova expansão na lista | `src/lib/tcgdex.ts`, `src/lib/collections.ts` |
 | Texto / disabled no picker | `CollectionPickerCard.tsx`, `collections.ts` |
+| Contador owned/total | `formatCollectionProgress.ts`, `useOwnedSetCount.ts`, picker + `[setId].tsx` |
 | Grid / item de carta | `src/features/cards/components/*` |
 | Detalhe da carta | `src/app/card/[id].tsx` |
-| Header catálogo | `src/app/(tabs)/catalog/[setId].tsx` |
+| Header catálogo | `src/app/(tabs)/catalog/[setId].tsx` (`CatalogHeaderTitle`) |
 | Navegação tabs/stack | `src/app/(tabs)/_layout.tsx`, `catalog/_layout.tsx` |
-| Coleção do usuário | `src/store/useCollectionStore.ts` |
+| Coleção do usuário | `src/store/useCollectionStore.ts`, `src/hooks/useOwnedSetCount.ts` |
 | Cores / tema | `src/theme/colors.ts`, `tamagui.config.ts` |
 | Boot / Expo | `package.json`, `app.json`, `babel.config.js`, `.agent.md` |
 
@@ -308,4 +325,4 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 ---
 
-*Última revisão alinhada ao estado do repo: expansões me01–me04, stack de catálogo, contador de coleção, Caos Ascendente desabilitado por ausência de cartas na API.*
+*Última revisão: expansões me01–me04 (me04 desabilitado), contador owned/total na Coleções + catálogo, hooks `useOwnedSetCount`, stack de catálogo com voltar.*

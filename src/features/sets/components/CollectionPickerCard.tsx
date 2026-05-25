@@ -5,11 +5,13 @@ import type {
   CollectionAvailability,
   CollectionConfig,
 } from "@/lib/collections";
+import { formatCollectionProgress } from "@/lib/formatCollectionProgress";
 import { colors } from "@/theme";
 
 type CollectionPickerCardProps = {
   collection: CollectionConfig;
-  cardCount?: number;
+  ownedCount: number;
+  totalCards?: number;
   availability: CollectionAvailability;
   onPress: () => void;
 };
@@ -17,19 +19,23 @@ type CollectionPickerCardProps = {
 function getStatusLabel(
   collection: CollectionConfig,
   availability: CollectionAvailability,
-  cardCount?: number,
+  ownedCount: number,
+  totalCards?: number,
 ): string {
   if (availability === "loading") return "Carregando...";
   if (availability === "unavailable") {
     return collection.unavailableMessage ?? "Em breve";
   }
-  if (cardCount != null) return `${cardCount} cartas`;
+  if (totalCards != null && totalCards > 0) {
+    return formatCollectionProgress(ownedCount, totalCards);
+  }
   return "Toque para abrir";
 }
 
 export function CollectionPickerCard({
   collection,
-  cardCount,
+  ownedCount,
+  totalCards,
   availability,
   onPress,
 }: CollectionPickerCardProps) {
@@ -75,7 +81,7 @@ export function CollectionPickerCard({
             availability === "available" && styles.countAvailable,
           ]}
         >
-          {getStatusLabel(collection, availability, cardCount)}
+          {getStatusLabel(collection, availability, ownedCount, totalCards)}
         </Text>
       </View>
 
