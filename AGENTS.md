@@ -309,6 +309,78 @@ interface CollectionCard {
 - [ ] Sets `mep` (promos), `mee` (energias)
 - [ ] Busca, filtros, ordenação no grid do catálogo
 - [ ] Testes automatizados
+- [ ] Preços, links externos (Liga / Limitless / MYP) — ver **§ Roadmap**
+
+---
+
+## 8.1 Reaproveitamento — Deckmanager (PTCG Collector)
+
+Projeto de referência no workspace: `Deckmanager/` (app offline do Rafael: decks, coleção, pool Liga, Pokédex). **Lista detalhada:** [docs/reaproveitamento-deckmanager.md](./docs/reaproveitamento-deckmanager.md).
+
+### O que vale a pena (resumo)
+
+| Prioridade | Itens |
+|------------|--------|
+| **Alta** | Mapa `me01`↔`MEG`, `me02`↔`PFL`, … · URL LigaPokemon · URL Limitless PT · parser `4 Carta SIGLA 040` · reprints na coleção (qty por nome) |
+| **Média** | Metas básico/completo por set · progresso “faltam X” · import/export CSV com conversão de ID |
+| **Baixa** | Pool Tools · decks preset Liga · Pokédex |
+| **Preços (não está no Deckmanager)** | TCGdex `pricing` · estimativa R$ · mapa MYP · abrir Liga para lojas BR |
+
+### O que não portar
+
+Catálogo JSON embutido do `index.html`, bridges WebView Android, lógica de preço em R$ (não existe lá).
+
+### Mapa Liga ↔ TCGdex (sets do app)
+
+| Liga | TCGdex |
+|------|--------|
+| `MEG` | `me01` |
+| `PFL` | `me02` |
+| `ASC` | `me02.5` |
+| `POR` | `me03` |
+
+Implementação prevista: `src/lib/ligaSetCodes.ts`, `src/lib/externalCardLinks.ts` (Liga + Limitless).
+
+---
+
+## 8.2 Roadmap de produto
+
+Ordem sugerida para agentes e contribuidores. Marcar itens em **Implementado** (§8) quando concluídos.
+
+### Fase 1 — Links e referência de mercado (MVP+)
+
+- [ ] `ligaSetCodes.ts` + `buildLigaPokemonUrl(card)` — `ed`, `num`, label `Nome (localId/official)`
+- [ ] `buildLimitlessUrl(ligaSet, localId)` — `https://limitlesstcg.com/cards/pt/{set}/{num}`
+- [ ] Botões no detalhe `card/[id].tsx`: **Ver na Liga**, **Ver no Limitless** (`Linking.openURL`)
+- [ ] Bloco **Preços (referência)** com `card.pricing` TCGdex + texto “valores internacionais; mercado BR pode diferir”
+- [ ] (Opcional) Estimativa em R$ via câmbio do dia + aviso explícito de estimativa
+
+### Fase 2 — Trocas e listas
+
+- [ ] Parser de lista padrão (`parseDeckList`) — mesmo formato do Deckmanager
+- [ ] `getOwnedQty` com reprints (match por `name` normalizado + ID/set)
+- [ ] Aba **Trocas**: lista importada + “faltam X” / “tenho Y”
+- [ ] UI de **logout** / troca de usuário local
+
+### Fase 3 — Coleção avançada e interoperabilidade
+
+- [ ] Metas por set (`basic` / `complete`) inspiradas em `SET_THRESHOLDS`
+- [ ] Import/export coleção: CSV Deckmanager + JSON backup; conversor `SIGLA_num` ↔ `me02-106`
+- [ ] Variante na coleção (normal / holo / reverse) quando UX definida
+
+### Fase 4 — Formato Liga e mercado BR
+
+- [ ] Tabela `mypProductId` por `tcgdexId` (manual ou script; ex. `me02-106` → `300712`)
+- [ ] Botão **Ver no MYP** quando ID mapeado
+- [ ] Pool Tools / decks preset (dados do Deckmanager ou fonte própria) — escopo a definir
+
+### Fase 5 — Catálogo e qualidade
+
+- [ ] Busca, filtros, ordenação no grid do catálogo
+- [ ] Sets `mep`, `mee` se fizer sentido na API
+- [ ] Testes automatizados (parser, URLs, store)
+
+**Fora do roadmap atual:** backend de trocas entre usuários, chat, pagamentos, scanner.
 
 ---
 
@@ -386,6 +458,9 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Cores / tema / provider    | `src/theme/colors.ts`, `src/theme/ThemeContext.tsx`, `tamagui.config.ts`     |
 | Botão toggle de tema       | `src/components/ThemeToggle.tsx`                                             |
 | Ícones de energia/tipo     | `assets/images/energy/`, `src/lib/energyIcons.ts`, `EnergyIcon.tsx`          |
+| Links Liga / Limitless     | (planejado) `src/lib/ligaSetCodes.ts`, `src/lib/externalCardLinks.ts`        |
+| Parser de lista / trocas   | (planejado) `src/lib/parseDeckList.ts` — ver roadmap §8.2                      |
+| Roadmap / Deckmanager      | `docs/reaproveitamento-deckmanager.md`, §8.1–8.2 deste arquivo                 |
 | Boot / Expo                | `package.json`, `app.json`, `babel.config.js`, `.agent.md`                   |
 
 ---
@@ -399,6 +474,12 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 ---
 
 ## 14. Atualizações recentes
+
+### 2026-05-25 — Roadmap e Deckmanager
+
+- Análise do projeto **Deckmanager** (PTCG Collector) no workspace.
+- Lista de reaproveitamento: [docs/reaproveitamento-deckmanager.md](./docs/reaproveitamento-deckmanager.md).
+- **§8.1** (resumo) e **§8.2** (roadmap em fases) adicionados neste arquivo.
 
 ### 2026-05-26 — Coleção, energia e detalhe
 
@@ -422,4 +503,4 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 **Teste rápido:** login → Catálogo → adicionar carta → Coleção (grid + FAB filtro) → detalhe (ícones de tipo).
 
-_Última revisão: 2026-05-26._
+_Última revisão: 2026-05-25 (roadmap Deckmanager)._
