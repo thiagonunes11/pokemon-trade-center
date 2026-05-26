@@ -12,9 +12,11 @@ import {
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { EnergyIconRow } from "@/components/EnergyIcon";
 import { useCard } from "@/features/cards";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useAppTheme, useStyles } from "@/theme";
+import type { ReactNode } from "react";
 
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -169,7 +171,9 @@ export default function CardDetailScreen() {
             <View style={{ gap: 12 }}>
               {card.hp && <DetailRow label="HP" value={String(card.hp)} />}
               {card.types && card.types.length > 0 && (
-                <DetailRow label="Tipo" value={card.types.join(", ")} />
+                <DetailRow label="Tipo">
+                  <EnergyIconRow types={card.types} size={24} />
+                </DetailRow>
               )}
               {card.illustrator && (
                 <DetailRow label="Ilustrador" value={card.illustrator} />
@@ -203,9 +207,10 @@ export default function CardDetailScreen() {
                         <Text style={styles.attackEffect}>{attack.effect}</Text>
                       )}
                       {attack.cost && attack.cost.length > 0 && (
-                        <Text style={styles.attackCost}>
-                          Custo: {attack.cost.join(", ")}
-                        </Text>
+                        <View style={styles.attackCostRow}>
+                          <Text style={styles.attackCostLabel}>Custo</Text>
+                          <EnergyIconRow types={attack.cost} size={20} />
+                        </View>
                       )}
                     </View>
                   ))}
@@ -222,9 +227,10 @@ export default function CardDetailScreen() {
                     <View style={{ flex: 1, gap: 4 }}>
                       <Text style={styles.weakLabel}>Fraqueza</Text>
                       {card.weaknesses.map((w: any, i: number) => (
-                        <Text key={i} style={styles.weakValue}>
-                          {w.type} {w.value}
-                        </Text>
+                        <View key={i} style={styles.typeEffectRow}>
+                          <EnergyIconRow types={[w.type]} size={20} />
+                          <Text style={styles.weakValue}>{w.value}</Text>
+                        </View>
                       ))}
                     </View>
                   )}
@@ -232,9 +238,10 @@ export default function CardDetailScreen() {
                     <View style={{ flex: 1, gap: 4 }}>
                       <Text style={styles.weakLabel}>Resistência</Text>
                       {card.resistances.map((r: any, i: number) => (
-                        <Text key={i} style={styles.resistValue}>
-                          {r.type} {r.value}
-                        </Text>
+                        <View key={i} style={styles.typeEffectRow}>
+                          <EnergyIconRow types={[r.type]} size={20} />
+                          <Text style={styles.resistValue}>{r.value}</Text>
+                        </View>
                       ))}
                     </View>
                   )}
@@ -304,12 +311,22 @@ export default function CardDetailScreen() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string;
+  children?: ReactNode;
+}) {
   const styles = useStyles(stylesFactory);
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
+      {children ?? (
+        <Text style={styles.detailValue}>{value}</Text>
+      )}
     </View>
   );
 }
@@ -426,9 +443,20 @@ const stylesFactory = (colors: any) =>
       fontSize: 12,
       lineHeight: 18,
     },
-    attackCost: {
+    attackCostRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 4,
+    },
+    attackCostLabel: {
       color: colors.text.muted,
       fontSize: 11,
+    },
+    typeEffectRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
     },
     weakLabel: {
       color: colors.text.muted,

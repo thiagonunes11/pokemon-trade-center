@@ -188,6 +188,26 @@ Função: `formatCollectionProgress(owned, total)` em `src/lib/formatCollectionP
 - Carta alta resolução: `${card.image}/high.png` (detalhe) ou `/high.webp` (coleção)
 - IDs de carta: `{setId}-{localId}` (ex. `me02.5-042` — setId pode conter ponto)
 
+### Ícones de tipo/energia (locais)
+
+A API devolve **nomes** (`Fogo`, `Incolor`, etc.), não URLs de ícones pequenos. O app usa PNGs em `assets/images/energy/`:
+
+| Arquivo | Tipos TCGdex (pt) |
+|---------|-------------------|
+| `fire.png` | Fogo |
+| `water.png` | Água |
+| `grass.png` | Planta |
+| `electric.png` | Elétrico |
+| `psychic.png` | Psíquico |
+| `fighting.png` | Lutador |
+| `dark.png` | Sombrio |
+| `steel.png` | Metal |
+| `fairy.png` | Fada |
+| `dragon.png` | Dragão |
+| `normal.png` | Incolor |
+
+Mapeamento: `src/lib/energyIcons.ts` · UI: `src/components/EnergyIcon.tsx` (detalhe da carta). Tipos desconhecidos usam fallback com abreviação.
+
 ### React Query keys
 
 | Hook                 | queryKey                                      |
@@ -351,6 +371,7 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Coleção do usuário (store) | `src/store/useCollectionStore.ts`, `src/hooks/useOwnedSetCount.ts`           |
 | Cores / tema / provider    | `src/theme/colors.ts`, `src/theme/ThemeContext.tsx`, `tamagui.config.ts`     |
 | Botão toggle de tema       | `src/components/ThemeToggle.tsx`                                             |
+| Ícones de energia/tipo     | `assets/images/energy/`, `src/lib/energyIcons.ts`, `EnergyIcon.tsx`          |
 | Boot / Expo                | `package.json`, `app.json`, `babel.config.js`, `.agent.md`                   |
 
 ---
