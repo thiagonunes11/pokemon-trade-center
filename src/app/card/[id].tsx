@@ -1,6 +1,6 @@
-import React, { useLayoutEffect } from "react";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useLayoutEffect } from "react";
 import {
   Dimensions,
   Pressable,

@@ -9,6 +9,8 @@ interface CardItemProps {
   image: string | null;
   rarity?: string;
   isInCollection?: boolean;
+  /** Grade densa: só imagem, preenche a célula */
+  compact?: boolean;
   onPress: (id: string) => void;
 }
 
@@ -19,6 +21,7 @@ function CardItemComponent({
   image,
   rarity,
   isInCollection = false,
+  compact = false,
   onPress,
 }: CardItemProps) {
   const screenWidth = Dimensions.get("window").width;
@@ -44,42 +47,56 @@ function CardItemComponent({
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.container,
+        compact && styles.containerCompact,
+        pressed && styles.pressed,
+      ]}
       onPress={() => onPress(id)}
       android_ripple={{ color: "rgba(255,255,255,0.12)" }}
     >
-      <View style={[styles.card, isInCollection && styles.cardInCollection]}>
+      <View
+        style={[
+          styles.card,
+          compact && styles.cardCompact,
+          isInCollection && styles.cardInCollection,
+        ]}
+      >
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
-            style={styles.cardImage}
-            contentFit="contain"
+            style={[styles.cardImage, compact && styles.cardImageCompact]}
+            contentFit={compact ? "cover" : "contain"}
             transition={300}
           />
         ) : (
-          <View style={[styles.cardImage, styles.noImage]}>
+          <View
+            style={[styles.cardImage, compact && styles.cardImageCompact, styles.noImage]}
+          >
             <Text style={styles.noImageText}>Sem imagem</Text>
           </View>
         )}
 
-        <View style={styles.info}>
-          <Text
-            style={[styles.name, { fontSize: nameFontSize }]}
-            numberOfLines={2}
-          >
-            {name}
-          </Text>
-          <View style={styles.meta}>
-            <Text style={[styles.localId, { fontSize: localIdFontSize }]}>
-              #{localId}
+        {!compact && (
+          <View style={styles.info}>
+            <Text
+              style={[styles.name, { fontSize: nameFontSize }]}
+              numberOfLines={2}
+            >
+              {name}
             </Text>
-            {rarity && (
-              <Text style={[styles.rarity, { fontSize: localIdFontSize }]}>
-                {rarity}
+            <View style={styles.meta}>
+              <Text style={[styles.localId, { fontSize: localIdFontSize }]}>
+                #{localId}
               </Text>
-            )}
+              {rarity && (
+                <Text style={[styles.rarity, { fontSize: localIdFontSize }]}>
+                  {rarity}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
+        )}
       </View>
     </Pressable>
   );
@@ -87,69 +104,86 @@ function CardItemComponent({
 
 export const CardItem = CardItemComponent;
 
-const stylesFactory = (colors: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    margin: 5,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  card: {
-    backgroundColor: colors.background.card,
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.background.elevated,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  cardInCollection: {
-    borderColor: colors.primary[400],
-    borderWidth: 2,
-    backgroundColor: colors.primary[950],
-    shadowColor: colors.primary[400],
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  cardImage: {
-    width: "100%",
-    aspectRatio: 0.715,
-  },
-  noImage: {
-    backgroundColor: colors.background.elevated,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  noImageText: {
-    color: colors.text.muted,
-    fontSize: 11,
-  },
-  info: {
-    padding: 8,
-    gap: 4,
-  },
-  name: {
-    color: colors.text.primary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  meta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  localId: {
-    color: colors.text.muted,
-    fontSize: 10,
-  },
-  rarity: {
-    color: colors.accent[400],
-    fontSize: 9,
-    fontWeight: "500",
-  },
-});
+const stylesFactory = (colors: any) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      margin: 5,
+    },
+    containerCompact: {
+      margin: 0,
+      width: "100%",
+      height: "100%",
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+    cardCompact: {
+      flex: 1,
+      height: "100%",
+      borderRadius: 6,
+    },
+    card: {
+      backgroundColor: colors.background.card,
+      borderRadius: 10,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: colors.background.elevated,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    cardInCollection: {
+      borderColor: colors.primary[400],
+      borderWidth: 2,
+      backgroundColor: colors.primary[950],
+      shadowColor: colors.primary[400],
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+    cardImage: {
+      width: "100%",
+      aspectRatio: 0.715,
+    },
+    cardImageCompact: {
+      flex: 1,
+      width: "100%",
+      aspectRatio: undefined,
+      minHeight: 0,
+    },
+    noImage: {
+      backgroundColor: colors.background.elevated,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    noImageText: {
+      color: colors.text.muted,
+      fontSize: 11,
+    },
+    info: {
+      padding: 8,
+      gap: 4,
+    },
+    name: {
+      color: colors.text.primary,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    meta: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    localId: {
+      color: colors.text.muted,
+      fontSize: 10,
+    },
+    rarity: {
+      color: colors.accent[400],
+      fontSize: 9,
+      fontWeight: "500",
+    },
+  });

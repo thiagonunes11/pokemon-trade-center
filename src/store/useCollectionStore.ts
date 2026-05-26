@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { safeStorage } from '@/lib/safeStorage';
-import { useAuthStore } from './useAuthStore';
+import { safeStorage } from "@/lib/safeStorage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { useAuthStore } from "./useAuthStore";
 
 interface CollectionCard {
   id: string;
@@ -14,7 +14,7 @@ interface CollectionCard {
 
 interface CollectionState {
   cards: CollectionCard[];
-  addCard: (card: Omit<CollectionCard, 'addedAt' | 'ownerId'>) => void;
+  addCard: (card: Omit<CollectionCard, "addedAt" | "ownerId">) => void;
   removeCard: (cardId: string) => void;
   hasCard: (cardId: string) => boolean;
   getCardCount: () => number;
@@ -36,13 +36,17 @@ export const useCollectionStore = create<CollectionState>()(
       removeCard: (cardId) => {
         const ownerId = useAuthStore.getState().userId ?? null;
         set((state) => ({
-          cards: state.cards.filter((c) => !(c.id === cardId && c.ownerId === ownerId)),
+          cards: state.cards.filter(
+            (c) => !(c.id === cardId && c.ownerId === ownerId),
+          ),
         }));
       },
 
       hasCard: (cardId) => {
         const ownerId = useAuthStore.getState().userId ?? null;
-        return get().cards.some((c) => c.id === cardId && c.ownerId === ownerId);
+        return get().cards.some(
+          (c) => c.id === cardId && c.ownerId === ownerId,
+        );
       },
 
       getCardCount: () => {
@@ -52,12 +56,14 @@ export const useCollectionStore = create<CollectionState>()(
 
       getSetCardCount: (setId) => {
         const ownerId = useAuthStore.getState().userId ?? null;
-        return get().cards.filter((c) => c.setId === setId && c.ownerId === ownerId).length;
+        return get().cards.filter(
+          (c) => c.setId === setId && c.ownerId === ownerId,
+        ).length;
       },
     }),
     {
-      name: 'pokemon-collection-storage',
+      name: "pokemon-collection-storage",
       storage: createJSONStorage(() => safeStorage),
-    }
-  )
+    },
+  ),
 );

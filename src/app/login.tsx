@@ -1,12 +1,12 @@
-import React from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme, useStyles } from '@/theme';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuthStore } from "@/store/useAuthStore";
+import { useAppTheme, useStyles } from "@/theme";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
-  const [name, setName] = React.useState('');
+  const [name, setName] = React.useState("");
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
@@ -16,20 +16,25 @@ export default function LoginScreen() {
   const handleLogin = () => {
     if (!name.trim()) return;
     login(name.trim());
-    router.replace('/');
+    router.replace("/");
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
       <Text style={styles.title}>Bem-vindo ao Pokemon Trade Center</Text>
-      <Text style={styles.subtitle}>Informe um nome para criar sua conta local</Text>
+      <Text style={styles.subtitle}>
+        Informe um nome para criar sua conta local
+      </Text>
       <TextInput
         value={name}
         onChangeText={setName}
         placeholder="Seu nome"
         style={[styles.input, { borderColor: colors.background.elevated }]}
       />
-      <Pressable style={[styles.button, { backgroundColor: colors.primary[600] }]} onPress={handleLogin}>
+      <Pressable
+        style={[styles.button, { backgroundColor: colors.primary[600] }]}
+        onPress={handleLogin}
+      >
         <Text style={styles.buttonText}>Criar conta local</Text>
       </Pressable>
     </View>
@@ -42,11 +47,11 @@ const stylesFactory = (colors: any) =>
       flex: 1,
       paddingHorizontal: 24,
       backgroundColor: colors.background.primary,
-      alignItems: 'center',
+      alignItems: "center",
     },
     title: {
       fontSize: 20,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text.primary,
       marginTop: 24,
     },
@@ -54,10 +59,10 @@ const stylesFactory = (colors: any) =>
       color: colors.text.secondary,
       marginTop: 8,
       marginBottom: 16,
-      textAlign: 'center',
+      textAlign: "center",
     },
     input: {
-      width: '100%',
+      width: "100%",
       padding: 12,
       borderRadius: 8,
       borderWidth: 1,
@@ -71,7 +76,7 @@ const stylesFactory = (colors: any) =>
       marginTop: 8,
     },
     buttonText: {
-      color: colors.text.onPrimary ?? '#fff',
-      fontWeight: '700',
+      color: colors.text.onPrimary ?? "#fff",
+      fontWeight: "700",
     },
   });

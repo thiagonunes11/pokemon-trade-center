@@ -13,8 +13,8 @@ import {
   restoreQueryCache,
   setupQueryCachePersistence,
 } from "@/lib/queryPersister";
-import { ThemeProvider, useAppTheme } from "@/theme";
 import { useAuthStore } from "@/store/useAuthStore";
+import { ThemeProvider, useAppTheme } from "@/theme";
 import { tamaguiConfig } from "../../tamagui.config";
 
 export default function RootLayout() {

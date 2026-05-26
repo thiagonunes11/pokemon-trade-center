@@ -1,3 +1,4 @@
+import { useCollectionStore } from "@/store/useCollectionStore";
 import { useAppTheme, useStyles } from "@/theme";
 import { useCallback } from "react";
 import {
@@ -10,7 +11,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCollectionStore } from "@/store/useCollectionStore";
 import { CardItem } from "./CardItem";
 
 export interface CardBrief {
@@ -114,35 +114,36 @@ export function CardGrid({
   );
 }
 
-const stylesFactory = (colors: any) => StyleSheet.create({
-  gridContainer: {
-    padding: 10,
-  },
-  itemWrapper: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
-  loadingText: {
-    color: colors.text.secondary,
-    fontSize: 14,
-  },
-  columnWrapper: {
-    justifyContent: "space-between",
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-  },
-  emptyText: {
-    color: colors.text.muted,
-    fontSize: 16,
-    textAlign: "center",
-  },
-});
+const stylesFactory = (colors: any) =>
+  StyleSheet.create({
+    gridContainer: {
+      padding: 10,
+    },
+    itemWrapper: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 16,
+    },
+    loadingText: {
+      color: colors.text.secondary,
+      fontSize: 14,
+    },
+    columnWrapper: {
+      justifyContent: "space-between",
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 32,
+    },
+    emptyText: {
+      color: colors.text.muted,
+      fontSize: 16,
+      textAlign: "center",
+    },
+  });
