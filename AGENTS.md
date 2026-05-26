@@ -81,13 +81,17 @@ src/lib/
   tcgdex.ts                 ← Cliente SDK + SUPPORTED_SETS
   collections.ts            ← COLLECTIONS[], disponibilidade, helpers
   formatCollectionProgress.ts  ← "005/188 cartas"
+  energyIcons.ts            ← Nome TCGdex (pt/en) → require PNG em assets/images/energy/
   queryClient.ts
   queryPersister.ts         ← Cache offline-first do React Query (debounced)
   safeStorage.ts            ← Invólucro resiliente com fallback (Web/Expo Go)
   storagePolyfill.ts        ← Importar antes do SDK (side effect)
 
 src/components/             ← Componentes globais e reutilizáveis
-  ThemeToggle.tsx           ← Botão animado de alternância de tema no header
+  ThemeToggle.tsx           ← Alternância de tema no header de catalog/index
+  EnergyIcon.tsx            ← Ícone / linha de tipos (assets/images/energy)
+
+assets/images/energy/       ← PNGs locais (Fogo, Água, Planta, …) — ver energyIcons.ts
 
 src/store/
   useAuthStore.ts           ← userId, login/logout (ptc-auth-storage)
@@ -123,7 +127,7 @@ flowchart TD
 | ------------------------- | --------------------- | ------------------------------------------------------ |
 | `/(tabs)/catalog`         | `catalog/index.tsx`   | Stack: "Coleções"; cada card mostra `000/188 cartas`   |
 | `/(tabs)/catalog/[setId]` | `catalog/[setId].tsx` | Stack: título + badge `000/188` (`CatalogHeaderTitle`) |
-| `/(tabs)/collection`      | `collection.tsx`      | Tab: grid 4 colunas; filtros Todas / Por coleção       |
+| `/(tabs)/collection`      | `collection.tsx`      | Tab: grid 4 colunas; FAB contador abre filtro Todas / Por coleção |
 | `/card/[id]`              | `card/[id].tsx`       | Stack global, opaco, botão voltar                      |
 | `/login`                  | `login.tsx`           | Conta local; guard em `_layout.tsx`                    |
 
@@ -208,6 +212,10 @@ A API devolve **nomes** (`Fogo`, `Incolor`, etc.), não URLs de ícones pequenos
 
 Mapeamento: `src/lib/energyIcons.ts` · UI: `src/components/EnergyIcon.tsx` (detalhe da carta). Tipos desconhecidos usam fallback com abreviação.
 
+### Variantes (holo / reverse / normal)
+
+A TCGdex expõe `variants` (booleanos) e `variants_detailed` (preços por acabamento). **Não há URL de imagem separada** por variante na maioria dos casos — o app usa um único `image` por carta. Útil para badges ou preços futuros; a coleção local ainda não grava qual variante o usuário possui.
+
 ### React Query keys
 
 | Hook                 | queryKey                                      |
@@ -255,7 +263,11 @@ interface CollectionCard {
   - Constantes de layout: `GRID_GAP = 4`, `H_PADDING = 6`.
   - **Todas:** `FlatList` com `numColumns={4}`; **Por coleção:** `ScrollView` com seções e `flexWrap` no mesmo tamanho de célula.
   - `CardItem` com **`compact`** — só imagem (`contentFit="cover"`), sem nome/número; preenche a célula.
-  - Badge flutuante com total de cartas; toque abre `/card/[id]`.
+  - **FAB filtro (canto inferior direito):**
+    - Botão circular (`FAB_SIZE = 52`) exibe **apenas o número** de cartas.
+    - Toque alterna menu com opções **Todas** / **Por coleção** (substitui filtros no topo da tela).
+    - Menu posicionado com `position: 'absolute'`, `bottom: FAB_SIZE + FAB_MENU_GAP`, `zIndex` menor que o FAB (surge “de trás” do contador).
+    - Animação: `filterMenuEntering` / `filterMenuExiting` em `collection.tsx` — fade + `translateY` 8px (`withTiming` ~150ms). **Não** usar `SlideInUp` (parece vir do topo da tela).
   - Filtra cartas: `ownerId ?? null === authUserId ?? null`.
 - **Como obter `setId` e `ownerId`:** `setId: card.set?.id ?? id.split('-')[0]`; `ownerId` é obtido de `useAuthStore.getState().userId` ao adicionar.
 - **Progresso:** `useOwnedSetCount` / `useOwnedCountsBySet` continuam disponíveis e agora contam apenas cartas do `ownerId` atual.
@@ -287,7 +299,8 @@ interface CollectionCard {
 - [x] Stack com voltar na navegação do catálogo
 - [x] Login local + guard de rota (`login.tsx`, `useAuthStore`)
 - [x] Tema claro/escuro (`ThemeProvider`, `ThemeToggle` em Coleções)
-- [x] Aba Coleção: grid **4 colunas**, modos **Todas** / **Por coleção**, `CardItem` compact, badge flutuante
+- [x] Aba Coleção: grid **4 colunas**, `CardItem` compact, FAB contador + menu filtro
+- [x] Ícones de energia no detalhe (`EnergyIcon`, `assets/images/energy/`)
 
 ### Placeholder / incompleto
 
@@ -333,6 +346,7 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | `TypeError: cyclical structure`                   | SDK retorna objetos com referências circulares                           | Usar `getCircularReplacer` debounced em `JSON.stringify`                                                                                     |
 | `AsyncStorage native module null`                 | Rodando em Web sandbox ou Expo Go sem compilar nativo                    | Usar `safeStorage` (inicia no modo fallback localStorage/memória)                                                                            |
 | Grid da coleção com colunas erradas               | Largura fixa sem `useWindowDimensions`                                   | Recalcular `cellWidth` / `cellHeight` ao rotacionar ou redimensionar                                                                           |
+| Menu de filtro “vem do topo”                      | `SlideInUp` do Reanimated anima da base da tela                          | Fade + `translateY` curto ancorado no FAB (`filterMenuEntering` em `collection.tsx`)                                                           |
 | Raiz `/` sem `src/app/index.tsx`                  | Expo Router mostra `Unmatched Route` ao abrir o app                      | Criar `src/app/index.tsx` com `Redirect href="/catalog"`                                                                                     |
 | `INSTALL_FAILED_INSUFFICIENT_STORAGE` no emulador | APK antigo ou espaço cheio no dispositivo virtual                        | Desinstalar pacote com `adb uninstall com.pokemontradecenter.app` ou limpar dados do emulador                                                |
 | VirtualizedList lento ao rolar                    | `FlatList` com renderItem pesado / animações em cada item                | Memoizar `CardItem`, usar `FlatList` com `initialNumToRender`, `windowSize`, `removeClippedSubviews`                                         |
@@ -367,7 +381,7 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Header catálogo            | `src/app/(tabs)/catalog/[setId].tsx` (`CatalogHeaderTitle`)                  |
 | Navegação tabs/stack       | `src/app/(tabs)/_layout.tsx`, `catalog/_layout.tsx`                          |
 | Login / guard              | `src/store/useAuthStore.ts`, `login.tsx`, `_layout.tsx`                        |
-| Aba Minha Coleção (grid 4) | `src/app/(tabs)/collection.tsx`, `CardItem.tsx` (`compact`)                    |
+| Aba Minha Coleção (grid 4 + FAB) | `src/app/(tabs)/collection.tsx`, `CardItem.tsx` (`compact`)              |
 | Coleção do usuário (store) | `src/store/useCollectionStore.ts`, `src/hooks/useOwnedSetCount.ts`           |
 | Cores / tema / provider    | `src/theme/colors.ts`, `src/theme/ThemeContext.tsx`, `tamagui.config.ts`     |
 | Botão toggle de tema       | `src/components/ThemeToggle.tsx`                                             |
@@ -386,20 +400,26 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 ## 14. Atualizações recentes
 
-### 2026-05-26 — Aba Coleção (grid 4×4)
+### 2026-05-26 — Coleção, energia e detalhe
 
-- **`collection.tsx`:** grade fixa de **4 colunas**; cartas ocupam a largura útil da tela (`cellWidth` / `cellHeight` via `useWindowDimensions`).
-- **Modos:** apenas **Todas** (`FlatList` + `numColumns={4}`) e **Por coleção** (`ScrollView` com seções). Removido modo **Recentes**.
-- **`CardItem`:** nova prop **`compact`** — tile só com imagem (`cover`), usada na Coleção; catálogo continua com layout completo.
-- **UI:** padding horizontal reduzido (`H_PADDING = 6`); badge flutuante mantido; header grande no meio da tela removido.
+**Aba Coleção (`collection.tsx`):**
 
-### Histórico (2026-05-25)
+- Grade **4 colunas**; `CardItem` **`compact`** (só imagem).
+- Modos **Todas** / **Por coleção** (sem “Recentes”).
+- **FAB** circular: só o número; toque abre menu de filtro acima do botão.
+- Animação do menu: fade + 8px a partir do FAB (não `SlideInUp`).
 
-- Auth local (`useAuthStore`, `login.tsx`, `ptc-auth-storage`) e coleção com `ownerId`.
-- `CardItem` aceita URL base ou URL já com `/high.webp` / `/high.png`.
-- `CardGrid` com `extraData` para re-render ao mudar a coleção.
-- Persistência: `pokemon-collection-storage`, cache React Query em `safeStorage`.
+**Detalhe / assets:**
 
-**Teste rápido da Coleção:** login → Catálogo → adicionar carta → aba Coleção → verificar 4 colunas e imagens preenchendo as células → alternar “Por coleção”.
+- `assets/images/energy/` — 11 PNGs (todos os tipos PT da TCGdex).
+- `energyIcons.ts` + `EnergyIcon.tsx` — tipos, custos de ataque, fraqueza/resistência no detalhe.
 
-_Última revisão: 2026-05-26 — grid 4 colunas na aba Coleção, remoção de Recentes, `CardItem` compact._
+**Variantes holo (API):** `variants` / `variants_detailed` existem na TCGdex; o app ainda não deixa escolher normal/holo/reverse na coleção — uma imagem por `id`.
+
+### Histórico
+
+- Auth local, coleção com `ownerId`, cache React Query, tema claro/escuro, contador owned/total no catálogo.
+
+**Teste rápido:** login → Catálogo → adicionar carta → Coleção (grid + FAB filtro) → detalhe (ícones de tipo).
+
+_Última revisão: 2026-05-26._

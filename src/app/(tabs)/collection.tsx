@@ -15,9 +15,47 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import Animated, {
+  type EntryExitAnimationFunction,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const GRID_COLUMNS = 4;
+const FAB_SIZE = 52;
+const FAB_MENU_GAP = 6;
+const FILTER_EMERGE_OFFSET = 8;
+
+const filterMenuEntering: EntryExitAnimationFunction = () => {
+  "worklet";
+  return {
+    initialValues: {
+      opacity: 0,
+      transform: [{ translateY: FILTER_EMERGE_OFFSET }],
+    },
+    animations: {
+      opacity: withTiming(1, { duration: 150 }),
+      transform: [{ translateY: withTiming(0, { duration: 150 }) }],
+    },
+  };
+};
+
+const filterMenuExiting: EntryExitAnimationFunction = () => {
+  "worklet";
+  return {
+    initialValues: {
+      opacity: 1,
+      transform: [{ translateY: 0 }],
+    },
+    animations: {
+      opacity: withTiming(0, { duration: 120 }),
+      transform: [
+        { translateY: withTiming(FILTER_EMERGE_OFFSET, { duration: 120 }) },
+      ],
+    },
+  };
+};
+
 const GRID_GAP = 4;
 const H_PADDING = 6;
 const CARD_ASPECT = 0.715;
@@ -38,6 +76,10 @@ const displayOptions: Array<{ key: DisplayMode; label: string }> = [
   { key: "bySet", label: "Por coleção" },
 ];
 
+function getDisplayModeLabel(mode: DisplayMode): string {
+  return displayOptions.find((o) => o.key === mode)?.label ?? "Todas";
+}
+
 export default function CollectionScreen() {
   const router = useRouter();
   const authUserId = useAuthStore((s) => s.userId);
@@ -55,6 +97,7 @@ export default function CollectionScreen() {
   );
 
   const [displayMode, setDisplayMode] = useState<DisplayMode>("all");
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const cardCount = cards.length;
 
   const { cellWidth, cellHeight } = useMemo(() => {
@@ -99,6 +142,15 @@ export default function CollectionScreen() {
     [router],
   );
 
+  const selectDisplayMode = useCallback((mode: DisplayMode) => {
+    setDisplayMode(mode);
+    setFilterMenuOpen(false);
+  }, []);
+
+  const toggleFilterMenu = useCallback(() => {
+    setFilterMenuOpen((open) => !open);
+  }, []);
+
   const renderGridCard = useCallback(
     (item: CollectionCard) => (
       <View
@@ -125,36 +177,11 @@ export default function CollectionScreen() {
     [renderGridCard],
   );
 
-  const listBottomPadding = insets.bottom + 88;
+  const fabBottom = insets.bottom + 16;
+  const listBottomPadding = fabBottom + FAB_SIZE + 12;
 
   return (
     <View style={styles.container}>
-      {cardCount > 0 && (
-        <View style={[styles.modeContainer, { paddingHorizontal: H_PADDING }]}>
-          <View style={styles.modeRow}>
-            {displayOptions.map((option) => {
-              const active = displayMode === option.key;
-              return (
-                <Pressable
-                  key={option.key}
-                  style={[styles.modeButton, active && styles.modeButtonActive]}
-                  onPress={() => setDisplayMode(option.key)}
-                >
-                  <Text
-                    style={[
-                      styles.modeButtonText,
-                      active && styles.modeButtonTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      )}
-
       {cardCount === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.coming}>
@@ -166,7 +193,11 @@ export default function CollectionScreen() {
           style={styles.listContainer}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: listBottomPadding, paddingHorizontal: H_PADDING },
+            {
+              paddingTop: 8,
+              paddingBottom: listBottomPadding,
+              paddingHorizontal: H_PADDING,
+            },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -194,6 +225,7 @@ export default function CollectionScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             {
+              paddingTop: 8,
               paddingHorizontal: H_PADDING,
               paddingBottom: listBottomPadding,
             },
@@ -207,11 +239,53 @@ export default function CollectionScreen() {
       )}
 
       {cardCount > 0 && (
-        <View style={[styles.floatingBadge, { bottom: insets.bottom + 16 }]}>
-          <Text style={styles.count}>{cardCount}</Text>
-          <Text style={styles.countLabel}>
-            {cardCount === 1 ? "carta" : "cartas"}
-          </Text>
+        <View style={[styles.fabAnchor, { bottom: fabBottom }]}>
+          {filterMenuOpen && (
+            <Animated.View
+              entering={filterMenuEntering}
+              exiting={filterMenuExiting}
+              style={[
+                styles.filterMenu,
+                { bottom: FAB_SIZE + FAB_MENU_GAP },
+              ]}
+            >
+              {displayOptions.map((option) => {
+                const active = displayMode === option.key;
+                return (
+                  <Pressable
+                    key={option.key}
+                    style={[
+                      styles.filterMenuOption,
+                      active && styles.filterMenuOptionActive,
+                    ]}
+                    onPress={() => selectDisplayMode(option.key)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterMenuOptionText,
+                        active && styles.filterMenuOptionTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </Animated.View>
+          )}
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.floatingBadge,
+              pressed && styles.floatingBadgePressed,
+            ]}
+            onPress={toggleFilterMenu}
+            accessibilityRole="button"
+            accessibilityLabel={`${cardCount} cartas. Filtro: ${getDisplayModeLabel(displayMode)}.`}
+            accessibilityState={{ expanded: filterMenuOpen }}
+          >
+            <Text style={styles.count}>{cardCount}</Text>
+          </Pressable>
         </View>
       )}
     </View>
@@ -223,35 +297,6 @@ const stylesFactory = (colors: any) =>
     container: {
       flex: 1,
       backgroundColor: colors.background.primary,
-    },
-    modeContainer: {
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    modeRow: {
-      flexDirection: "row",
-      gap: 8,
-    },
-    modeButton: {
-      flex: 1,
-      paddingVertical: 8,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.background.elevated,
-      backgroundColor: colors.background.card,
-      alignItems: "center",
-    },
-    modeButtonActive: {
-      backgroundColor: colors.primary[600],
-      borderColor: colors.primary[600],
-    },
-    modeButtonText: {
-      color: colors.text.primary,
-      fontSize: 12,
-      fontWeight: "700",
-    },
-    modeButtonTextActive: {
-      color: colors.text.onPrimary ?? colors.text.primary,
     },
     listContainer: {
       flex: 1,
@@ -291,31 +336,63 @@ const stylesFactory = (colors: any) =>
       fontSize: 14,
       textAlign: "center",
     },
-    floatingBadge: {
+    fabAnchor: {
       position: "absolute",
       right: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 999,
+      width: FAB_SIZE,
+      height: FAB_SIZE,
+      zIndex: 20,
+    },
+    filterMenu: {
+      position: "absolute",
+      right: 0,
+      minWidth: 132,
+      padding: 4,
+      borderRadius: 12,
+      backgroundColor: colors.background.card,
+      borderWidth: 1,
+      borderColor: colors.background.elevated,
+      gap: 2,
+      elevation: 4,
+      zIndex: 1,
+    },
+    filterMenuOption: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+    },
+    filterMenuOptionActive: {
+      backgroundColor: colors.primary[600],
+    },
+    filterMenuOptionText: {
+      color: colors.text.primary,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    filterMenuOptionTextActive: {
+      color: colors.text.onPrimary ?? "#fff",
+    },
+    floatingBadge: {
+      position: "absolute",
+      right: 0,
+      bottom: 0,
+      width: FAB_SIZE,
+      height: FAB_SIZE,
+      borderRadius: FAB_SIZE / 2,
       backgroundColor: colors.primary[600],
       borderWidth: 1,
       borderColor: colors.background.elevated,
       alignItems: "center",
-      shadowColor: colors.shadow ?? "#000",
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.16,
-      shadowRadius: 12,
+      justifyContent: "center",
       elevation: 8,
+      zIndex: 2,
+    },
+    floatingBadgePressed: {
+      opacity: 0.9,
     },
     count: {
       color: colors.text.onPrimary ?? "#fff",
       fontWeight: "800",
-      fontSize: 22,
-      textAlign: "center",
-    },
-    countLabel: {
-      color: colors.text.muted,
-      fontSize: 11,
-      textAlign: "center",
+      fontSize: 18,
     },
   });

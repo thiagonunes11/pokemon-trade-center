@@ -13,19 +13,19 @@ App mobile para explorar cartas do Pokémon TCG, montar sua coleção e preparar
 ### Primeiro acesso
 
 1. **Login local** — informe um nome; o app cria uma conta só neste dispositivo (sem servidor)
-2. Os dados da coleção e preferências ficam salvos localmente
+2. Coleção, tema e cache da API ficam salvos localmente no aparelho
 
 ### Aba Catálogo
 
 1. **Coleções** — escolha a expansão (logo oficial + progresso `005/188 cartas`)
 2. **Grid** — todas as cartas do set (pull-to-refresh)
-3. **Detalhe** — imagem, informações e botão para adicionar/remover da sua coleção
+3. **Detalhe** — imagem, tipos com ícones de energia, ataques, fraquezas e botão para adicionar/remover da coleção
 
 ### Aba Coleção
 
-- Lista das cartas que você salvou
-- Modos: **Todas**, **Por coleção** ou **Recentes**
+- Grade **4×4** com as cartas que você salvou (imagem em tela cheia)
 - Toque em uma carta para abrir o detalhe
+- **Botão circular** no canto inferior direito mostra só o **número** de cartas; ao tocar, abre o filtro **Todas** ou **Por coleção**
 
 ### Aba Trocas
 
@@ -33,8 +33,8 @@ Placeholder — fluxo de troca ainda não implementado.
 
 ### Outros
 
-- **Tema claro/escuro** (toggle no header da tela Coleções)
-- **Cache da API** — consultas TCGdex persistidas para abrir mais rápido na próxima vez
+- **Tema claro/escuro** — alternância no header da tela **Coleções** (catálogo)
+- **Cache da TCGdex** — consultas persistidas para abrir mais rápido na próxima vez
 
 ---
 
@@ -100,17 +100,17 @@ npx expo start --clear   # limpar cache
 ## Estrutura
 
 ```
-src/app/           # Rotas (Expo Router)
+src/app/
   login.tsx
-  (tabs)/catalog/  # Coleções → catálogo por set
-  (tabs)/collection.tsx
-  card/[id].tsx
-src/features/      # cards, sets
-src/hooks/         # useOwnedSetCount, tema
-src/store/         # auth + coleção (persist)
-src/lib/           # TCGdex, cache, collections
-src/theme/         # claro/escuro
-AGENTS.md          # Contexto para IAs
+  (tabs)/catalog/       # Coleções → catálogo por set
+  (tabs)/collection.tsx # Minha coleção (grid 4×4 + FAB filtro)
+  card/[id].tsx         # Detalhe da carta
+src/features/           # CardGrid, CardItem, sets
+src/components/         # ThemeToggle, EnergyIcon
+src/lib/                # TCGdex, energyIcons, collections
+src/store/              # auth + coleção (persist)
+assets/images/energy/   # Ícones de tipo (PNG)
+AGENTS.md               # Contexto para IAs
 ```
 
 Telas em **`src/app`**, não em `/app` na raiz.
@@ -119,7 +119,7 @@ Telas em **`src/app`**, não em `/app` na raiz.
 
 ## Tecnologias
 
-Expo 56 · React Native 0.85 · Expo Router · Tamagui · TanStack Query · TCGdex SDK · Zustand · AsyncStorage
+Expo 56 · React Native 0.85 · Expo Router · Tamagui · TanStack Query · TCGdex SDK · Zustand · Reanimated · AsyncStorage
 
 ---
 
@@ -141,6 +141,7 @@ Expo 56 · React Native 0.85 · Expo Router · Tamagui · TanStack Query · TCGd
 - [ ] Conta/sync na nuvem
 - [ ] Promos (`mep`) e mais sets
 - [ ] Busca no catálogo
+- [ ] Variante de carta na coleção (holo / reverse — metadados já existem na API)
 
 Contribuições via Issues e Pull Requests.
 
