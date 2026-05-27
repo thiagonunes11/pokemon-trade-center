@@ -8,3 +8,4 @@ export {
 } from "./authService";
 export { getAuthErrorMessage } from "./authErrors";
 export { mapFirebaseUser, type MappedFirebaseUser } from "./mapFirebaseUser";
+export { createUserProfile, updateUserProfile } from "./userProfileService";

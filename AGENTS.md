@@ -29,8 +29,8 @@ Permitir que o usuário:
 4. (Futuro) Gerencie coleção completa e **trocas** com outros jogadores
 
 Escopo atual: catálogo TCGdex, coleção local (Zustand + `ownerId` = Firebase UID), tema e aba Ajustes.
-**Auth:** Firebase e-mail + senha — `src/features/auth/*`, `useAuthStore`, `initAuthListener()` no `_layout.tsx` (**Etapas 0–4** concluídas; ver **§8.3**).
-**Próximo no Firebase:** Firestore perfil + regras (Etapa 5), migração coleção UUID legado (Etapa 6), sync nuvem (Etapa 7), FCM (Etapa 8).
+**Auth & DB:** Firebase Auth + Firestore perfil e regras — `src/features/auth/*`, `useAuthStore`, `initAuthListener()` no `_layout.tsx`, `firestore.rules` (**Etapas 0–5** concluídas; ver **§8.3**).
+**Próximo no Firebase:** Migração coleção UUID legado (Etapa 6), sync nuvem (Etapa 7), FCM (Etapa 8).
 
 ---
 
@@ -77,7 +77,7 @@ src/app/                    ← Rotas Expo Router (NÃO usar /app na raiz)
   index.tsx                 ← Redireciona `/` para `/catalog`
 
 src/features/
-  auth/                     ← authService, mapFirebaseUser, authErrors, index.ts
+  auth/                     ← authService, mapFirebaseUser, authErrors, userProfileService, index.ts
   cards/                    ← CardGrid, CardItem (prop `compact`), useSetCards, useCard
   sets/                     ← CollectionPickerCard, useCollections
 
@@ -86,6 +86,7 @@ src/hooks/
 
 src/lib/
   firebase.ts               ← initializeApp + getAuth + persistência RN (AsyncStorage)
+  firestore.ts              ← getFirestoreDb() singleton (Cloud Firestore)
   tcgdex.ts                 ← Cliente SDK + SUPPORTED_SETS
   collections.ts            ← COLLECTIONS[], disponibilidade, helpers
   formatCollectionProgress.ts  ← "005/188 cartas"
@@ -335,7 +336,7 @@ interface CollectionCard {
 ### Placeholder / incompleto
 
 - [ ] Aba **Trocas**: copy estático, sem lógica
-- [/] **Auth Firebase (Spark)**: Etapas 0–4 feitas; Etapas 5–8 (Firestore, migração, sync, push) — **§8.3**
+- [/] **Auth Firebase (Spark)**: Etapas 0–5 feitas; Etapas 6–8 (migração, sync, push) — **§8.3**
 - [ ] Sets `mep` (promos), `mee` (energias)
 - [ ] Busca, filtros, ordenação no grid do catálogo
 - [ ] Testes automatizados
@@ -374,7 +375,7 @@ Ordem sugerida para agentes e contribuidores. Marcar itens em **Implementado** (
 
 Implementação em etapas — detalhes, arquivos e checklist em **§8.3**. **Não** implementar `passwordHash` local nem `profiles[]` multi-conta: ir direto ao Firebase Auth.
 
-**MVP utilizável (Etapas 0–5):** login real + perfil + regras Firestore — **Etapas 0–4 concluídas**.  
+**MVP utilizável (Etapas 0–5):** login real + perfil + regras Firestore — **Etapas 0–5 concluídas**.  
 **MVP nuvem (Etapas 6–7):** migração UUID local + sync coleção.  
 **Push (Etapa 8):** quando houver trocas/notificações.
 
@@ -385,7 +386,7 @@ Implementação em etapas — detalhes, arquivos e checklist em **§8.3**. **Nã
 | 2 | `src/features/auth/*` · refatorar `useAuthStore` (UID, `isAuthReady`, sem UUID local) | Feito |
 | 3 | `onAuthStateChanged` em `_layout.tsx` · guard sem flash login/app | Feito |
 | 4 | `login.tsx` (esqueci senha) · `settings.tsx` (logout, displayName) · `UserAvatar.tsx` | Feito |
-| 5 | `users/{uid}` no Firestore · `firestore.rules` | Pendente |
+| 5 | `users/{uid}` no Firestore · `firestore.rules` | Feito |
 | 6 | Migração coleção local (`legacyLocalUserId` → UID) | Pendente |
 | 7 | Sync `collections/{uid}/cards/{cardId}` · debounce writes (limites Spark) | Pendente |
 | 8 | `expo-notifications` · `pushToken` em `users/{uid}` | Pendente |
@@ -535,7 +536,7 @@ Evitar redirecionar antes de `isAuthReady` (flash login ↔ app).
 - [x] `login.tsx` — modos **Entrar** / **Criar conta** / **Esqueci senha**; e-mail, senha; nome no cadastro; loading, erros e sucesso inline
 - [x] `settings.tsx` — `UserAvatar`, alterar nome (`updateDisplayName`), e-mail de login, logout com confirmação (`Alert`)
 - [x] `src/components/UserAvatar.tsx` — inicial + cor determinística por `userId` (UID)
-- [ ] (Etapa 5) Renomear também espelha em Firestore `users/{uid}`
+- [x] (Etapa 5) Renomear também espelha em Firestore `users/{uid}`
 
 #### Etapa 5 — Firestore perfil + regras
 
@@ -557,8 +558,9 @@ collections/{userId}/cards/{cardId}
   addedAt: Timestamp
 ```
 
-- [ ] Após registro: `setDoc(users/{uid}, …)` merge
-- [ ] `firestore.rules` — usuário só lê/escreve próprio `users/{uid}` e `collections/{uid}/**`
+- [x] Após registro: `setDoc(users/{uid}, …)` merge
+- [x] `firestore.rules` — usuário só lê/escreve próprio `users/{uid}` e `collections/{uid}/**`
+- [x] Correção de resiliência: fallback de `updateUserProfile` para `createUserProfile` quando a atualização falhar (ex.: usuários legados sem documento no Firestore, evitando erros de permissão ou inexistência).
 
 Esboço de regras:
 
@@ -752,7 +754,19 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | 3 | `initAuthListener`, guard `isAuthReady`, overlay de boot |
 | 4 | Login (Entrar / Criar conta / Esqueci senha), Ajustes (avatar, nome, logout), `UserAvatar.tsx` |
 
-**Próximo:** Etapa 5 — `users/{uid}` no Firestore + `firestore.rules`.
+**Próximo:** Etapa 6 — migração coleção local (`legacyLocalUserId` → UID).
+
+### 2026-05-27 — Etapa 5: Firestore perfil + regras
+
+| Item | Entregue |
+|------|----------|
+| Firestore DB | Criado em `southamerica-east1` (São Paulo), plano Spark |
+| `firebase.json` | Config CLI para rules + indexes |
+| `firestore.rules` | Regras com validação rigorosa: `users/{uid}` e `collections/{uid}/cards/{cardId}` |
+| `src/lib/firestore.ts` | Singleton `getFirestoreDb()` |
+| `userProfileService.ts` | `createUserProfile` (registro) + `updateUserProfile` (renomear) |
+| `authService.ts` | Integração: cria perfil no Firestore após registro; espelha nome no Firestore |
+| Resiliência | Fallback para `createUserProfile` em `updateUserDisplayName` se a atualização falhar, garantindo criação retroativa de perfis de usuários legados (evitando erros de permissão) |
 
 ### 2026-05-28 — Plano Firebase Auth (Spark)
 

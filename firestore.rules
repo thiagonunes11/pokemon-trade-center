@@ -1,0 +1,178 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model — Pokemon Trade Center (Etapa 5)
+// ===============================================================
+//
+// Collection: users
+// Document ID: Firebase Auth UID ({userId})
+// Fields:
+//   - displayName: string (required, 1-100 chars) — nome exibido no app
+//   - email: string (required, valid email, immutable after create)
+//   - createdAt: timestamp (required, immutable) — serverTimestamp no create
+//   - pushToken: string (optional, max 512 chars) — Etapa 8 (FCM)
+//   - migrationCompleted: bool (optional) — Etapa 6 (migração UUID)
+//
+// Collection: collections/{userId}/cards
+// Document ID: cardId (e.g. "me02-001", max 30 chars)
+// Fields:
+//   - id: string (required, max 30 chars) — same as document ID
+//   - name: string (required, max 200 chars) — card name
+//   - imageUrl: string|null (optional, max 500 chars, https://)
+//   - setId: string (required, max 20 chars) — e.g. "me02", "me02.5"
+//   - addedAt: timestamp (required)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =============================================================
+    // Helper Functions
+    // =============================================================
+
+    /// Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /// Check if the authenticated user owns the resource at {userId}
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    /// Validate required fields exist in the incoming document
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    /// Validate the document contains only the allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    /// Check that immutable fields have not changed between old and new
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    /// Validate email format
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches('^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    /// Validate that a timestamp is recent (within the last 5 minutes)
+    function isRecent(time) {
+      return time is timestamp &&
+        time > request.time - duration.value(5, 'm') &&
+        time <= request.time;
+    }
+
+    // =============================================================
+    // Domain Validators
+    // =============================================================
+
+    /// Validate a user profile document (used in both create and update)
+    function isValidUserProfile() {
+      let data = request.resource.data;
+      let allowedFields = ['displayName', 'email', 'createdAt', 'pushToken', 'migrationCompleted'];
+      let requiredFields = ['displayName', 'email', 'createdAt'];
+
+      return hasOnlyAllowedFields(allowedFields) &&
+        hasRequiredFields(requiredFields) &&
+        // displayName: string, 1-100 chars
+        data.displayName is string &&
+        data.displayName.size() >= 1 &&
+        data.displayName.size() <= 100 &&
+        // email: string, valid email
+        data.email is string &&
+        isValidEmail(data.email) &&
+        data.email.size() <= 254 &&
+        // createdAt: timestamp
+        data.createdAt is timestamp &&
+        // pushToken: optional string, max 512 chars
+        (!('pushToken' in data) || (data.pushToken is string && data.pushToken.size() <= 512)) &&
+        // migrationCompleted: optional bool
+        (!('migrationCompleted' in data) || data.migrationCompleted is bool);
+    }
+
+    /// Validate a collection card document (used in both create and update)
+    function isValidCard() {
+      let data = request.resource.data;
+      let allowedFields = ['id', 'name', 'imageUrl', 'setId', 'addedAt'];
+      let requiredFields = ['id', 'name', 'setId', 'addedAt'];
+
+      return hasOnlyAllowedFields(allowedFields) &&
+        hasRequiredFields(requiredFields) &&
+        // id: string, max 30 chars
+        data.id is string &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 30 &&
+        // name: string, max 200 chars
+        data.name is string &&
+        data.name.size() >= 1 &&
+        data.name.size() <= 200 &&
+        // imageUrl: optional, string (https) or null
+        (!('imageUrl' in data) || data.imageUrl == null ||
+          (data.imageUrl is string && data.imageUrl.size() <= 500 &&
+           data.imageUrl.matches('^https://.*'))) &&
+        // setId: string, max 20 chars
+        data.setId is string &&
+        data.setId.size() >= 1 &&
+        data.setId.size() <= 20 &&
+        // addedAt: timestamp
+        data.addedAt is timestamp;
+    }
+
+    // =============================================================
+    // Rules: users/{userId}
+    // =============================================================
+
+    match /users/{userId} {
+      // Only the owner can read their own profile (contains PII: email)
+      allow read: if isOwner(userId);
+
+      // Create: owner only, valid data, email must match auth, recent createdAt
+      allow create: if isOwner(userId) &&
+        isValidUserProfile() &&
+        request.resource.data.email == request.auth.token.email &&
+        isRecent(request.resource.data.createdAt);
+
+      // Update: owner only, valid data, immutable fields protected
+      allow update: if isOwner(userId) &&
+        isValidUserProfile() &&
+        areImmutableFieldsUnchanged(['email', 'createdAt']);
+
+      // Delete: not allowed (user profile should not be deleted from client)
+      allow delete: if false;
+    }
+
+    // =============================================================
+    // Rules: collections/{userId}/cards/{cardId}
+    // =============================================================
+
+    match /collections/{userId}/cards/{cardId} {
+      // Only the owner can read their own cards
+      allow read: if isOwner(userId);
+
+      // Create: owner only, valid card, document ID must match card.id
+      allow create: if isOwner(userId) &&
+        isValidCard() &&
+        request.resource.data.id == cardId;
+
+      // Update: owner only, valid card, id and addedAt immutable
+      allow update: if isOwner(userId) &&
+        isValidCard() &&
+        areImmutableFieldsUnchanged(['id', 'addedAt']);
+
+      // Delete: owner can remove cards from their collection
+      allow delete: if isOwner(userId);
+    }
+
+    // =============================================================
+    // Default deny: all other paths
+    // =============================================================
+    // No match = denied by default in Firestore
+  }
+}

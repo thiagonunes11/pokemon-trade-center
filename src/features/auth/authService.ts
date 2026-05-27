@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 import { getAuthErrorMessage } from "./authErrors";
 import { mapFirebaseUser, type MappedFirebaseUser } from "./mapFirebaseUser";
+import { createUserProfile, updateUserProfile } from "./userProfileService";
 
 function rethrowAuthError(error: unknown): never {
   throw new Error(getAuthErrorMessage(error));
@@ -32,6 +33,13 @@ export async function registerWithEmail(
     if (trimmedName) {
       await updateProfile(credential.user, { displayName: trimmedName });
       await credential.user.reload();
+    }
+
+    // Criar perfil no Firestore (não bloqueia auth se falhar)
+    try {
+      await createUserProfile(credential.user);
+    } catch (firestoreError) {
+      console.warn("[Auth] Falha ao criar perfil no Firestore:", firestoreError);
     }
 
     return mapFirebaseUser(credential.user);
@@ -83,8 +91,21 @@ export async function updateUserDisplayName(name: string): Promise<void> {
       });
     }
 
-    await updateProfile(user, { displayName: name.trim() });
+    const trimmed = name.trim();
+    await updateProfile(user, { displayName: trimmed });
     await user.reload();
+
+    // Espelhar no Firestore (não bloqueia se falhar)
+    try {
+      await updateUserProfile(user.uid, { displayName: trimmed });
+    } catch (firestoreError) {
+      console.warn("[Auth] Falha ao atualizar perfil no Firestore, tentando criar perfil legado:", firestoreError);
+      try {
+        await createUserProfile(user);
+      } catch (createError) {
+        console.warn("[Auth] Falha crítica ao criar perfil legado no Firestore:", createError);
+      }
+    }
   } catch (error) {
     rethrowAuthError(error);
   }
