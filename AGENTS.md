@@ -16,7 +16,7 @@ Troubleshooting só de boot Expo: [.agent.md](./.agent.md)
 | **Domínio**          | Pokémon TCG — catálogo de cartas, coleção pessoal, trocas (futuro) |
 | **Idioma da UI**     | Português (Brasil)                                                 |
 | **Idioma dos dados** | Português via TCGdex (`pt`)                                        |
-| **Estágio**          | Trabalho em andamento; várias telas são placeholder                |
+| **Estágio**          | MVP catálogo + coleção local; Firebase Auth + perfil Firestore ativos |
 | **Repositório**      | `https://github.com/thiagonunes11/pokemon-trade-center.git`        |
 
 ### Objetivo do produto
@@ -46,7 +46,7 @@ Escopo atual: catálogo TCGdex, coleção local (Zustand + `ownerId` = Firebase 
 | API cartas    | `@tcgdex/sdk`             | TCGdex REST, locale `pt`                                                   |
 | Cache remoto  | TanStack React Query      | query keys por set/card + Persistência (safeStorage + getCircularReplacer) |
 | Estado local  | Zustand                   | Coleção persistida (safeStorage + AsyncStorage)                            |
-| Backend       | Firebase (Spark — free)   | Auth ativo; Firestore + FCM planejados — **sem Cloud Functions** — §8.3      |
+| Backend       | Firebase (Spark — free)   | Auth + Firestore perfil/regras ativos; sync coleção e FCM pendentes — §8.3   |
 | Auth          | Firebase Auth (SDK JS)    | `firebase` ^12 · `src/lib/firebase.ts` · sessão AsyncStorage (RN) · §8.3    |
 | Config local  | `.env` (gitignored)       | `EXPO_PUBLIC_FIREBASE_*` — template `.env.example`; ver README § Firebase   |
 | Imagens       | `expo-image`              | URLs `{base}/high.png` ou `.webp`                                          |
@@ -109,6 +109,14 @@ src/store/
 
 src/theme/                  ← colors, typography, ThemeContext (ThemeProvider, useAppTheme, useStyles)
 tamagui.config.ts           ← temas Tamagui (dark_phantom e light_phantom) na raiz do projeto
+
+# Raiz (config Firebase / secrets)
+firebase.json               ← CLI: deploy de firestore.rules + indexes
+firestore.rules             ← users/{uid}, collections/{uid}/cards/{cardId}
+firestore.indexes.json
+.env.example                ← placeholders (commitar)
+google-services.json.example / GoogleService-Info.plist.example
+# Locais gitignored: .env, google-services.json, GoogleService-Info.plist
 ```
 
 **Regra:** telas e rotas vivem em `src/app/`. O Expo detecta `src/app` como router root automaticamente.
@@ -332,6 +340,7 @@ interface CollectionCard {
 - [x] Tema **3 modos** (Claro / Escuro / Sistema) + paleta neutra (slate + cobalt-blue)
 - [x] Aba Coleção: grid **4 colunas**, `CardItem` compact, FAB contador + menu filtro
 - [x] Ícones de energia no detalhe (`EnergyIcon`, `assets/images/energy/`)
+- [x] Firestore perfil `users/{uid}` (`userProfileService`, `firestore.ts`, `firestore.rules`)
 
 ### Placeholder / incompleto
 
@@ -371,12 +380,12 @@ Ordem sugerida para agentes e contribuidores. Marcar itens em **Implementado** (
 - [ ] Bloco **Preços (referência)** com `card.pricing` TCGdex + texto "valores internacionais; mercado BR pode diferir"
 - [ ] (Opcional) Estimativa em R$ via câmbio do dia + aviso explícito de estimativa
 
-### Fase 2 — Autenticação Firebase (Spark) — **prioridade atual**
+### Fase 2 — Autenticação Firebase (Spark) — **Etapas 6–8 pendentes**
 
 Implementação em etapas — detalhes, arquivos e checklist em **§8.3**. **Não** implementar `passwordHash` local nem `profiles[]` multi-conta: ir direto ao Firebase Auth.
 
-**MVP utilizável (Etapas 0–5):** login real + perfil + regras Firestore — **Etapas 0–5 concluídas**.  
-**MVP nuvem (Etapas 6–7):** migração UUID local + sync coleção.  
+**MVP utilizável (Etapas 0–5):** login real + perfil + regras Firestore — **concluído**.  
+**MVP nuvem (Etapas 6–7):** migração UUID local + sync coleção — **prioridade atual**.  
 **Push (Etapa 8):** quando houver trocas/notificações.
 
 | Etapa | Entregável | Status |
@@ -431,8 +440,21 @@ Implementação em etapas — detalhes, arquivos e checklist em **§8.3**. **Nã
 | `UserAvatar.tsx` | Inicial + cor por UID |
 | `_layout.tsx` | `initAuthListener()` + overlay até `isAuthReady` + guard `/login` |
 | `.env` | Local, gitignored; `cp .env.example .env` — valores de `google-services.json` / `.plist` ou Console |
-| `useCollectionStore` | `ownerId` em cada carta — **contrato estável** (passa a ser Firebase UID) |
-| Pacote `firebase` | Instalado (`^12`); `src/lib/firebase.ts` com persistência AsyncStorage (RN) |
+| `useCollectionStore` | `ownerId` = Firebase UID nas cartas novas; coleção **só local** (Zustand) até Etapa 7 |
+| `src/lib/firestore.ts` | `getFirestoreDb()` singleton |
+| `userProfileService.ts` | `createUserProfile` / `updateUserProfile` em `users/{uid}` |
+| `firestore.rules` + `firebase.json` | Regras deployáveis; DB em `southamerica-east1` |
+| Pacote `firebase` | `^12`; `firebase.ts` com `initializeAuth` + `getReactNativePersistence(AsyncStorage)` no RN |
+
+### Segredos e repositório público
+
+| Arquivo | No Git? |
+|---------|---------|
+| `.env`, `google-services.json`, `GoogleService-Info.plist` | ❌ gitignored |
+| `.env.example`, `*.example` | ✅ placeholders |
+| `app.json` | ✅ aponta para paths locais dos arquivos nativos |
+
+Após clone: README § Firebase. Se secrets vazaram: force-push + restringir API keys no Google Cloud. **Google Sign-In** no Console é opcional e **não** implementado no app.
 
 ### Por que Firebase Spark (gratuito)
 
@@ -605,23 +627,22 @@ match /collections/{userId}/cards/{cardId} {
 
 | Prioridade | Arquivo |
 |------------|---------|
-| Alta | `src/lib/firebase.ts`, `src/features/auth/*`, `useAuthStore.ts`, `_layout.tsx`, `login.tsx`, `settings.tsx`, `UserAvatar.tsx` |
-| Alta | `.env` (local) + `.env.example` |
-| Média | `firestore.rules` + Firebase CLI deploy (Etapa 5) |
-| Média | `src/features/collection/firestoreSync.ts` (novo) |
-| Média | `.env.example`, `*.example` Firebase, README (setup local) |
+| — | `src/lib/firebase.ts`, `src/lib/firestore.ts`, `src/features/auth/*`, `useAuthStore.ts`, `_layout.tsx`, `login.tsx`, `settings.tsx`, `UserAvatar.tsx` — **Etapas 0–5** |
+| Alta | `src/features/collection/firestoreSync.ts` (Etapa 7) + migração UUID (Etapa 6) |
+| Alta | `.env` (local) + `.env.example` + `*.example` nativos |
+| Média | `firestore.rules` deploy: `firebase deploy --only firestore:rules` (requer Firebase CLI + login) |
 | Baixa | EAS secrets para `google-services.json` / `.plist` em CI |
 
 **Sem alteração de contrato na Fase 2:** `useCollectionStore.ts`, `useOwnedSetCount.ts`, `card/[id].tsx` (só consomem `userId`).
 
 ### Checklist de validação manual
 
-1. Cadastro e-mail/senha + nome → entra no catálogo; `ownerId` das novas cartas = UID.
-2. Fechar e reabrir app → sessão persiste.
-3. Logout → `/login`; outro login não vê coleção do anterior.
-4. Regras Firestore: usuário A não lê `collections/{uidB}/...`.
-5. Migração: conta com UUID local importa coleção no primeiro login Firebase.
-6. (Com sync) Carta adicionada offline aparece no Firestore após debounce/rede.
+1. [x] Cadastro e-mail/senha + nome → catálogo; `ownerId` das novas cartas = UID.
+2. [x] Fechar e reabrir app → sessão persiste (AsyncStorage via Firebase Auth RN).
+3. [x] Logout → `/login`; outro login não vê cartas do `ownerId` anterior (filtro local).
+4. [ ] Regras Firestore em produção: deploy `firestore.rules`; usuário A não lê `collections/{uidB}/...`.
+5. [ ] Migração (Etapa 6): UUID em `ptc-auth-storage` → importar coleção no primeiro login Firebase.
+6. [ ] Sync (Etapa 7): carta adicionada aparece em `collections/{uid}/cards/{cardId}` após debounce/rede.
 
 ### Diagrama de dependências
 
@@ -653,6 +674,9 @@ npx expo start --android     # Abre no emulador
 npm run android              # Build nativo + run (pasta android/)
 npx expo start --clear       # Limpar cache Metro (obrigatório após mudar .env)
 npm run lint
+
+# Firestore (após firebase login + projeto selecionado)
+firebase deploy --only firestore:rules
 ```
 
 Verificar cartas de um set (Node):
@@ -702,6 +726,7 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 6. **README** e **AGENTS.md** — atualizar se mudar fluxo, sets, layout de telas ou comandos de setup.
 7. **Novos sets** — validar dados na TCGdex antes de habilitar na UI.
 8. **Não** mover rotas para `/app` na raiz; manter `src/app`.
+9. **Secrets** — nunca commitar `.env` nem `google-services.json` / `.plist` reais; só `*.example` com placeholders.
 
 ---
 
@@ -719,7 +744,8 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Login / guard              | `useAuthStore.ts`, `initAuthListener`, `login.tsx`, `_layout.tsx`              |
 | Esqueci senha              | `login.tsx`, `useAuthStore.resetPassword`, `authService.sendPasswordReset`     |
 | Conta / logout / avatar    | `settings.tsx`, `UserAvatar.tsx`, `useAuthStore.updateDisplayName` / `logout`  |
-| Firebase Auth (Spark)      | `firebase.ts`, `src/features/auth/*`, `.env`; Firestore: §8.3 Etapa 5          |
+| Firebase Auth + perfil     | `firebase.ts`, `firestore.ts`, `src/features/auth/*`, `firestore.rules`, §8.3 |
+| Deploy regras Firestore    | `firebase.json`, `firestore.rules` — `firebase deploy --only firestore:rules`   |
 | Setup env Firebase         | `.env.example`, `.env` (local), `google-services.json`, `GoogleService-Info.plist` |
 | Sync coleção Firestore     | `src/features/collection/firestoreSync.ts` (planejado), §8.3 Etapa 7           |
 | Aba Minha Coleção (grid 4 + FAB) | `src/app/(tabs)/collection.tsx`, `CardItem.tsx` (`compact`)              |
@@ -744,6 +770,12 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 ---
 
 ## 14. Atualizações recentes
+
+### 2026-05-28 — Sincronização AGENTS.md com o código
+
+- Estado real: **Etapas 0–5 concluídas**; coleção ainda **local** (Etapa 7); migração UUID pendente (Etapa 6).
+- Documentados `firestore.ts`, `firebase.json`, política de secrets, comando `firebase deploy --only firestore:rules`.
+- Fase 2 roadmap: prioridade = Etapas 6–7.
 
 ### 2026-05-27 — Firebase Auth (Etapas 0–4)
 
@@ -830,4 +862,4 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 **Teste rápido (app):** login → Catálogo → Coleção (grid + FAB) → detalhe (tipos) → Ajustes (tema).
 
-_Última revisão: 2026-05-27 (sincronização pós Etapa 4 Firebase Auth)._
+_Última revisão: 2026-05-28 (Etapas 0–5 Firebase; próximo: migração + sync coleção)._
