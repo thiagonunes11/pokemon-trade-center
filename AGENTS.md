@@ -29,8 +29,8 @@ Permitir que o usuário:
 4. (Futuro) Gerencie coleção completa e **trocas** com outros jogadores
 
 Escopo atual: catálogo TCGdex, coleção local (Zustand + `ownerId` = Firebase UID), tema e aba Ajustes.
-**Auth:** Firebase e-mail + senha — `src/features/auth/*`, `useAuthStore`, `initAuthListener()` no `_layout.tsx` (Etapas 0–3 concluídas; ver **§8.3**).
-**Próximo no Firebase:** UI Ajustes (logout, avatar), perfil Firestore (Etapa 5), migração coleção UUID legado (Etapa 6), sync nuvem (Etapa 7), FCM (Etapa 8).
+**Auth:** Firebase e-mail + senha — `src/features/auth/*`, `useAuthStore`, `initAuthListener()` no `_layout.tsx` (**Etapas 0–4** concluídas; ver **§8.3**).
+**Próximo no Firebase:** Firestore perfil + regras (Etapa 5), migração coleção UUID legado (Etapa 6), sync nuvem (Etapa 7), FCM (Etapa 8).
 
 ---
 
@@ -63,7 +63,7 @@ Escopo atual: catálogo TCGdex, coleção local (Zustand + `ownerId` = Firebase 
 ```
 src/app/                    ← Rotas Expo Router (NÃO usar /app na raiz)
   _layout.tsx               ← Root: QueryClient, Tamagui, initAuthListener, guard isAuthReady
-  login.tsx                 ← Firebase: e-mail + senha; Entrar / Criar conta (Etapa 4 refinamentos pendentes)
+  login.tsx                 ← Firebase: Entrar / Criar conta / Esqueci senha
   (tabs)/
     _layout.tsx             ← Tab bar: Catálogo, Coleção, Trocas, Ajustes
     catalog/
@@ -72,7 +72,7 @@ src/app/                    ← Rotas Expo Router (NÃO usar /app na raiz)
       [setId].tsx           ← Grid de cartas do set
     collection.tsx          ← Minha coleção: grid 4 colunas, Todas / Por coleção
     trades.tsx              ← Placeholder: texto estático
-    settings.tsx            ← Tela de configurações: tema (3 modos), conta, sobre
+    settings.tsx            ← Tema, conta (avatar, nome, e-mail, logout), sobre
   card/[id].tsx             ← Detalhe da carta (Stack global, header nativo)
   index.tsx                 ← Redireciona `/` para `/catalog`
 
@@ -98,11 +98,12 @@ src/lib/
 src/components/             ← Componentes globais e reutilizáveis
   ThemeToggle.tsx           ← Componente legado (não usado na UI; mantido para referência)
   EnergyIcon.tsx            ← Ícone / linha de tipos (assets/images/energy)
+  UserAvatar.tsx            ← Avatar com inicial + cor por UID (Ajustes)
 
 assets/images/energy/       ← PNGs locais (Fogo, Água, Planta, …) — ver energyIcons.ts
 
 src/store/
-  useAuthStore.ts           ← UID, email, username; initAuthListener(); sem persist (sessão Firebase)
+  useAuthStore.ts           ← UID, email, username; login/register/logout/resetPassword/updateDisplayName; initAuthListener()
   useCollectionStore.ts     ← cards[] com ownerId (getSetCardCount só na store)
 
 src/theme/                  ← colors, typography, ThemeContext (ThemeProvider, useAppTheme, useStyles)
@@ -117,18 +118,22 @@ tamagui.config.ts           ← temas Tamagui (dark_phantom e light_phantom) na 
 
 ```mermaid
 flowchart TD
+  Login[login - Firebase Auth]
   Tabs[(tabs)]
   Pick[catalog/index - Coleções]
   Grid[catalog/setId - Catálogo]
   Detail[card/id - Detalhe]
   Coll[collection]
   Trades[trades]
+  Settings[settings - conta e tema]
 
+  Login -->|autenticado| Tabs
   Tabs --> Pick
   Pick -->|router.push /catalog/me01| Grid
   Grid -->|router.push /card/me01-001| Detail
   Tabs --> Coll
   Tabs --> Trades
+  Tabs --> Settings
 ```
 
 | Rota                      | Arquivo               | Header                                                 |
@@ -137,7 +142,8 @@ flowchart TD
 | `/(tabs)/catalog/[setId]` | `catalog/[setId].tsx` | Stack: título + badge `000/188` (`CatalogHeaderTitle`) |
 | `/(tabs)/collection`      | `collection.tsx`      | Tab: grid 4 colunas; FAB contador abre filtro Todas / Por coleção |
 | `/card/[id]`              | `card/[id].tsx`       | Stack global, opaco, botão voltar                      |
-| `/login`                  | `login.tsx`           | Firebase e-mail + senha; redireciona se já autenticado |
+| `/login`                  | `login.tsx`           | Entrar / Criar conta / Esqueci senha; redireciona se autenticado |
+| `/(tabs)/settings`        | `settings.tsx`        | Tab: avatar, editar nome, e-mail, logout, tema, sobre |
 
 **Importante:** o fluxo Catálogo usa **Stack dentro da tab** (`catalog/_layout.tsx`). Tabs sozinhas **não** exibem botão voltar entre `index` e `[setId]`.
 
@@ -297,7 +303,11 @@ interface CollectionCard {
 - Cores: `src/theme/colors.ts` — paletas `darkColors` e `lightColors` sob a interface rigorosa `ColorPalette`. O export default aponta para `darkColors` para compatibilidade retroativa.
 - Tamagui: Temas `dark_phantom` e `light_phantom` em `tamagui.config.ts`; `_layout.tsx` usa `defaultTheme`. **Os nomes foram mantidos** para evitar breaking change — mas os valores internos são agora slate/blue.
 - **Estilos Dinâmicos (`useStyles`)**: Componentes que usam `StyleSheet` tradicional **não** re-renderizam automaticamente com mudanças de tema se usarem cores estáticas. Use obrigatoriamente o hook customizado `useStyles(stylesFactory)` do `ThemeContext.tsx` para definir folhas de estilo reativas dependentes de tema.
-- **Tela de Configurações (`settings.tsx`)**: seletor de tema com 3 opções (Claro / Escuro / Sistema), seção de conta e sobre. Acessível pela tab ⚙️ Ajustes.
+- **Tela de Configurações (`settings.tsx`)**, tab ⚙️ **Ajustes**:
+  - **Conta:** `UserAvatar`, nome editável (`updateDisplayName`), e-mail de login (somente aqui), **Sair da conta** (`Alert` + `logout`).
+  - **Aparência:** tema Claro / Escuro / Sistema (`setThemeMode`).
+  - **Sobre:** versão, TCGdex, sets disponíveis.
+- **Login (`login.tsx`)**: modos Entrar, Criar conta, Esqueci senha; erros via `authErrors.ts`; mensagem de sucesso no reset de senha.
 - `ThemeToggle.tsx` está **inativo** na UI — foi removido do header do catálogo. Mantido no código sem uso.
 - Android: `includeFontPadding: false` no header customizado para alinhamento.
 
@@ -316,17 +326,16 @@ interface CollectionCard {
 - [x] Desabilitar sets sem cartas na API (Caos Ascendente / `me04`)
 - [x] Stack com voltar na navegação do catálogo
 - [x] Firebase Auth: `src/features/auth/*`, `useAuthStore`, `firebase.ts`, guard `isAuthReady` (`_layout.tsx`)
-- [x] Login e-mail + senha (`login.tsx`: Entrar / Criar conta, erros PT-BR)
-- [x] Tema **3 modos** (Claro / Escuro / Sistema) via `ThemeMode` + `setThemeMode`
-- [x] Paleta neutra e profissional (slate + cobalt-blue) em dark e light
-- [x] Tela de **Configurações** (`settings.tsx`) com seletor de tema, conta e sobre
+- [x] Login e-mail + senha (`login.tsx`: Entrar / Criar conta / Esqueci senha)
+- [x] Ajustes: `UserAvatar`, editar nome, e-mail, logout com confirmação (`settings.tsx`)
+- [x] Tema **3 modos** (Claro / Escuro / Sistema) + paleta neutra (slate + cobalt-blue)
 - [x] Aba Coleção: grid **4 colunas**, `CardItem` compact, FAB contador + menu filtro
 - [x] Ícones de energia no detalhe (`EnergyIcon`, `assets/images/energy/`)
 
 ### Placeholder / incompleto
 
 - [ ] Aba **Trocas**: copy estático, sem lógica
-- [/] **Auth Firebase (Spark)**: Etapas 0–3 feitas; Etapas 4–8 (UI Ajustes, Firestore, migração, sync, push) — **§8.3**
+- [/] **Auth Firebase (Spark)**: Etapas 0–4 feitas; Etapas 5–8 (Firestore, migração, sync, push) — **§8.3**
 - [ ] Sets `mep` (promos), `mee` (energias)
 - [ ] Busca, filtros, ordenação no grid do catálogo
 - [ ] Testes automatizados
@@ -365,7 +374,7 @@ Ordem sugerida para agentes e contribuidores. Marcar itens em **Implementado** (
 
 Implementação em etapas — detalhes, arquivos e checklist em **§8.3**. **Não** implementar `passwordHash` local nem `profiles[]` multi-conta: ir direto ao Firebase Auth.
 
-**MVP utilizável (Etapas 0–5):** login real + perfil + regras Firestore — **Etapas 0–3 concluídas**.  
+**MVP utilizável (Etapas 0–5):** login real + perfil + regras Firestore — **Etapas 0–4 concluídas**.  
 **MVP nuvem (Etapas 6–7):** migração UUID local + sync coleção.  
 **Push (Etapa 8):** quando houver trocas/notificações.
 
@@ -375,7 +384,7 @@ Implementação em etapas — detalhes, arquivos e checklist em **§8.3**. **Nã
 | 1 | `npx expo install firebase` · `src/lib/firebase.ts` | Feito |
 | 2 | `src/features/auth/*` · refatorar `useAuthStore` (UID, `isAuthReady`, sem UUID local) | Feito |
 | 3 | `onAuthStateChanged` em `_layout.tsx` · guard sem flash login/app | Feito |
-| 4 | `login.tsx` (esqueci senha) · `settings.tsx` (logout, displayName) · `UserAvatar.tsx` | Parcial (login básico OK) |
+| 4 | `login.tsx` (esqueci senha) · `settings.tsx` (logout, displayName) · `UserAvatar.tsx` | Feito |
 | 5 | `users/{uid}` no Firestore · `firestore.rules` | Pendente |
 | 6 | Migração coleção local (`legacyLocalUserId` → UID) | Pendente |
 | 7 | Sync `collections/{uid}/cards/{cardId}` · debounce writes (limites Spark) | Pendente |
@@ -416,7 +425,9 @@ Implementação em etapas — detalhes, arquivos e checklist em **§8.3**. **Nã
 | Item | Situação |
 |------|----------|
 | `useAuthStore` | Firebase UID + `email` + `username` (displayName); `isAuthReady`, `isLoading`; sem persist UUID |
-| `login.tsx` | E-mail + senha; modos Entrar / Criar conta (UI básica; refinamentos na Etapa 4) |
+| `login.tsx` | E-mail + senha; Entrar / Criar conta / Esqueci senha |
+| `settings.tsx` | Avatar, editar nome, e-mail, logout |
+| `UserAvatar.tsx` | Inicial + cor por UID |
 | `_layout.tsx` | `initAuthListener()` + overlay até `isAuthReady` + guard `/login` |
 | `.env` | Local, gitignored; `cp .env.example .env` — valores de `google-services.json` / `.plist` ou Console |
 | `useCollectionStore` | `ownerId` em cada carta — **contrato estável** (passa a ser Firebase UID) |
@@ -460,6 +471,7 @@ interface AuthState {
   register(email, password, displayName): Promise<void>;
   login(email, password): Promise<void>;
   logout(): Promise<void>;
+  resetPassword(email): Promise<void>;
   updateDisplayName(name: string): Promise<void>;
 }
 ```
@@ -520,10 +532,10 @@ Evitar redirecionar antes de `isAuthReady` (flash login ↔ app).
 
 #### Etapa 4 — UI
 
-- [x] `login.tsx` — modos **Entrar** / **Criar conta**; e-mail, senha; nome no cadastro; loading e erros inline (`authErrors.ts`)
-- [ ] `login.tsx` — “Esqueci senha” (`sendPasswordReset` já existe em `authService.ts`)
-- [ ] `settings.tsx` — logout com confirmação; renomear displayName (`updateDisplayName` + Firestore na Etapa 5)
-- [ ] `src/components/UserAvatar.tsx` — inicial + cor determinística por `userId` (UID ok)
+- [x] `login.tsx` — modos **Entrar** / **Criar conta** / **Esqueci senha**; e-mail, senha; nome no cadastro; loading, erros e sucesso inline
+- [x] `settings.tsx` — `UserAvatar`, alterar nome (`updateDisplayName`), e-mail de login, logout com confirmação (`Alert`)
+- [x] `src/components/UserAvatar.tsx` — inicial + cor determinística por `userId` (UID)
+- [ ] (Etapa 5) Renomear também espelha em Firestore `users/{uid}`
 
 #### Etapa 5 — Firestore perfil + regras
 
@@ -591,14 +603,9 @@ match /collections/{userId}/cards/{cardId} {
 
 | Prioridade | Arquivo |
 |------------|---------|
-| Alta | `src/lib/firebase.ts` |
-| Alta | `src/features/auth/*` |
+| Alta | `src/lib/firebase.ts`, `src/features/auth/*`, `useAuthStore.ts`, `_layout.tsx`, `login.tsx`, `settings.tsx`, `UserAvatar.tsx` |
 | Alta | `.env` (local) + `.env.example` |
-| Alta | `src/store/useAuthStore.ts` |
-| Alta | `src/app/_layout.tsx` |
-| Alta | `src/app/login.tsx` |
-| Alta | `src/app/(tabs)/settings.tsx` |
-| Média | `firestore.rules` + Firebase CLI deploy |
+| Média | `firestore.rules` + Firebase CLI deploy (Etapa 5) |
 | Média | `src/features/collection/firestoreSync.ts` (novo) |
 | Média | `.env.example`, `*.example` Firebase, README (setup local) |
 | Baixa | EAS secrets para `google-services.json` / `.plist` em CI |
@@ -707,8 +714,10 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Detalhe da carta           | `src/app/card/[id].tsx`                                                      |
 | Header catálogo            | `src/app/(tabs)/catalog/[setId].tsx` (`CatalogHeaderTitle`)                  |
 | Navegação tabs/stack       | `src/app/(tabs)/_layout.tsx`, `catalog/_layout.tsx`                          |
-| Login / guard              | `src/store/useAuthStore.ts` (`initAuthListener`), `login.tsx`, `_layout.tsx`   |
-| Firebase Auth (Spark)      | `src/lib/firebase.ts`, `src/features/auth/*`, `.env`, `firestore.rules`, §8.3  |
+| Login / guard              | `useAuthStore.ts`, `initAuthListener`, `login.tsx`, `_layout.tsx`              |
+| Esqueci senha              | `login.tsx`, `useAuthStore.resetPassword`, `authService.sendPasswordReset`     |
+| Conta / logout / avatar    | `settings.tsx`, `UserAvatar.tsx`, `useAuthStore.updateDisplayName` / `logout`  |
+| Firebase Auth (Spark)      | `firebase.ts`, `src/features/auth/*`, `.env`; Firestore: §8.3 Etapa 5          |
 | Setup env Firebase         | `.env.example`, `.env` (local), `google-services.json`, `GoogleService-Info.plist` |
 | Sync coleção Firestore     | `src/features/collection/firestoreSync.ts` (planejado), §8.3 Etapa 7           |
 | Aba Minha Coleção (grid 4 + FAB) | `src/app/(tabs)/collection.tsx`, `CardItem.tsx` (`compact`)              |
@@ -734,29 +743,23 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 ## 14. Atualizações recentes
 
-### 2026-05-27 — Firebase Auth Etapas 2–3 + `.env`
+### 2026-05-27 — Firebase Auth (Etapas 0–4)
 
-**Auth (`src/features/auth/`, `useAuthStore`, `firebase.ts`):**
+| Etapa | Entregue |
+|-------|----------|
+| 0–1 | Console Spark, `firebase` ^12, `firebase.ts`, `.env` + arquivos nativos gitignored |
+| 2 | `src/features/auth/*`, `useAuthStore` (sem UUID local / sem `persist`) |
+| 3 | `initAuthListener`, guard `isAuthReady`, overlay de boot |
+| 4 | Login (Entrar / Criar conta / Esqueci senha), Ajustes (avatar, nome, logout), `UserAvatar.tsx` |
 
-- `authService.ts`, `mapFirebaseUser.ts`, `authErrors.ts` (mensagens PT-BR).
-- `useAuthStore`: UID, `email`, `username`, `isAuthReady`, `isLoading`; sem `uuidv4()` nem `persist`.
-- `initAuthListener()` no `_layout.tsx`; overlay até `isAuthReady` + cache React Query.
-- `login.tsx`: e-mail/senha, Entrar / Criar conta.
-- `firebase.ts`: `initializeAuth` + persistência AsyncStorage no iOS/Android.
-
-**Config local:**
-
-- `.env` gitignored; template `.env.example`. Valores podem ser copiados dos arquivos nativos Firebase na raiz.
-- Após alterar `.env`: `npx expo start --clear`.
-
-**Próximo:** Etapa 4 (esqueci senha, logout em Ajustes, `UserAvatar`), Etapa 5 (Firestore `users/{uid}`).
+**Próximo:** Etapa 5 — `users/{uid}` no Firestore + `firestore.rules`.
 
 ### 2026-05-28 — Plano Firebase Auth (Spark)
 
 - **§8.3** reescrito: estado atual do código, etapas 0–8, contrato `userId`, alvo `useAuthStore`, regras Firestore, migração UUID → UID, sync com limites Spark, mapa de arquivos e checklist de QA.
 - **§8.2 Fase 2** unificada com Firebase (sem auth local com `passwordHash` / `profiles[]`).
 - Antiga “Fase 5 Firebase” absorvida na Fase 2; fases 5–7 renumeradas (Liga → 5, Catálogo → 6).
-- Visão geral (§1) e diretório (§3) alinhados ao auth local atual vs alvo Firebase.
+- Plano inicial Firebase Auth (etapas 0–8) documentado em §8.3.
 
 ### 2026-05-25 — Roadmap e Deckmanager
 
@@ -782,7 +785,8 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 ### Histórico
 
-- Auth local, coleção com `ownerId`, cache React Query, tema claro/escuro, contador owned/total no catálogo.
+- Auth local (nome → UUID) substituído por Firebase Auth (Etapas 0–4).
+- Coleção com `ownerId`, cache React Query, tema 3 modos, contador owned/total no catálogo.
 
 ### 2026-05-27 — Tema neutro e tela de Configurações
 
@@ -808,6 +812,8 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 - Seções: **Conta** (nome do usuário), **Aparência** (seletor de tema com radio buttons), **Sobre** (versão, API, série).
 - `ThemeToggle` removido do header de `catalog/index.tsx`.
 
-**Teste rápido:** login → Catálogo → adicionar carta → Coleção (grid + FAB filtro) → detalhe (ícones de tipo) → Ajustes (trocar tema).
+**Teste rápido (auth):** criar conta → Catálogo → adicionar carta → Ajustes (avatar, renomear) → logout → login → Esqueci senha.
 
-_Última revisão: 2026-05-27 (Firebase Auth Etapas 2–3, setup `.env`)._
+**Teste rápido (app):** login → Catálogo → Coleção (grid + FAB) → detalhe (tipos) → Ajustes (tema).
+
+_Última revisão: 2026-05-27 (sincronização pós Etapa 4 Firebase Auth)._

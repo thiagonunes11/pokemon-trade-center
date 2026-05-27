@@ -1,17 +1,21 @@
+import { UserAvatar } from "@/components/UserAvatar";
+import { getAuthErrorMessage } from "@/features/auth";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAppTheme, useStyles, type ThemeMode } from "@/theme";
 import { useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// ─── Theme option data ──────────────────────────────────────────────
 const THEME_OPTIONS: { mode: ThemeMode; label: string; description: string }[] =
   [
     { mode: "light", label: "☀️  Claro", description: "Sempre tema claro" },
@@ -23,20 +27,77 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; description: string }[] =
     },
   ];
 
-// ─── Component ──────────────────────────────────────────────────────
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { themeMode, setThemeMode, colors } = useAppTheme();
   const styles = useStyles(stylesFactory);
-  const username = useAuthStore((s) => s.username);
   const router = useRouter();
+
+  const userId = useAuthStore((s) => s.userId);
+  const username = useAuthStore((s) => s.username);
+  const email = useAuthStore((s) => s.email);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const logout = useAuthStore((s) => s.logout);
+  const updateDisplayName = useAuthStore((s) => s.updateDisplayName);
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(username ?? "");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const handleThemeSelect = useCallback(
     (mode: ThemeMode) => {
       setThemeMode(mode);
     },
-    [setThemeMode]
+    [setThemeMode],
   );
+
+  const handleStartEditName = useCallback(() => {
+    setNameDraft(username ?? "");
+    setNameError(null);
+    setIsEditingName(true);
+  }, [username]);
+
+  const handleCancelEditName = useCallback(() => {
+    setIsEditingName(false);
+    setNameError(null);
+  }, []);
+
+  const handleSaveName = useCallback(async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) {
+      setNameError("Informe um nome.");
+      return;
+    }
+    setNameError(null);
+    try {
+      await updateDisplayName(trimmed);
+      setIsEditingName(false);
+    } catch (err) {
+      setNameError(getAuthErrorMessage(err));
+    }
+  }, [nameDraft, updateDisplayName]);
+
+  const handleLogout = useCallback(() => {
+    Alert.alert(
+      "Sair da conta",
+      "Tem certeza que deseja sair? Sua coleção neste aparelho permanece salva localmente.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace("/login");
+            } catch (err) {
+              Alert.alert("Erro", getAuthErrorMessage(err));
+            }
+          },
+        },
+      ],
+    );
+  }, [logout, router]);
 
   return (
     <ScrollView
@@ -46,22 +107,111 @@ export default function SettingsScreen() {
         { paddingBottom: insets.bottom + 32 },
       ]}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
-      {/* ── Conta ─────────────────────────────────────── */}
       <Text style={styles.sectionLabel}>CONTA</Text>
       <View style={styles.section}>
-        <View style={styles.row}>
+        <View style={styles.accountRow}>
+          {userId ? (
+            <UserAvatar
+              userId={userId}
+              displayName={username}
+              email={email}
+              size={48}
+            />
+          ) : null}
+          <View style={styles.accountInfo}>
+            <Text style={styles.rowTitle}>Nome no app</Text>
+            {isEditingName ? (
+              <>
+                <TextInput
+                  value={nameDraft}
+                  onChangeText={setNameDraft}
+                  placeholder="Seu nome"
+                  autoCapitalize="words"
+                  style={[
+                    styles.nameInput,
+                    { borderColor: colors.background.elevated },
+                  ]}
+                  editable={!isLoading}
+                />
+                {nameError ? (
+                  <Text style={styles.nameError}>{nameError}</Text>
+                ) : null}
+                <View style={styles.nameActions}>
+                  <Pressable
+                    onPress={handleCancelEditName}
+                    disabled={isLoading}
+                    style={({ pressed }) => [
+                      styles.nameActionButton,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.nameActionCancel}>Cancelar</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleSaveName}
+                    disabled={isLoading}
+                    style={({ pressed }) => [
+                      styles.nameActionButton,
+                      styles.nameActionSave,
+                      { backgroundColor: colors.primary[600] },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.text.inverse}
+                      />
+                    ) : (
+                      <Text style={styles.nameActionSaveText}>Salvar</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.rowSub}>{username ?? "—"}</Text>
+                <Pressable
+                  onPress={handleStartEditName}
+                  disabled={!userId || isLoading}
+                  style={({ pressed }) => pressed && styles.pressed}
+                >
+                  <Text style={[styles.editLink, { color: colors.accent[500] }]}>
+                    Alterar nome
+                  </Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </View>
+
+        <View style={[styles.row, styles.rowBorderTop]}>
           <View style={styles.rowLeft}>
-            <Text style={styles.rowIcon}>👤</Text>
             <View>
-              <Text style={styles.rowTitle}>Usuário</Text>
-              <Text style={styles.rowSub}>{username ?? "—"}</Text>
+              <Text style={styles.rowTitle}>E-mail de login</Text>
+              <Text style={styles.rowSub}>{email ?? "—"}</Text>
             </View>
           </View>
         </View>
+
+        <Pressable
+          onPress={handleLogout}
+          disabled={isLoading || !userId}
+          style={({ pressed }) => [
+            styles.row,
+            styles.rowBorderTop,
+            styles.logoutRow,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={[styles.logoutText, { color: colors.error }]}>
+            Sair da conta
+          </Text>
+        </Pressable>
       </View>
 
-      {/* ── Aparência ─────────────────────────────────── */}
       <Text style={styles.sectionLabel}>APARÊNCIA</Text>
       <View style={styles.section}>
         <Text style={styles.themeSectionTitle}>Tema do aplicativo</Text>
@@ -107,7 +257,6 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* ── Sobre ─────────────────────────────────────── */}
       <Text style={styles.sectionLabel}>SOBRE</Text>
       <View style={styles.section}>
         <View style={styles.row}>
@@ -142,7 +291,6 @@ export default function SettingsScreen() {
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────
 const stylesFactory = (colors: any) =>
   StyleSheet.create({
     scrollView: {
@@ -154,8 +302,6 @@ const stylesFactory = (colors: any) =>
       paddingHorizontal: 16,
       gap: 6,
     },
-
-    // Section label (e.g. "CONTA")
     sectionLabel: {
       color: colors.text.muted,
       fontSize: 11,
@@ -165,8 +311,6 @@ const stylesFactory = (colors: any) =>
       marginTop: 16,
       marginLeft: 4,
     },
-
-    // Card container
     section: {
       backgroundColor: colors.background.card,
       borderRadius: 14,
@@ -174,8 +318,17 @@ const stylesFactory = (colors: any) =>
       borderColor: colors.background.elevated,
       overflow: "hidden",
     },
-
-    // Generic row
+    accountRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    accountInfo: {
+      flex: 1,
+      gap: 4,
+    },
     row: {
       flexDirection: "row",
       alignItems: "center",
@@ -208,8 +361,58 @@ const stylesFactory = (colors: any) =>
       fontSize: 12,
       marginTop: 1,
     },
-
-    // Theme selector
+    editLink: {
+      fontSize: 14,
+      fontWeight: "500",
+      marginTop: 4,
+    },
+    nameInput: {
+      marginTop: 6,
+      padding: 10,
+      borderRadius: 8,
+      borderWidth: 1,
+      color: colors.text.primary,
+      fontSize: 15,
+    },
+    nameError: {
+      color: colors.error,
+      fontSize: 12,
+      marginTop: 4,
+    },
+    nameActions: {
+      flexDirection: "row",
+      gap: 8,
+      marginTop: 10,
+    },
+    nameActionButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 8,
+    },
+    nameActionCancel: {
+      color: colors.text.secondary,
+      fontWeight: "600",
+    },
+    nameActionSave: {
+      minWidth: 72,
+      alignItems: "center",
+    },
+    nameActionSaveText: {
+      color: colors.text.inverse,
+      fontWeight: "600",
+    },
+    logoutRow: {
+      justifyContent: "center",
+    },
+    logoutText: {
+      fontSize: 15,
+      fontWeight: "600",
+      textAlign: "center",
+      width: "100%",
+    },
+    pressed: {
+      opacity: 0.7,
+    },
     themeSectionTitle: {
       color: colors.text.secondary,
       fontSize: 13,
@@ -218,9 +421,7 @@ const stylesFactory = (colors: any) =>
       paddingTop: 14,
       paddingBottom: 10,
     },
-    themeOptions: {
-      // children handle their own borders
-    },
+    themeOptions: {},
     themeOption: {
       flexDirection: "row",
       alignItems: "center",
@@ -250,8 +451,6 @@ const stylesFactory = (colors: any) =>
       color: colors.text.muted,
       fontSize: 12,
     },
-
-    // Radio button
     radio: {
       width: 22,
       height: 22,

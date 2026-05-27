@@ -6,7 +6,10 @@ import { useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,7 +17,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type AuthMode = "login" | "register";
+type AuthMode = "login" | "register" | "forgot";
 
 export default function LoginScreen() {
   const [mode, setMode] = React.useState<AuthMode>("login");
@@ -22,6 +25,7 @@ export default function LoginScreen() {
   const [password, setPassword] = React.useState("");
   const [displayName, setDisplayName] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -30,6 +34,7 @@ export default function LoginScreen() {
 
   const login = useAuthStore((s) => s.login);
   const register = useAuthStore((s) => s.register);
+  const resetPassword = useAuthStore((s) => s.resetPassword);
   const isLoading = useAuthStore((s) => s.isLoading);
   const userId = useAuthStore((s) => s.userId);
   const isAuthReady = useAuthStore((s) => s.isAuthReady);
@@ -41,8 +46,15 @@ export default function LoginScreen() {
     }
   }, [isAuthReady, userId, router]);
 
+  const switchMode = (next: AuthMode) => {
+    setMode(next);
+    setError(null);
+    setSuccess(null);
+  };
+
   const handleSubmit = async () => {
     setError(null);
+    setSuccess(null);
 
     if (!firebaseReady) {
       setError(
@@ -52,6 +64,23 @@ export default function LoginScreen() {
     }
 
     const trimmedEmail = email.trim();
+
+    if (mode === "forgot") {
+      if (!trimmedEmail) {
+        setError("Informe o e-mail da sua conta.");
+        return;
+      }
+      try {
+        await resetPassword(trimmedEmail);
+        setSuccess(
+          "Enviamos um link de recuperação para o seu e-mail. Verifique a caixa de entrada e o spam.",
+        );
+      } catch (err) {
+        setError(getAuthErrorMessage(err));
+      }
+      return;
+    }
+
     if (!trimmedEmail || !password) {
       setError("Informe e-mail e senha.");
       return;
@@ -74,122 +103,173 @@ export default function LoginScreen() {
     }
   };
 
+  const subtitle =
+    mode === "login"
+      ? "Entre com seu e-mail e senha"
+      : mode === "register"
+        ? "Crie sua conta com e-mail e senha"
+        : "Informe o e-mail para receber o link de redefinição";
+
+  const submitLabel =
+    mode === "login"
+      ? "Entrar"
+      : mode === "register"
+        ? "Criar conta"
+        : "Enviar link";
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
-      <Text style={styles.title}>Pokemon Trade Center</Text>
-      <Text style={styles.subtitle}>
-        {mode === "login"
-          ? "Entre com seu e-mail e senha"
-          : "Crie sua conta com e-mail e senha"}
-      </Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Pokemon Trade Center</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
 
-      <View style={styles.modeRow}>
-        <Pressable
-          style={[
-            styles.modeButton,
-            mode === "login" && { backgroundColor: colors.primary[600] },
-          ]}
-          onPress={() => {
-            setMode("login");
-            setError(null);
-          }}
-        >
-          <Text
-            style={[
-              styles.modeButtonText,
-              mode === "login" && styles.modeButtonTextActive,
-            ]}
-          >
-            Entrar
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.modeButton,
-            mode === "register" && { backgroundColor: colors.primary[600] },
-          ]}
-          onPress={() => {
-            setMode("register");
-            setError(null);
-          }}
-        >
-          <Text
-            style={[
-              styles.modeButtonText,
-              mode === "register" && styles.modeButtonTextActive,
-            ]}
-          >
-            Criar conta
-          </Text>
-        </Pressable>
-      </View>
+        {mode !== "forgot" && (
+          <View style={styles.modeRow}>
+            <Pressable
+              style={[
+                styles.modeButton,
+                mode === "login" && { backgroundColor: colors.primary[600] },
+              ]}
+              onPress={() => switchMode("login")}
+              disabled={isLoading}
+            >
+              <Text
+                style={[
+                  styles.modeButtonText,
+                  mode === "login" && styles.modeButtonTextActive,
+                ]}
+              >
+                Entrar
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.modeButton,
+                mode === "register" && {
+                  backgroundColor: colors.primary[600],
+                },
+              ]}
+              onPress={() => switchMode("register")}
+              disabled={isLoading}
+            >
+              <Text
+                style={[
+                  styles.modeButtonText,
+                  mode === "register" && styles.modeButtonTextActive,
+                ]}
+              >
+                Criar conta
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
-      {mode === "register" && (
+        {mode === "register" && (
+          <TextInput
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="Seu nome"
+            autoCapitalize="words"
+            style={[styles.input, { borderColor: colors.background.elevated }]}
+            editable={!isLoading}
+          />
+        )}
+
         <TextInput
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Seu nome"
-          autoCapitalize="words"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="E-mail"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
           style={[styles.input, { borderColor: colors.background.elevated }]}
           editable={!isLoading}
         />
-      )}
 
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="E-mail"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={[styles.input, { borderColor: colors.background.elevated }]}
-        editable={!isLoading}
-      />
-
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Senha"
-        secureTextEntry
-        style={[styles.input, { borderColor: colors.background.elevated }]}
-        editable={!isLoading}
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <Pressable
-        style={[
-          styles.button,
-          { backgroundColor: colors.primary[600] },
-          isLoading && styles.buttonDisabled,
-        ]}
-        onPress={handleSubmit}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator color={colors.text.inverse} />
-        ) : (
-          <Text style={styles.buttonText}>
-            {mode === "login" ? "Entrar" : "Criar conta"}
-          </Text>
+        {mode !== "forgot" && (
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Senha"
+            secureTextEntry
+            style={[styles.input, { borderColor: colors.background.elevated }]}
+            editable={!isLoading}
+          />
         )}
-      </Pressable>
-    </View>
+
+        {mode === "login" && (
+          <Pressable
+            onPress={() => switchMode("forgot")}
+            disabled={isLoading}
+            style={styles.forgotLink}
+          >
+            <Text style={[styles.forgotText, { color: colors.accent[500] }]}>
+              Esqueci minha senha
+            </Text>
+          </Pressable>
+        )}
+
+        {error ? <Text style={[styles.feedback, styles.error]}>{error}</Text> : null}
+        {success ? (
+          <Text style={[styles.feedback, styles.success]}>{success}</Text>
+        ) : null}
+
+        <Pressable
+          style={[
+            styles.button,
+            { backgroundColor: colors.primary[600] },
+            isLoading && styles.buttonDisabled,
+          ]}
+          onPress={handleSubmit}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color={colors.text.inverse} />
+          ) : (
+            <Text style={styles.buttonText}>{submitLabel}</Text>
+          )}
+        </Pressable>
+
+        {mode === "forgot" && (
+          <Pressable
+            onPress={() => switchMode("login")}
+            disabled={isLoading}
+            style={styles.backLink}
+          >
+            <Text style={[styles.forgotText, { color: colors.text.secondary }]}>
+              Voltar para entrar
+            </Text>
+          </Pressable>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const stylesFactory = (colors: any) =>
   StyleSheet.create({
-    container: {
+    flex: {
       flex: 1,
-      paddingHorizontal: 24,
       backgroundColor: colors.background.primary,
+    },
+    container: {
+      flexGrow: 1,
+      paddingHorizontal: 24,
+      justifyContent: "center",
     },
     title: {
       fontSize: 20,
       fontWeight: "700",
       color: colors.text.primary,
-      marginTop: 24,
       textAlign: "center",
     },
     subtitle: {
@@ -225,10 +305,30 @@ const stylesFactory = (colors: any) =>
       marginBottom: 12,
       color: colors.text.primary,
     },
-    error: {
-      color: colors.accent?.[500] ?? "#DC2626",
+    forgotLink: {
+      alignSelf: "flex-end",
+      marginTop: -4,
+      marginBottom: 12,
+    },
+    forgotText: {
+      fontSize: 14,
+      fontWeight: "500",
+    },
+    backLink: {
+      alignItems: "center",
+      marginTop: 16,
+    },
+    feedback: {
       marginBottom: 8,
       textAlign: "center",
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    error: {
+      color: colors.error,
+    },
+    success: {
+      color: colors.success,
     },
     button: {
       paddingVertical: 12,

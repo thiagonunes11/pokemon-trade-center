@@ -2,6 +2,7 @@ import {
   loginWithEmail,
   logoutUser,
   registerWithEmail,
+  sendPasswordReset,
   subscribeToAuthState,
   updateUserDisplayName,
 } from "@/features/auth";
@@ -17,6 +18,7 @@ interface AuthState {
   register: (email: string, password: string, displayName: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
   setSession: (user: MappedFirebaseUser | null) => void;
   setAuthReady: (ready: boolean) => void;
@@ -60,6 +62,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true });
     try {
       await logoutUser();
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  resetPassword: async (email) => {
+    set({ isLoading: true });
+    try {
+      await sendPasswordReset(email);
     } finally {
       set({ isLoading: false });
     }
