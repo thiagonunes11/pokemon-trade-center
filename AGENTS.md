@@ -60,13 +60,14 @@ src/app/                    ← Rotas Expo Router (NÃO usar /app na raiz)
   _layout.tsx               ← Root: QueryClient, Tamagui, auth guard, splash cache
   login.tsx                 ← Conta local (nome → UUID)
   (tabs)/
-    _layout.tsx             ← Tab bar: Catálogo, Coleção, Trocas
+    _layout.tsx             ← Tab bar: Catálogo, Coleção, Trocas, Ajustes
     catalog/
       _layout.tsx           ← Stack interno (necessário para botão voltar)
-      index.tsx             ← Lista de expansões (picker) + ThemeToggle
+      index.tsx             ← Lista de expansões (picker) — sem ThemeToggle no header
       [setId].tsx           ← Grid de cartas do set
     collection.tsx          ← Minha coleção: grid 4 colunas, Todas / Por coleção
     trades.tsx              ← Placeholder: texto estático
+    settings.tsx            ← Tela de configurações: tema (3 modos), conta, sobre
   card/[id].tsx             ← Detalhe da carta (Stack global, header nativo)
   index.tsx                 ← Redireciona `/` para `/catalog`
 
@@ -88,7 +89,7 @@ src/lib/
   storagePolyfill.ts        ← Importar antes do SDK (side effect)
 
 src/components/             ← Componentes globais e reutilizáveis
-  ThemeToggle.tsx           ← Alternância de tema no header de catalog/index
+  ThemeToggle.tsx           ← Componente legado (não usado na UI; mantido para referência)
   EnergyIcon.tsx            ← Ícone / linha de tipos (assets/images/energy)
 
 assets/images/energy/       ← PNGs locais (Fogo, Água, Planta, …) — ver energyIcons.ts
@@ -276,11 +277,21 @@ interface CollectionCard {
 
 ## 7. UI e tema
 
-- **Tema reativo Claro/Escuro** (`userInterfaceStyle: "automatic"` no `app.json`) com preferência do usuário persistida no `safeStorage` via `ThemeProvider`.
-- Cores: `src/theme/colors.ts` — paletas `darkColors` (roxo fantasma + laranja fogo) e `lightColors` sob a mesma interface rigorosa `ColorPalette`. O export default aponta para `darkColors` para compatibilidade retroativa.
-- Tamagui: Temas `dark_phantom` e `light_phantom` em `tamagui.config.ts`; `_layout.tsx` usa `theme={theme === "dark" ? "dark_phantom" : "light_phantom"}` (não `defaultTheme`).
+- **Tema reativo — 3 modos** (`userInterfaceStyle: "automatic"` no `app.json`) com preferência persistida no `safeStorage` via `ThemeProvider`.
+  - `ThemeMode = 'light' | 'dark' | 'system'` — exportado de `src/theme`
+  - `setThemeMode(mode: ThemeMode)` — método principal para mudar o tema
+  - `toggleTheme()` — mantido por compatibilidade mas marcado como `@deprecated`
+  - Modo `system` resolve automaticamente pela preferência do SO (`useColorScheme`)
+- **Paleta neutra e profissional** (desde 2026-05-27):
+  - Primária: escala **slate** (`#020617` escuro → `#F8FAFC` claro) — azul-acinzentado neutro
+  - Accent: **azul-cobalto** (`#2563EB` como 500) — saturação controlada, sem identidade de set
+  - Background dark: quase preto neutro (`#09090F`) · Background light: branco puro (`#FFFFFF`)
+  - A paleta anterior (roxo fantasma + laranja fogo) foi completamente substituída
+- Cores: `src/theme/colors.ts` — paletas `darkColors` e `lightColors` sob a interface rigorosa `ColorPalette`. O export default aponta para `darkColors` para compatibilidade retroativa.
+- Tamagui: Temas `dark_phantom` e `light_phantom` em `tamagui.config.ts`; `_layout.tsx` usa `defaultTheme`. **Os nomes foram mantidos** para evitar breaking change — mas os valores internos são agora slate/blue.
 - **Estilos Dinâmicos (`useStyles`)**: Componentes que usam `StyleSheet` tradicional **não** re-renderizam automaticamente com mudanças de tema se usarem cores estáticas. Use obrigatoriamente o hook customizado `useStyles(stylesFactory)` do `ThemeContext.tsx` para definir folhas de estilo reativas dependentes de tema.
-- **Alternador de Tema**: Componente `ThemeToggle` posicionado no header nativo da lista de coleções (`catalog/index.tsx`) para alternar manualmente entre claro, escuro ou automático (sistema).
+- **Tela de Configurações (`settings.tsx`)**: seletor de tema com 3 opções (Claro / Escuro / Sistema), seção de conta e sobre. Acessível pela tab ⚙️ Ajustes.
+- `ThemeToggle.tsx` está **inativo** na UI — foi removido do header do catálogo. Mantido no código sem uso.
 - Android: `includeFontPadding: false` no header customizado para alinhamento.
 
 ---
@@ -298,14 +309,16 @@ interface CollectionCard {
 - [x] Desabilitar sets sem cartas na API (Caos Ascendente / `me04`)
 - [x] Stack com voltar na navegação do catálogo
 - [x] Login local + guard de rota (`login.tsx`, `useAuthStore`)
-- [x] Tema claro/escuro (`ThemeProvider`, `ThemeToggle` em Coleções)
+- [x] Tema **3 modos** (Claro / Escuro / Sistema) via `ThemeMode` + `setThemeMode`
+- [x] Paleta neutra e profissional (slate + cobalt-blue) em dark e light
+- [x] Tela de **Configurações** (`settings.tsx`) com seletor de tema, conta e sobre
 - [x] Aba Coleção: grid **4 colunas**, `CardItem` compact, FAB contador + menu filtro
 - [x] Ícones de energia no detalhe (`EnergyIcon`, `assets/images/energy/`)
 
 ### Placeholder / incompleto
 
 - [ ] Aba **Trocas**: copy estático, sem lógica
-- [ ] UI de **logout** / troca de usuário local
+- [ ] UI de **logout** / troca de usuário local (espaço reservado em `settings.tsx`)
 - [ ] Sets `mep` (promos), `mee` (energias)
 - [ ] Busca, filtros, ordenação no grid do catálogo
 - [ ] Testes automatizados
@@ -456,7 +469,8 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 | Aba Minha Coleção (grid 4 + FAB) | `src/app/(tabs)/collection.tsx`, `CardItem.tsx` (`compact`)              |
 | Coleção do usuário (store) | `src/store/useCollectionStore.ts`, `src/hooks/useOwnedSetCount.ts`           |
 | Cores / tema / provider    | `src/theme/colors.ts`, `src/theme/ThemeContext.tsx`, `tamagui.config.ts`     |
-| Botão toggle de tema       | `src/components/ThemeToggle.tsx`                                             |
+| Seletor de tema (3 modos)  | `src/app/(tabs)/settings.tsx`, `src/theme/ThemeContext.tsx` (`setThemeMode`) |
+| Tela de configurações      | `src/app/(tabs)/settings.tsx`                                                |
 | Ícones de energia/tipo     | `assets/images/energy/`, `src/lib/energyIcons.ts`, `EnergyIcon.tsx`          |
 | Links Liga / Limitless     | (planejado) `src/lib/ligaSetCodes.ts`, `src/lib/externalCardLinks.ts`        |
 | Parser de lista / trocas   | (planejado) `src/lib/parseDeckList.ts` — ver roadmap §8.2                      |
@@ -501,6 +515,30 @@ node -e "const T=require('@tcgdex/sdk').default; new T('pt').set.get('me04').the
 
 - Auth local, coleção com `ownerId`, cache React Query, tema claro/escuro, contador owned/total no catálogo.
 
-**Teste rápido:** login → Catálogo → adicionar carta → Coleção (grid + FAB filtro) → detalhe (ícones de tipo).
+### 2026-05-27 — Tema neutro e tela de Configurações
 
-_Última revisão: 2026-05-25 (roadmap Deckmanager)._
+**Paleta de cores (`colors.ts` + `tamagui.config.ts`):**
+
+- Tema antigo (roxo fantasma + laranja fogo) **completamente substituído** por paleta neutra e profissional.
+- `primary`: escala **slate** (azul-acinzentado, `#020617` → `#F8FAFC`).
+- `accent`: **azul-cobalto** (`#2563EB` como 500).
+- Background dark: `#09090F` (quase preto neutro) · Background light: `#FFFFFF` (branco puro).
+- `shadowColor` dark: preto semitransparente · light: sombra neutra muito suave.
+- Nomes dos temas Tamagui (`dark_phantom`, `light_phantom`) mantidos para não quebrar `_layout.tsx`.
+
+**Sistema de tema (`ThemeContext.tsx`):**
+
+- Novo tipo `ThemeMode = 'light' | 'dark' | 'system'` exportado de `src/theme`.
+- Método `setThemeMode(mode)` substituiu `toggleTheme` como API principal.
+- Modo `system` resolve via `useColorScheme` do SO em tempo real.
+- `toggleTheme` mantido como `@deprecated` para compatibilidade.
+
+**Tela de Configurações (`settings.tsx`):**
+
+- Nova tab ⚙️ **Ajustes** na barra de navegação.
+- Seções: **Conta** (nome do usuário), **Aparência** (seletor de tema com radio buttons), **Sobre** (versão, API, série).
+- `ThemeToggle` removido do header de `catalog/index.tsx`.
+
+**Teste rápido:** login → Catálogo → adicionar carta → Coleção (grid + FAB filtro) → detalhe (ícones de tipo) → Ajustes (trocar tema).
+
+_Última revisão: 2026-05-27 (tema neutro + configurações)._
