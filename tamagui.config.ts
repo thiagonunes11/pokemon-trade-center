@@ -1,34 +1,35 @@
 import { createTamagui } from 'tamagui';
 import { defaultConfig } from '@tamagui/config/v5';
 
-const phantasmalTheme = {
-  // Ghost/phantom purple tones
-  purple1: '#0F0D15',
-  purple2: '#1A1625',
-  purple3: '#2D2640',
-  purple4: '#3D3555',
-  purple5: '#4E4570',
-  purple6: '#5E5585',
-  purple7: '#6B21A8',
-  purple8: '#7C3AED',
-  purple9: '#8B5CF6',
-  purple10: '#A78BFA',
-  purple11: '#C4B5FD',
-  purple12: '#F5F3FF',
+// Neutral professional palette — Slate + Cobalt Blue
+const neutralTheme = {
+  // Slate scale (blue-grey neutral)
+  slate1:  '#09090F',
+  slate2:  '#111118',
+  slate3:  '#1C1C27',
+  slate4:  '#26263A',
+  slate5:  '#334155',
+  slate6:  '#475569',
+  slate7:  '#64748B',
+  slate8:  '#94A3B8',
+  slate9:  '#CBD5E1',
+  slate10: '#E2E8F0',
+  slate11: '#F1F5F9',
+  slate12: '#F8FAFC',
 
-  // Fire/flame orange tones
-  orange1: '#431407',
-  orange2: '#7C2D12',
-  orange3: '#9A3412',
-  orange4: '#C2410C',
-  orange5: '#EA580C',
-  orange6: '#F97316',
-  orange7: '#FB923C',
-  orange8: '#FDBA74',
-  orange9: '#FED7AA',
-  orange10: '#FFEDD5',
-  orange11: '#FFF7ED',
-  orange12: '#FFFFFF',
+  // Cobalt Blue accent
+  blue1:  '#172554',
+  blue2:  '#1E3A8A',
+  blue3:  '#1E40AF',
+  blue4:  '#1D4ED8',
+  blue5:  '#2563EB',
+  blue6:  '#3B82F6',
+  blue7:  '#60A5FA',
+  blue8:  '#93C5FD',
+  blue9:  '#BFDBFE',
+  blue10: '#DBEAFE',
+  blue11: '#EFF6FF',
+  blue12: '#FFFFFF',
 };
 
 export const tamaguiConfig = createTamagui({
@@ -36,76 +37,76 @@ export const tamaguiConfig = createTamagui({
   themes: {
     ...defaultConfig.themes,
     dark_phantom: {
-      background: phantasmalTheme.purple1,
-      backgroundHover: phantasmalTheme.purple2,
-      backgroundPress: phantasmalTheme.purple3,
-      backgroundFocus: phantasmalTheme.purple2,
-      backgroundStrong: '#000000',
-      backgroundTransparent: 'rgba(15, 13, 21, 0)',
-      color: phantasmalTheme.purple12,
-      colorHover: phantasmalTheme.purple11,
-      colorPress: phantasmalTheme.purple10,
-      colorFocus: phantasmalTheme.purple11,
-      colorTransparent: 'rgba(245, 243, 255, 0)',
-      borderColor: phantasmalTheme.purple4,
-      borderColorHover: phantasmalTheme.purple5,
-      borderColorFocus: phantasmalTheme.purple6,
-      borderColorPress: phantasmalTheme.purple5,
-      placeholderColor: phantasmalTheme.purple6,
-      outlineColor: phantasmalTheme.purple8,
-      shadowColor: 'rgba(124, 58, 237, 0.25)',
-      shadowColorHover: 'rgba(124, 58, 237, 0.35)',
-      shadowColorPress: 'rgba(124, 58, 237, 0.15)',
-      shadowColorFocus: 'rgba(124, 58, 237, 0.35)',
+      background:           neutralTheme.slate1,
+      backgroundHover:      neutralTheme.slate2,
+      backgroundPress:      neutralTheme.slate3,
+      backgroundFocus:      neutralTheme.slate2,
+      backgroundStrong:     '#000000',
+      backgroundTransparent: 'rgba(9, 9, 15, 0)',
+      color:                neutralTheme.slate12,
+      colorHover:           neutralTheme.slate11,
+      colorPress:           neutralTheme.slate10,
+      colorFocus:           neutralTheme.slate11,
+      colorTransparent:     'rgba(248, 250, 252, 0)',
+      borderColor:          neutralTheme.slate4,
+      borderColorHover:     neutralTheme.slate5,
+      borderColorFocus:     neutralTheme.blue5,
+      borderColorPress:     neutralTheme.slate5,
+      placeholderColor:     neutralTheme.slate7,
+      outlineColor:         neutralTheme.blue5,
+      shadowColor:          'rgba(0, 0, 0, 0.35)',
+      shadowColorHover:     'rgba(0, 0, 0, 0.45)',
+      shadowColorPress:     'rgba(0, 0, 0, 0.25)',
+      shadowColorFocus:     'rgba(37, 99, 235, 0.30)',
       // Custom semantic colors
-      blue1: phantasmalTheme.purple7,   // primary
-      blue2: phantasmalTheme.purple8,   // primary hover
-      blue3: phantasmalTheme.purple9,   // primary active
-      blue4: phantasmalTheme.purple10,  // primary text
-      red1: phantasmalTheme.orange6,    // accent
-      red2: phantasmalTheme.orange7,    // accent hover
-      red3: phantasmalTheme.orange8,    // accent light
-      red4: phantasmalTheme.orange5,    // accent dark
-      green1: phantasmalTheme.purple3,  // card background
-      green2: phantasmalTheme.purple4,  // card border
-      green3: phantasmalTheme.purple5,  // subtle
-      green4: phantasmalTheme.purple6,  // muted text
+      blue1: neutralTheme.blue5,    // accent primary
+      blue2: neutralTheme.blue6,    // accent hover
+      blue3: neutralTheme.blue7,    // accent light
+      blue4: neutralTheme.blue4,    // accent dark
+      red1:  neutralTheme.slate5,   // secondary action
+      red2:  neutralTheme.slate6,   // secondary hover
+      red3:  neutralTheme.slate7,   // muted
+      red4:  neutralTheme.slate4,   // subtle
+      green1: neutralTheme.slate3,  // card background
+      green2: neutralTheme.slate4,  // card border
+      green3: neutralTheme.slate5,  // subtle separator
+      green4: neutralTheme.slate7,  // muted text
     },
     light_phantom: {
-      background: phantasmalTheme.purple12,
-      backgroundHover: phantasmalTheme.purple11,
-      backgroundPress: phantasmalTheme.purple10,
-      backgroundFocus: phantasmalTheme.purple11,
-      backgroundStrong: '#FFFFFF',
-      backgroundTransparent: 'rgba(245, 243, 255, 0)',
-      color: phantasmalTheme.purple1,
-      colorHover: phantasmalTheme.purple2,
-      colorPress: phantasmalTheme.purple3,
-      colorFocus: phantasmalTheme.purple2,
-      colorTransparent: 'rgba(15, 13, 21, 0)',
-      borderColor: phantasmalTheme.purple10,
-      borderColorHover: phantasmalTheme.purple9,
-      borderColorFocus: phantasmalTheme.purple8,
-      borderColorPress: phantasmalTheme.purple9,
-      placeholderColor: phantasmalTheme.purple8,
-      outlineColor: phantasmalTheme.purple8,
-      shadowColor: 'rgba(124, 58, 237, 0.10)',
-      shadowColorHover: 'rgba(124, 58, 237, 0.15)',
-      shadowColorPress: 'rgba(124, 58, 237, 0.05)',
-      shadowColorFocus: 'rgba(124, 58, 237, 0.15)',
+      background:            '#FFFFFF',
+      backgroundHover:       neutralTheme.slate12,
+      backgroundPress:       neutralTheme.slate11,
+      backgroundFocus:       neutralTheme.slate12,
+      backgroundStrong:      '#FFFFFF',
+      backgroundTransparent: 'rgba(255, 255, 255, 0)',
+      color:                 neutralTheme.slate1,
+      colorHover:            neutralTheme.slate2,
+      colorPress:            neutralTheme.slate3,
+      colorFocus:            neutralTheme.slate2,
+      colorTransparent:      'rgba(9, 9, 15, 0)',
+      borderColor:           neutralTheme.slate10,
+      borderColorHover:      neutralTheme.slate9,
+      borderColorFocus:      neutralTheme.blue5,
+      borderColorPress:      neutralTheme.slate9,
+      placeholderColor:      neutralTheme.slate8,
+      outlineColor:          neutralTheme.blue5,
+      shadowColor:           'rgba(0, 0, 0, 0.08)',
+      shadowColorHover:      'rgba(0, 0, 0, 0.12)',
+      shadowColorPress:      'rgba(0, 0, 0, 0.05)',
+      shadowColorFocus:      'rgba(37, 99, 235, 0.18)',
       // Custom semantic colors
-      blue1: phantasmalTheme.purple8,   // primary
-      blue2: phantasmalTheme.purple9,   // primary hover
-      blue3: phantasmalTheme.purple10,  // primary active
-      blue4: phantasmalTheme.purple7,   // primary text
-      red1: phantasmalTheme.orange5,    // accent
-      red2: phantasmalTheme.orange6,    // accent hover
-      red3: phantasmalTheme.orange9,    // accent light
-      red4: phantasmalTheme.orange2,    // accent dark
-      green1: '#FFFFFF',                // card background
-      green2: phantasmalTheme.purple11, // card border
-      green3: phantasmalTheme.purple10, // subtle
-      green4: phantasmalTheme.purple8,  // muted text
+      blue1: neutralTheme.blue5,    // accent primary
+      blue2: neutralTheme.blue6,    // accent hover
+      blue3: neutralTheme.blue7,    // accent light
+      blue4: neutralTheme.blue4,    // accent dark
+      red1:  neutralTheme.slate7,   // secondary action
+      red2:  neutralTheme.slate6,   // secondary hover
+      red3:  neutralTheme.slate9,   // muted
+      red4:  neutralTheme.slate5,   // subtle
+      green1: '#FFFFFF',            // card background
+      green2: neutralTheme.slate10, // card border
+      green3: neutralTheme.slate11, // subtle separator
+      green4: neutralTheme.slate7,  // muted text
     },
   },
 });

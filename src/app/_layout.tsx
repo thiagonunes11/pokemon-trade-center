@@ -63,7 +63,7 @@ function AppContent() {
     <QueryClientProvider client={queryClient}>
       <TamaguiProvider
         config={tamaguiConfig as any}
-        theme={theme === "dark" ? "dark_phantom" : "light_phantom"}
+        defaultTheme={theme === "dark" ? "dark_phantom" : "light_phantom"}
       >
         <StatusBar style={theme === "dark" ? "light" : "dark"} />
         <Stack
