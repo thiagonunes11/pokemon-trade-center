@@ -1,38 +1,98 @@
-import { safeStorage } from "@/lib/safeStorage";
+import {
+  loginWithEmail,
+  logoutUser,
+  registerWithEmail,
+  subscribeToAuthState,
+  updateUserDisplayName,
+} from "@/features/auth";
+import type { MappedFirebaseUser } from "@/features/auth/mapFirebaseUser";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-
-function uuidv4() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 interface AuthState {
-  userId?: string | null;
-  username?: string | null;
-  login: (username: string) => void;
-  logout: () => void;
+  userId: string | null;
+  email: string | null;
+  username: string | null;
+  isAuthReady: boolean;
+  isLoading: boolean;
+  register: (email: string, password: string, displayName: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateDisplayName: (name: string) => Promise<void>;
+  setSession: (user: MappedFirebaseUser | null) => void;
+  setAuthReady: (ready: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      userId: null,
-      username: null,
-      login: (username: string) => {
-        const id = uuidv4();
-        set({ userId: id, username });
-      },
-      logout: () => set({ userId: null, username: null }),
+export const useAuthStore = create<AuthState>((set) => ({
+  userId: null,
+  email: null,
+  username: null,
+  isAuthReady: false,
+  isLoading: false,
+
+  setSession: (user) =>
+    set({
+      userId: user?.userId ?? null,
+      email: user?.email ?? null,
+      username: user?.username ?? null,
     }),
-    {
-      name: "ptc-auth-storage",
-      storage: createJSONStorage(() => safeStorage),
-    },
-  ),
-);
+
+  setAuthReady: (ready) => set({ isAuthReady: ready }),
+
+  register: async (email, password, displayName) => {
+    set({ isLoading: true });
+    try {
+      await registerWithEmail(email, password, displayName);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  login: async (email, password) => {
+    set({ isLoading: true });
+    try {
+      await loginWithEmail(email, password);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  logout: async () => {
+    set({ isLoading: true });
+    try {
+      await logoutUser();
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  updateDisplayName: async (name) => {
+    set({ isLoading: true });
+    try {
+      await updateUserDisplayName(name);
+      const { userId, email } = useAuthStore.getState();
+      if (userId) {
+        set({ userId, email, username: name.trim() || null });
+      }
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+}));
+
+let authListenerCleanup: (() => void) | null = null;
+
+/** Sincroniza sessão Firebase → Zustand. Chamar uma vez no root layout. */
+export function initAuthListener(): () => void {
+  if (authListenerCleanup) {
+    return authListenerCleanup;
+  }
+
+  authListenerCleanup = subscribeToAuthState((user) => {
+    useAuthStore.getState().setSession(user);
+    useAuthStore.getState().setAuthReady(true);
+  });
+
+  return authListenerCleanup;
+}
 
 export default useAuthStore;

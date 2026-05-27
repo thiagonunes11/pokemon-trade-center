@@ -13,7 +13,7 @@ import {
   restoreQueryCache,
   setupQueryCachePersistence,
 } from "@/lib/queryPersister";
-import { useAuthStore } from "@/store/useAuthStore";
+import { initAuthListener, useAuthStore } from "@/store/useAuthStore";
 import { ThemeProvider, useAppTheme } from "@/theme";
 import { tamaguiConfig } from "../../tamagui.config";
 
@@ -29,13 +29,18 @@ function AppContent() {
   const { theme, colors: themeColors } = useAppTheme();
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
+  const isAuthReady = useAuthStore((s) => s.isAuthReady);
   const [isRestored, setIsRestored] = useState(false);
 
   useEffect(() => {
-    if (isRestored && !userId) {
+    return initAuthListener();
+  }, []);
+
+  useEffect(() => {
+    if (isRestored && isAuthReady && !userId) {
       router.replace("/login");
     }
-  }, [isRestored, userId, router]);
+  }, [isRestored, isAuthReady, userId, router]);
 
   useEffect(() => {
     let isMounted = true;
@@ -106,7 +111,7 @@ function AppContent() {
 
         {/* Redirect handled in useEffect to avoid calling router during render */}
 
-        {!isRestored && (
+        {(!isRestored || !isAuthReady) && (
           <View
             style={[
               StyleSheet.absoluteFill,
@@ -121,7 +126,7 @@ function AppContent() {
           >
             <ActivityIndicator size="large" color={themeColors.primary[400]} />
             <Text style={{ color: themeColors.text.secondary, fontSize: 14 }}>
-              Carregando dados locais...
+              {!isRestored ? "Carregando dados locais..." : "Verificando sessão..."}
             </Text>
           </View>
         )}

@@ -1,6 +1,13 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
-import { type Auth, getAuth } from "firebase/auth";
+import {
+  type Auth,
+  getAuth,
+  initializeAuth,
+  // @ts-expect-error — export presente no bundle React Native do Firebase
+  getReactNativePersistence,
+} from "firebase/auth";
 
 function resolveFirebaseConfig() {
   const common = {
@@ -63,6 +70,29 @@ function getFirebaseApp(): FirebaseApp {
   return appInstance;
 }
 
+function createAuthInstance(app: FirebaseApp): Auth {
+  if (Platform.OS === "web") {
+    return getAuth(app);
+  }
+
+  try {
+    return initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error: unknown) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code;
+
+    if (code === "auth/already-initialized") {
+      return getAuth(app);
+    }
+    throw error;
+  }
+}
+
 /**
  * Auth Firebase (SDK JS). Arquivos nativos google-services.json / GoogleService-Info.plist
  * são aplicados pelo Expo no prebuild; não é necessário Swift Package Manager no Xcode.
@@ -74,7 +104,7 @@ export function getFirebaseAuth(): Auth {
     );
   }
   if (!authInstance) {
-    authInstance = getAuth(getFirebaseApp());
+    authInstance = createAuthInstance(getFirebaseApp());
   }
   return authInstance;
 }
