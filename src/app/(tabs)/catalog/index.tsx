@@ -1,5 +1,5 @@
-import { useRouter, useNavigation } from "expo-router";
-import { useCallback, useLayoutEffect } from "react";
+import { useRouter } from "expo-router";
+import { useCallback } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -17,11 +17,9 @@ import {
   isCollectionOpenable,
 } from "@/lib/collections";
 import { useAppTheme, useStyles } from "@/theme";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function CollectionsScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const setQueries = useCollections();
   const ownedCountsBySet = useOwnedCountsBySet();
@@ -30,12 +28,6 @@ export default function CollectionsScreen() {
 
   const isLoading = setQueries.some((q) => q.isLoading);
   const hasError = setQueries.some((q) => q.isError);
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => <ThemeToggle />,
-    });
-  }, [navigation]);
 
   const handleSelectCollection = useCallback(
     (setId: string, canOpen: boolean) => {

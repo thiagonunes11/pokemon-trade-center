@@ -73,6 +73,16 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Ajustes",
+          headerTitle: "⚙️ Ajustes",
+          tabBarIcon: ({ size }) => (
+            <Text style={{ fontSize: size - 4 }}>⚙️</Text>
+          ),
+        }}
+      />
     </Tabs>
   );
 }

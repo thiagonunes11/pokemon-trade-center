@@ -3,11 +3,15 @@ import { useColorScheme, StyleSheet } from 'react-native';
 import { darkColors, lightColors } from './colors';
 import { safeStorage } from '@/lib/safeStorage';
 
+export type ThemeMode = 'light' | 'dark' | 'system';
 export type Theme = 'light' | 'dark';
 
 interface ThemeContextProps {
   theme: Theme;
+  themeMode: ThemeMode;
   colors: typeof darkColors;
+  setThemeMode: (mode: ThemeMode) => void;
+  /** @deprecated use setThemeMode instead */
   toggleTheme: () => void;
   isLoaded: boolean;
 }
@@ -17,19 +21,18 @@ const THEME_PREFERENCE_KEY = 'pokemon-theme-preference';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Carregar preferência salva ao iniciar
   useEffect(() => {
     async function loadThemePreference() {
       try {
-        const savedTheme = await safeStorage.getItem(THEME_PREFERENCE_KEY);
-        if (savedTheme === 'light' || savedTheme === 'dark') {
-          setTheme(savedTheme);
+        const saved = await safeStorage.getItem(THEME_PREFERENCE_KEY);
+        if (saved === 'light' || saved === 'dark' || saved === 'system') {
+          setThemeModeState(saved);
         } else {
-          // Se não houver preferência salva, usa a preferência do sistema
-          setTheme(systemScheme === 'light' ? 'light' : 'dark');
+          setThemeModeState('system');
         }
       } catch (error) {
         console.warn('[ThemeContext] Erro ao carregar preferência de tema:', error);
@@ -38,33 +41,35 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     }
     loadThemePreference();
-  }, [systemScheme]);
+  }, []);
 
-  // Sincronizar com mudanças do sistema operacional se o usuário ainda não tiver preferência salva
-  useEffect(() => {
-    async function syncWithSystem() {
-      const savedTheme = await safeStorage.getItem(THEME_PREFERENCE_KEY);
-      if (!savedTheme) {
-        setTheme(systemScheme === 'light' ? 'light' : 'dark');
-      }
+  const resolvedTheme: Theme = useMemo(() => {
+    if (themeMode === 'system') {
+      return systemScheme === 'light' ? 'light' : 'dark';
     }
-    syncWithSystem();
-  }, [systemScheme]);
+    return themeMode;
+  }, [themeMode, systemScheme]);
+
+  const setThemeMode = useMemo(() => async (mode: ThemeMode) => {
+    setThemeModeState(mode);
+    try {
+      await safeStorage.setItem(THEME_PREFERENCE_KEY, mode);
+    } catch (error) {
+      console.warn('[ThemeContext] Erro ao salvar preferência de tema:', error);
+    }
+  }, []);
 
   const value = useMemo(() => ({
-    theme,
-    colors: theme === 'dark' ? darkColors : lightColors,
-    toggleTheme: async () => {
-      const newTheme = theme === 'dark' ? 'light' : 'dark';
-      setTheme(newTheme);
-      try {
-        await safeStorage.setItem(THEME_PREFERENCE_KEY, newTheme);
-      } catch (error) {
-        console.warn('[ThemeContext] Erro ao salvar preferência de tema:', error);
-      }
+    theme: resolvedTheme,
+    themeMode,
+    colors: resolvedTheme === 'dark' ? darkColors : lightColors,
+    setThemeMode,
+    toggleTheme: () => {
+      const next = resolvedTheme === 'dark' ? 'light' : 'dark';
+      setThemeMode(next);
     },
     isLoaded,
-  }), [theme, isLoaded]);
+  }), [resolvedTheme, themeMode, setThemeMode, isLoaded]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
