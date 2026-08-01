@@ -224,14 +224,14 @@ export function ExploreBoard() {
                     onPress={() => navigate(`/card/${item.cardId}`)}
                   />
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
-                  <p className="line-clamp-2 text-xl font-bold leading-tight text-[var(--color-text)] sm:text-2xl">
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-2.5">
+                  <p className="line-clamp-2 text-2xl font-bold leading-tight text-[var(--color-text)] sm:text-3xl">
                     {item.name}
                   </p>
-                  <p className="truncate text-base font-semibold text-[var(--color-text-secondary)] sm:text-lg">
+                  <p className="truncate text-lg font-semibold text-[var(--color-text-secondary)] sm:text-xl">
                     {item.displayName}
                   </p>
-                  <p className="text-base font-medium text-[var(--color-text-muted)]">
+                  <p className="text-base font-semibold text-[var(--color-text-muted)] sm:text-lg">
                     {kind === "offering" ? "Anunciando" : "Procurando"}
                   </p>
                 </div>
