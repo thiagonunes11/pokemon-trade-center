@@ -116,14 +116,14 @@ export function subscribeToMessages(
 }
 
 export async function fetchMyThreads(uid: string): Promise<ChatThread[]> {
+  // Só array-contains (sem orderBy) — evita depender do índice composto.
   const q = query(
     collection(getFirestoreDb(), "threads"),
     where("participantIds", "array-contains", uid),
-    orderBy("updatedAt", "desc"),
     limit(50),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => {
+  const threads = snap.docs.map((d) => {
     const data = d.data();
     return {
       id: d.id,
@@ -139,6 +139,63 @@ export async function fetchMyThreads(uid: string): Promise<ChatThread[]> {
         typeof data.lastSenderId === "string" ? data.lastSenderId : null,
     };
   });
+  return threads.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+/** Lista em tempo real das conversas do usuário. */
+export function subscribeToMyThreads(
+  uid: string,
+  onData: (threads: ChatThread[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  const q = query(
+    collection(getFirestoreDb(), "threads"),
+    where("participantIds", "array-contains", uid),
+    limit(50),
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      const threads = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          participantIds: Array.isArray(data.participantIds)
+            ? (data.participantIds as string[])
+            : [],
+          updatedAt: parseDate(data.updatedAt),
+          lastMessagePreview:
+            typeof data.lastMessagePreview === "string"
+              ? data.lastMessagePreview
+              : null,
+          lastSenderId:
+            typeof data.lastSenderId === "string" ? data.lastSenderId : null,
+        };
+      });
+      threads.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      onData(threads);
+    },
+    (err) => onError?.(err),
+  );
+}
+
+export async function getThread(threadId: string): Promise<ChatThread | null> {
+  const snap = await getDoc(doc(getFirestoreDb(), "threads", threadId));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  return {
+    id: snap.id,
+    participantIds: Array.isArray(data.participantIds)
+      ? (data.participantIds as string[])
+      : [],
+    updatedAt: parseDate(data.updatedAt),
+    lastMessagePreview:
+      typeof data.lastMessagePreview === "string"
+        ? data.lastMessagePreview
+        : null,
+    lastSenderId:
+      typeof data.lastSenderId === "string" ? data.lastSenderId : null,
+  };
 }
 
 export async function getPublicProfile(uid: string): Promise<{

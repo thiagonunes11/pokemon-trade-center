@@ -1,12 +1,13 @@
 import { BackButton } from "@/components/BackButton";
 import {
   getPublicProfile,
+  getThread,
   sendTextMessage,
   subscribeToMessages,
   type ChatMessage,
 } from "@/features/trades/threadsService";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export function TradeChatPage() {
@@ -19,20 +20,21 @@ export function TradeChatPage() {
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const peerId = useMemo(() => {
-    if (!threadId || !userId) return null;
-    const parts = threadId.split("_");
-    if (parts.length < 2) return null;
-    // threadId = sorted uids joined by _; Firebase UIDs don't contain _
-    return parts.find((p) => p !== userId) ?? null;
-  }, [threadId, userId]);
-
   useEffect(() => {
-    if (!peerId) return;
-    void getPublicProfile(peerId).then((p) => {
-      if (p) setPeerName(p.displayName);
+    if (!threadId || !userId) return;
+    let cancelled = false;
+    void getThread(threadId).then((thread) => {
+      if (cancelled || !thread) return;
+      const peerId = thread.participantIds.find((id) => id !== userId);
+      if (!peerId) return;
+      void getPublicProfile(peerId).then((p) => {
+        if (!cancelled && p) setPeerName(p.displayName);
+      });
     });
-  }, [peerId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [threadId, userId]);
 
   useEffect(() => {
     if (!threadId) return;

@@ -1,6 +1,6 @@
 import {
-  fetchMyThreads,
   getPublicProfile,
+  subscribeToMyThreads,
   type ChatThread,
 } from "@/features/trades/threadsService";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -16,37 +16,51 @@ export function ConversationsList() {
 
   useEffect(() => {
     if (!userId) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const list = await fetchMyThreads(userId);
-        if (cancelled) return;
+
+    setLoading(true);
+    setError(null);
+
+    const unsub = subscribeToMyThreads(
+      userId,
+      (list) => {
         setThreads(list);
+        setLoading(false);
+        setError(null);
+
         const peerIds = list
           .map((t) => t.participantIds.find((id) => id !== userId))
           .filter((id): id is string => Boolean(id));
         const unique = [...new Set(peerIds)];
-        const entries = await Promise.all(
+
+        void Promise.all(
           unique.map(async (id) => {
-            const profile = await getPublicProfile(id);
-            return [id, profile?.displayName ?? "Treinador"] as const;
+            try {
+              const profile = await getPublicProfile(id);
+              return [id, profile?.displayName ?? "Treinador"] as const;
+            } catch {
+              return [id, "Treinador"] as const;
+            }
           }),
-        );
-        if (!cancelled) {
-          setNames(Object.fromEntries(entries));
-        }
-      } catch (err) {
+        ).then((entries) => {
+          setNames((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+        });
+      },
+      (err) => {
         console.warn("[Conversas]", err);
-        if (!cancelled) setError("Não foi possível carregar conversas.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+        const code =
+          err && typeof err === "object" && "code" in err
+            ? String((err as { code: unknown }).code)
+            : "";
+        setError(
+          code === "permission-denied"
+            ? "Sem permissão para listar conversas. Confira o deploy das rules."
+            : "Não foi possível carregar conversas.",
+        );
+        setLoading(false);
+      },
+    );
+
+    return unsub;
   }, [userId]);
 
   if (loading) {
