@@ -1,51 +1,14 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
 import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
-import {
-  type Auth,
-  getAuth,
-  initializeAuth,
-  // @ts-expect-error — export presente no bundle React Native do Firebase
-  getReactNativePersistence,
-} from "firebase/auth";
+import { type Auth, getAuth } from "firebase/auth";
 
-function resolveFirebaseConfig() {
-  const common = {
-    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  };
-
-  if (Platform.OS === "ios") {
-    return {
-      ...common,
-      apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY_IOS,
-      appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID_IOS,
-    };
-  }
-
-  if (Platform.OS === "android") {
-    return {
-      ...common,
-      apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY_ANDROID,
-      appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID_ANDROID,
-    };
-  }
-
-  // Web / fallback — usa chaves Android ou legado EXPO_PUBLIC_FIREBASE_API_KEY
-  return {
-    ...common,
-    apiKey:
-      process.env.EXPO_PUBLIC_FIREBASE_API_KEY_ANDROID ??
-      process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-    appId:
-      process.env.EXPO_PUBLIC_FIREBASE_APP_ID_ANDROID ??
-      process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-  };
-}
-
-const firebaseConfig = resolveFirebaseConfig();
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+};
 
 export function isFirebaseConfigured(): boolean {
   return Boolean(
@@ -59,10 +22,10 @@ export function isFirebaseConfigured(): boolean {
 let appInstance: FirebaseApp | null = null;
 let authInstance: Auth | null = null;
 
-function getFirebaseApp(): FirebaseApp {
+export function getFirebaseApp(): FirebaseApp {
   if (!isFirebaseConfigured()) {
     throw new Error(
-      "Firebase não configurado. Copie .env.example para .env e preencha EXPO_PUBLIC_FIREBASE_*.",
+      "Firebase não configurado. Copie .env.example para .env e preencha VITE_FIREBASE_*.",
     );
   }
   if (appInstance) return appInstance;
@@ -70,33 +33,6 @@ function getFirebaseApp(): FirebaseApp {
   return appInstance;
 }
 
-function createAuthInstance(app: FirebaseApp): Auth {
-  if (Platform.OS === "web") {
-    return getAuth(app);
-  }
-
-  try {
-    return initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
-  } catch (error: unknown) {
-    const code =
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      (error as { code: string }).code;
-
-    if (code === "auth/already-initialized") {
-      return getAuth(app);
-    }
-    throw error;
-  }
-}
-
-/**
- * Auth Firebase (SDK JS). Arquivos nativos google-services.json / GoogleService-Info.plist
- * são aplicados pelo Expo no prebuild; não é necessário Swift Package Manager no Xcode.
- */
 export function getFirebaseAuth(): Auth {
   if (!isFirebaseConfigured()) {
     throw new Error(
@@ -104,7 +40,7 @@ export function getFirebaseAuth(): Auth {
     );
   }
   if (!authInstance) {
-    authInstance = createAuthInstance(getFirebaseApp());
+    authInstance = getAuth(getFirebaseApp());
   }
   return authInstance;
 }

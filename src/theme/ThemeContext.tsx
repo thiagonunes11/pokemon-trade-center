@@ -1,90 +1,107 @@
-import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
-import { useColorScheme, StyleSheet } from 'react-native';
-import { darkColors, lightColors } from './colors';
-import { safeStorage } from '@/lib/safeStorage';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { darkColors, lightColors, type ColorPalette } from "./colors";
+import { safeStorage } from "@/lib/safeStorage";
 
-export type ThemeMode = 'light' | 'dark' | 'system';
-export type Theme = 'light' | 'dark';
+export type ThemeMode = "light" | "dark" | "system";
+export type Theme = "light" | "dark";
 
-interface ThemeContextProps {
+const STORAGE_KEY = "ptc-theme-mode";
+
+interface ThemeContextValue {
   theme: Theme;
   themeMode: ThemeMode;
-  colors: typeof darkColors;
+  colors: ColorPalette;
   setThemeMode: (mode: ThemeMode) => void;
-  /** @deprecated use setThemeMode instead */
+  /** @deprecated use setThemeMode */
   toggleTheme: () => void;
-  isLoaded: boolean;
 }
 
-const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
-const THEME_PREFERENCE_KEY = 'pokemon-theme-preference';
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemScheme = useColorScheme();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
-  const [isLoaded, setIsLoaded] = useState(false);
+function getSystemTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
 
-  // Carregar preferência salva ao iniciar
+function applyDomTheme(theme: Theme) {
+  const root = document.documentElement;
+  root.classList.toggle("dark", theme === "dark");
+  root.dataset.theme = theme;
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
+  const [systemTheme, setSystemTheme] = useState<Theme>(getSystemTheme);
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    async function loadThemePreference() {
-      try {
-        const saved = await safeStorage.getItem(THEME_PREFERENCE_KEY);
-        if (saved === 'light' || saved === 'dark' || saved === 'system') {
-          setThemeModeState(saved);
-        } else {
-          setThemeModeState('system');
-        }
-      } catch (error) {
-        console.warn('[ThemeContext] Erro ao carregar preferência de tema:', error);
-      } finally {
-        setIsLoaded(true);
+    void (async () => {
+      const stored = await safeStorage.getItem(STORAGE_KEY);
+      if (stored === "light" || stored === "dark" || stored === "system") {
+        setThemeModeState(stored);
       }
-    }
-    loadThemePreference();
+      setReady(true);
+    })();
   }, []);
 
-  const resolvedTheme: Theme = useMemo(() => {
-    if (themeMode === 'system') {
-      return systemScheme === 'light' ? 'light' : 'dark';
-    }
-    return themeMode;
-  }, [themeMode, systemScheme]);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setSystemTheme(mq.matches ? "dark" : "light");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
-  const setThemeMode = useMemo(() => async (mode: ThemeMode) => {
+  const theme: Theme = themeMode === "system" ? systemTheme : themeMode;
+
+  useEffect(() => {
+    if (ready) applyDomTheme(theme);
+  }, [theme, ready]);
+
+  const setThemeMode = useCallback((mode: ThemeMode) => {
     setThemeModeState(mode);
-    try {
-      await safeStorage.setItem(THEME_PREFERENCE_KEY, mode);
-    } catch (error) {
-      console.warn('[ThemeContext] Erro ao salvar preferência de tema:', error);
-    }
+    void safeStorage.setItem(STORAGE_KEY, mode);
   }, []);
 
-  const value = useMemo(() => ({
-    theme: resolvedTheme,
-    themeMode,
-    colors: resolvedTheme === 'dark' ? darkColors : lightColors,
-    setThemeMode,
-    toggleTheme: () => {
-      const next = resolvedTheme === 'dark' ? 'light' : 'dark';
-      setThemeMode(next);
-    },
-    isLoaded,
-  }), [resolvedTheme, themeMode, setThemeMode, isLoaded]);
+  const toggleTheme = useCallback(() => {
+    setThemeMode(theme === "dark" ? "light" : "dark");
+  }, [setThemeMode, theme]);
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  const value = useMemo<ThemeContextValue>(
+    () => ({
+      theme,
+      themeMode,
+      colors: theme === "dark" ? darkColors : lightColors,
+      setThemeMode,
+      toggleTheme,
+    }),
+    [theme, themeMode, setThemeMode, toggleTheme],
+  );
+
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
-export function useAppTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useAppTheme deve ser usado dentro de um ThemeProvider');
+export function useAppTheme(): ThemeContextValue {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) {
+    throw new Error("useAppTheme must be used within ThemeProvider");
   }
-  return context;
+  return ctx;
 }
 
-export function useStyles<T extends StyleSheet.NamedStyles<T>>(
-  factory: (themeColors: typeof darkColors) => T
-): T {
+/** Mantido por compatibilidade — preferir classes Tailwind. */
+export function useStyles<T>(factory: (colors: ColorPalette) => T): T {
   const { colors } = useAppTheme();
   return useMemo(() => factory(colors), [colors, factory]);
 }

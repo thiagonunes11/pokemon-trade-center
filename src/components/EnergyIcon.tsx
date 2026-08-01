@@ -1,87 +1,49 @@
 import { getEnergyIconSource } from "@/lib/energyIcons";
-import { useAppTheme } from "@/theme";
-import { Image } from "expo-image";
-import { StyleSheet, Text, View } from "react-native";
 
-type EnergyIconProps = {
+interface EnergyIconProps {
   type: string;
   size?: number;
-};
+  className?: string;
+}
 
-/** Ícone de tipo/energia a partir de assets/images/energy/ */
-export function EnergyIcon({ type, size = 22 }: EnergyIconProps) {
-  const { colors } = useAppTheme();
-  const source = getEnergyIconSource(type);
-
-  if (source) {
+export function EnergyIcon({ type, size = 20, className = "" }: EnergyIconProps) {
+  const src = getEnergyIconSource(type);
+  if (src) {
     return (
-      <Image
-        source={source}
-        style={{ width: size, height: size }}
-        contentFit="contain"
-        accessibilityLabel={type}
+      <img
+        src={src}
+        alt={type}
+        width={size}
+        height={size}
+        className={`inline-block ${className}`}
+        title={type}
       />
     );
   }
-
   return (
-    <View
-      style={[
-        styles.fallback,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: colors.background.elevated,
-        },
-      ]}
+    <span
+      className={`inline-flex items-center justify-center rounded-full bg-[var(--color-bg-elevated)] text-[10px] font-semibold text-[var(--color-text-muted)] ${className}`}
+      style={{ width: size, height: size }}
+      title={type}
     >
-      <Text
-        style={[
-          styles.fallbackText,
-          {
-            fontSize: Math.max(8, size * 0.38),
-            color: colors.text.muted,
-          },
-        ]}
-        numberOfLines={1}
-      >
-        {type.slice(0, 2)}
-      </Text>
-    </View>
+      {type.slice(0, 2).toUpperCase()}
+    </span>
   );
 }
 
-type EnergyIconRowProps = {
+export function EnergyIconRow({
+  types,
+  size = 20,
+}: {
   types: string[];
   size?: number;
-  gap?: number;
-};
-
-export function EnergyIconRow({ types, size = 22, gap = 4 }: EnergyIconRowProps) {
+}) {
   if (!types.length) return null;
-
   return (
-    <View style={[styles.row, { gap }]}>
-      {types.map((type, index) => (
-        <EnergyIcon key={`${type}-${index}`} type={type} size={size} />
+    <span className="inline-flex items-center gap-1">
+      {types.map((t, i) => (
+        <EnergyIcon key={`${t}-${i}`} type={t} size={size} />
       ))}
-    </View>
+    </span>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-  },
-  fallback: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fallbackText: {
-    fontWeight: "700",
-    textTransform: "uppercase",
-  },
-});

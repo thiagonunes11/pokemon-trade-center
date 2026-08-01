@@ -1,7 +1,3 @@
-import { useStyles } from "@/theme";
-import { Image } from "expo-image";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
-
 interface CardItemProps {
   id: string;
   name: string;
@@ -9,12 +5,20 @@ interface CardItemProps {
   image: string | null;
   rarity?: string;
   isInCollection?: boolean;
-  /** Grade densa: só imagem, preenche a célula */
   compact?: boolean;
   onPress: (id: string) => void;
 }
 
-function CardItemComponent({
+function resolveImageUrl(image: string | null): string | null {
+  if (!image) return null;
+  const lower = image.toLowerCase();
+  if (lower.endsWith("/high.webp") || lower.endsWith("/high.png")) {
+    return image;
+  }
+  return `${image}/high.webp`;
+}
+
+export function CardItem({
   id,
   name,
   localId,
@@ -24,166 +28,43 @@ function CardItemComponent({
   compact = false,
   onPress,
 }: CardItemProps) {
-  const screenWidth = Dimensions.get("window").width;
-  const styles = useStyles(stylesFactory);
-
-  const isSmallScreen = screenWidth < 400;
-  const isMediumScreen = screenWidth < 600;
-
-  const nameFontSize = isSmallScreen ? 11 : isMediumScreen ? 12 : 13;
-  const localIdFontSize = isSmallScreen ? 9 : isMediumScreen ? 10 : 11;
-
-  // Accept either a base image URL (e.g. '.../image') or a full URL
-  // that already includes the size suffix (e.g. '.../image/high.webp' or '.../image/high.png').
-  let imageUrl: string | null = null;
-  if (image) {
-    const lower = image.toLowerCase();
-    if (lower.endsWith("/high.webp") || lower.endsWith("/high.png")) {
-      imageUrl = image;
-    } else {
-      imageUrl = `${image}/high.webp`;
-    }
-  }
+  const imageUrl = resolveImageUrl(image);
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.container,
-        compact && styles.containerCompact,
-        pressed && styles.pressed,
-      ]}
-      onPress={() => onPress(id)}
-      android_ripple={{ color: "rgba(255,255,255,0.12)" }}
+    <button
+      type="button"
+      onClick={() => onPress(id)}
+      className={`group w-full text-left transition hover:opacity-95 ${compact ? "" : "space-y-2"}`}
     >
-      <View
-        style={[
-          styles.card,
-          compact && styles.cardCompact,
-          isInCollection && styles.cardInCollection,
-        ]}
+      <div
+        className={`relative overflow-hidden rounded-lg bg-[var(--color-bg-card)] ${
+          isInCollection ? "ring-2 ring-[var(--color-success)]" : "ring-1 ring-[var(--color-border)]"
+        } ${compact ? "aspect-[0.715]" : "aspect-[0.72]"}`}
       >
         {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={[styles.cardImage, compact && styles.cardImageCompact]}
-            contentFit={compact ? "cover" : "contain"}
-            transition={300}
+          <img
+            src={imageUrl}
+            alt={name}
+            className={`h-full w-full ${compact ? "object-cover" : "object-contain p-1"}`}
+            loading="lazy"
           />
         ) : (
-          <View
-            style={[styles.cardImage, compact && styles.cardImageCompact, styles.noImage]}
-          >
-            <Text style={styles.noImageText}>Sem imagem</Text>
-          </View>
+          <div className="flex h-full items-center justify-center text-xs text-[var(--color-text-muted)]">
+            Sem imagem
+          </div>
         )}
-
-        {!compact && (
-          <View style={styles.info}>
-            <Text
-              style={[styles.name, { fontSize: nameFontSize }]}
-              numberOfLines={2}
-            >
-              {name}
-            </Text>
-            <View style={styles.meta}>
-              <Text style={[styles.localId, { fontSize: localIdFontSize }]}>
-                #{localId}
-              </Text>
-              {rarity && (
-                <Text style={[styles.rarity, { fontSize: localIdFontSize }]}>
-                  {rarity}
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
-      </View>
-    </Pressable>
+      </div>
+      {!compact && (
+        <div className="px-0.5">
+          <p className="line-clamp-2 text-sm font-medium text-[var(--color-text)]">
+            {name}
+          </p>
+          <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+            #{localId}
+            {rarity ? ` · ${rarity}` : ""}
+          </p>
+        </div>
+      )}
+    </button>
   );
 }
-
-export const CardItem = CardItemComponent;
-
-const stylesFactory = (colors: any) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      margin: 5,
-    },
-    containerCompact: {
-      margin: 0,
-      width: "100%",
-      height: "100%",
-    },
-    pressed: {
-      opacity: 0.85,
-    },
-    cardCompact: {
-      flex: 1,
-      height: "100%",
-      borderRadius: 6,
-    },
-    card: {
-      backgroundColor: colors.background.card,
-      borderRadius: 10,
-      overflow: "hidden",
-      borderWidth: 1,
-      borderColor: colors.background.elevated,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    cardInCollection: {
-      borderColor: colors.primary[400],
-      borderWidth: 2,
-      backgroundColor: colors.primary[950],
-      shadowColor: colors.primary[400],
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-      elevation: 6,
-    },
-    cardImage: {
-      width: "100%",
-      aspectRatio: 0.715,
-    },
-    cardImageCompact: {
-      flex: 1,
-      width: "100%",
-      aspectRatio: undefined,
-      minHeight: 0,
-    },
-    noImage: {
-      backgroundColor: colors.background.elevated,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    noImageText: {
-      color: colors.text.muted,
-      fontSize: 11,
-    },
-    info: {
-      padding: 8,
-      gap: 4,
-    },
-    name: {
-      color: colors.text.primary,
-      fontSize: 12,
-      fontWeight: "600",
-    },
-    meta: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    localId: {
-      color: colors.text.muted,
-      fontSize: 10,
-    },
-    rarity: {
-      color: colors.accent[400],
-      fontSize: 9,
-      fontWeight: "500",
-    },
-  });

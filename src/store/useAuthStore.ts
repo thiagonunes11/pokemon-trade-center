@@ -90,20 +90,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-let authListenerCleanup: (() => void) | null = null;
-
-/** Sincroniza sessão Firebase → Zustand. Chamar uma vez no root layout. */
+/** Sincroniza sessão Firebase → Zustand. Chamar no boot do app. */
 export function initAuthListener(): () => void {
-  if (authListenerCleanup) {
-    return authListenerCleanup;
-  }
-
-  authListenerCleanup = subscribeToAuthState((user) => {
-    useAuthStore.getState().setSession(user);
+  try {
+    return subscribeToAuthState((user) => {
+      useAuthStore.getState().setSession(user);
+      useAuthStore.getState().setAuthReady(true);
+    });
+  } catch (error) {
+    console.error("[Auth] Falha ao iniciar listener:", error);
+    useAuthStore.getState().setSession(null);
     useAuthStore.getState().setAuthReady(true);
-  });
-
-  return authListenerCleanup;
+    return () => {};
+  }
 }
 
 export default useAuthStore;

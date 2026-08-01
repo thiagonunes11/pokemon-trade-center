@@ -1,4 +1,14 @@
-import type { ImageSourcePropType } from "react-native";
+import darkPng from "@/assets/images/energy/dark.png";
+import dragonPng from "@/assets/images/energy/dragon.png";
+import electricPng from "@/assets/images/energy/electric.png";
+import fairyPng from "@/assets/images/energy/fairy.png";
+import fightingPng from "@/assets/images/energy/fighting.png";
+import firePng from "@/assets/images/energy/fire.png";
+import grassPng from "@/assets/images/energy/grass.png";
+import normalPng from "@/assets/images/energy/normal.png";
+import psychicPng from "@/assets/images/energy/psychic.png";
+import steelPng from "@/assets/images/energy/steel.png";
+import waterPng from "@/assets/images/energy/water.png";
 
 export type EnergyIconKey =
   | "fire"
@@ -13,21 +23,20 @@ export type EnergyIconKey =
   | "dragon"
   | "normal";
 
-const ENERGY_IMAGES: Record<EnergyIconKey, ImageSourcePropType> = {
-  fire: require("@/assets/images/energy/fire.png"),
-  water: require("@/assets/images/energy/water.png"),
-  grass: require("@/assets/images/energy/grass.png"),
-  electric: require("@/assets/images/energy/electric.png"),
-  psychic: require("@/assets/images/energy/psychic.png"),
-  fighting: require("@/assets/images/energy/fighting.png"),
-  dark: require("@/assets/images/energy/dark.png"),
-  steel: require("@/assets/images/energy/steel.png"),
-  fairy: require("@/assets/images/energy/fairy.png"),
-  dragon: require("@/assets/images/energy/dragon.png"),
-  normal: require("@/assets/images/energy/normal.png"),
+const ENERGY_IMAGES: Record<EnergyIconKey, string> = {
+  fire: firePng,
+  water: waterPng,
+  grass: grassPng,
+  electric: electricPng,
+  psychic: psychicPng,
+  fighting: fightingPng,
+  dark: darkPng,
+  steel: steelPng,
+  fairy: fairyPng,
+  dragon: dragonPng,
+  normal: normalPng,
 };
 
-/** Nomes retornados pela TCGdex (pt/en) → PNG em assets/images/energy/ */
 const TYPE_NAME_TO_KEY: Record<string, EnergyIconKey> = {
   Fogo: "fire",
   Água: "water",
@@ -60,9 +69,7 @@ export function resolveEnergyIconKey(typeName: string): EnergyIconKey | null {
   return TYPE_NAME_TO_KEY[typeName.trim()] ?? null;
 }
 
-export function getEnergyIconSource(
-  typeName: string,
-): ImageSourcePropType | null {
+export function getEnergyIconSource(typeName: string): string | null {
   const key = resolveEnergyIconKey(typeName);
   return key ? ENERGY_IMAGES[key] : null;
 }

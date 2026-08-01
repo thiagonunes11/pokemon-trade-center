@@ -1,12 +1,9 @@
 import TCGdex from "@tcgdex/sdk";
-import "./storagePolyfill"; // Initialize storage polyfill first
 
-// TCGdex SDK configured for Brazilian Portuguese
 const tcgdex = new TCGdex("pt");
 
 export default tcgdex;
 
-// Set IDs for supported collections
 export const SUPPORTED_SETS = {
   MEGAEVOLUCAO: "me01",
   FOGO_FANTASMAGORICO: "me02",
