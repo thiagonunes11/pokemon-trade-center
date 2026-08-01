@@ -225,10 +225,10 @@ export function ExploreBoard() {
                   />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
-                  <p className="line-clamp-2 text-xl font-bold leading-tight text-[var(--color-text)] sm:text-2xl">
+                  <p className="line-clamp-2 text-3xl font-bold leading-tight text-[var(--color-text)] sm:text-4xl">
                     {item.name}
                   </p>
-                  <p className="truncate text-base font-semibold text-[var(--color-text-secondary)] sm:text-lg">
+                  <p className="truncate text-lg font-bold text-[var(--color-text)] sm:text-xl">
                     {item.displayName}
                   </p>
                   <p className="text-base font-medium text-[var(--color-text-muted)]">
