@@ -5,6 +5,7 @@ interface CardItemProps {
   image: string | null;
   rarity?: string;
   isInCollection?: boolean;
+  binderMode?: boolean;
   compact?: boolean;
   onPress: (id: string) => void;
 }
@@ -25,27 +26,37 @@ export function CardItem({
   image,
   rarity,
   isInCollection = false,
+  binderMode = false,
   compact = false,
   onPress,
 }: CardItemProps) {
   const imageUrl = resolveImageUrl(image);
+  const missing = binderMode && !isInCollection;
+
+  const frameClass = binderMode
+    ? "ring-1 ring-[var(--color-border)]"
+    : isInCollection
+      ? "ring-2 ring-[var(--color-success)]"
+      : "ring-1 ring-[var(--color-border)]";
 
   return (
     <button
       type="button"
       onClick={() => onPress(id)}
-      className={`group w-full text-left transition hover:opacity-95 ${compact ? "" : "space-y-2"}`}
+      className={`group w-full text-left transition hover:-translate-y-0.5 hover:opacity-95 ${compact ? "" : "space-y-2"}`}
     >
       <div
-        className={`relative overflow-hidden rounded-lg bg-[var(--color-bg-card)] ${
-          isInCollection ? "ring-2 ring-[var(--color-success)]" : "ring-1 ring-[var(--color-border)]"
-        } ${compact ? "aspect-[0.715]" : "aspect-[0.72]"}`}
+        className={`relative overflow-hidden rounded-sm bg-[var(--color-bg-card)] ${frameClass} ${
+          compact ? "aspect-[0.715]" : "aspect-[0.72]"
+        }`}
       >
         {imageUrl ? (
           <img
             src={imageUrl}
-            alt={name}
-            className={`h-full w-full ${compact ? "object-cover" : "object-contain p-1"}`}
+            alt={missing ? `${name} (não possuída)` : name}
+            className={`h-full w-full ${compact ? "object-cover" : "object-contain p-1"} ${
+              missing ? "opacity-40 grayscale" : ""
+            }`}
             loading="lazy"
           />
         ) : (
@@ -56,10 +67,16 @@ export function CardItem({
       </div>
       {!compact && (
         <div className="px-0.5">
-          <p className="line-clamp-2 text-sm font-medium text-[var(--color-text)]">
+          <p
+            className={`line-clamp-2 text-sm font-medium ${
+              missing
+                ? "text-[var(--color-text-muted)]"
+                : "text-[var(--color-text)]"
+            }`}
+          >
             {name}
           </p>
-          <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+          <p className="mt-0.5 font-[family-name:var(--font-mono)] text-xs text-[var(--color-text-muted)]">
             #{localId}
             {rarity ? ` · ${rarity}` : ""}
           </p>

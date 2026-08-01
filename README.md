@@ -1,8 +1,8 @@
 # Pokemon Trade Center
 
-App **web** para explorar cartas do Pokémon TCG, montar sua coleção e (em breve) preparar trocas. Feito com **Vite**, **React** e **TypeScript**.
+App **web** para montar sua vitrine de Pokémon TCG, acompanhar o progresso das expansões e (em breve) trocar cartas na região. Feito com **Vite**, **React** e **TypeScript**.
 
-> **Trabalho em andamento** — a aba Trocas ainda é placeholder.
+> **Trabalho em andamento** — trocas regionais e link público da vitrine ainda são stubs.
 
 **Agentes de IA:** leia [AGENTS.md](./AGENTS.md) antes de alterar código.
 
@@ -11,10 +11,11 @@ App **web** para explorar cartas do Pokémon TCG, montar sua coleção e (em bre
 ## O que o app faz hoje
 
 1. **Login** — e-mail e senha (Firebase Auth): Entrar / Criar conta / Esqueci senha
-2. **Catálogo** — expansões Megaevolução (TCGdex em português) + grid e detalhe da carta
+2. **Catálogo** — expansões Megaevolução (TCGdex em português) + binder com progresso (possuídas / faltam N)
 3. **Coleção** — cartas salvas neste navegador e **sincronizadas no Firestore** após o login
-4. **Ajustes** — avatar, nome, tema (claro / escuro / sistema), logout
-5. **Trocas** — placeholder
+4. **Compartilhar** — exportar PNG da vitrine de um set (possuídas coloridas, faltantes em cinza); link público em breve
+5. **Ajustes** — avatar, nome, tema (claro / escuro / sistema), logout
+6. **Trocas** — placeholder (região / matching depois)
 
 > A coleção do antigo app nativo **não migra** automaticamente. Cartas adicionadas na web sobem para `collections/{uid}/cards`.
 

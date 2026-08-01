@@ -10,18 +10,18 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 |-------|--------|
 | **Nome** | Pokemon Trade Center |
 | **Tipo** | SPA web (Vite / React) |
-| **Domínio** | Pokémon TCG — catálogo, coleção local, trocas (futuro) |
-| **UI** | Português (Brasil) |
+| **Domínio** | Pokémon TCG — vitrine de coleção, catálogo, compartilhar binder, trocas (futuro) |
+| **UI** | Português (Brasil) · editorial (Fraunces / DM Sans / âmbar de progresso) |
 | **Dados** | TCGdex locale `pt` |
-| **Estágio** | MVP web: catálogo + coleção local + Firebase Auth + perfil Firestore |
+| **Estágio** | MVP web: catálogo + coleção sync + vitrine/compartilhar PNG + Firebase Auth |
 | **Repo** | `https://github.com/thiagonunes11/pokemon-trade-center.git` |
 
 ### Objetivo
 
 1. Escolher expansão (série Megaevolução)
-2. Navegar catálogo com imagens/metadados
-3. Detalhe da carta + adicionar/remover da coleção (localStorage)
-4. (Futuro) sync nuvem e trocas
+2. Navegar catálogo com binder (possuídas vs faltantes) e progresso
+3. Detalhe da carta + adicionar/remover da coleção
+4. Compartilhar vitrine do set (PNG); link público e trocas regionais (futuro)
 
 **Auth:** Firebase Auth + `users/{uid}` no Firestore.  
 **Coleção:** Zustand local + sync Firestore (`collections/{uid}/cards`) com debounce nas escritas e pull no login. Coleção do antigo app nativo **não migra** automaticamente.
@@ -39,6 +39,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | Cache | TanStack Query + `safeStorage` / localStorage |
 | Estado | Zustand |
 | Backend | Firebase Auth + Firestore (Spark) |
+| Export vitrine | `html-to-image` (PNG do binder por set) |
 | Env | `VITE_FIREBASE_*` (`.env` gitignored) |
 
 ---
@@ -56,16 +57,18 @@ src/
   pages/                ← Login, Catalog, CatalogSet, Collection, Trades, Settings, CardDetail
   features/
     auth/               ← authService, mapFirebaseUser, authErrors, userProfileService
-    cards/              ← CardGrid, CardItem, useSetCards/useCard/useSet
+    cards/              ← CardGrid, CardItem (binderMode), useSetCards/useCard/useSet
     sets/               ← CollectionPickerCard, useCollections
     collection/         ← firestoreSync, CollectionSync, add/remove com sync
-  components/           ← EnergyIcon, UserAvatar
+    share/              ← ShareSetButton, ShareSetBinder, download PNG (html-to-image)
+  components/           ← EnergyIcon, UserAvatar, ProgressFolio
   hooks/useOwnedSetCount.ts
-  lib/                  ← firebase, firestore, tcgdex, collections, safeStorage, query*
+  lib/                  ← firebase, firestore, tcgdex, collections, safeStorage, query*, formatCollectionProgress
   store/                ← useAuthStore, useCollectionStore
   theme/                ← colors, ThemeContext (matchMedia + classe .dark)
   assets/images/energy/ ← PNGs de tipo
 public/                 ← favicon, icon
+docs/superpowers/       ← specs e planos de implementação
 firestore.rules
 firebase.json
 ```
@@ -176,7 +179,8 @@ firebase deploy --only firestore:rules
 | Catálogo | `pages/CatalogPage.tsx`, `CatalogSetPage.tsx`, `features/sets/*` |
 | Detalhe | `pages/CardDetailPage.tsx` |
 | Coleção | `pages/CollectionPage.tsx`, `useCollectionStore.ts`, `features/collection/*` |
+| Compartilhar | `features/share/*`, CTA em `CatalogSetPage` |
 | Tema | `theme/*`, `index.css`, `SettingsPage.tsx` |
 | Shell / guard | `layouts/AppLayout.tsx`, `AuthGuard.tsx` |
 
-_Última revisão: 2026-08-01 — Vite SPA + sync coleção Firestore (Etapa 7)._
+_Última revisão: 2026-08-01 — UI vitrine editorial + share PNG do binder._

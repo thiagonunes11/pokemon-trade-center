@@ -1,6 +1,6 @@
 /**
  * Theme colors for Pokemon Trade Center
- * Neutral & Professional palette — Slate / Cobalt Blue
+ * Editorial vitrine — ink / paper / amber progress
  */
 
 export interface ColorPalette {
@@ -78,43 +78,43 @@ export const darkColors: ColorPalette = {
     950: '#020617',
   },
 
-  // Accent — Cobalt Blue (professional, controlled saturation)
+  // Accent — Amber progress
   accent: {
-    50:  '#EFF6FF',
-    100: '#DBEAFE',
-    200: '#BFDBFE',
-    300: '#93C5FD',
-    400: '#60A5FA',
-    500: '#3B82F6',
-    600: '#2563EB',
-    700: '#1D4ED8',
-    800: '#1E40AF',
-    900: '#1E3A8A',
-    950: '#172554',
+    50:  '#FDF4EF',
+    100: '#F8E4D8',
+    200: '#F0C4A8',
+    300: '#E8A078',
+    400: '#E07A45',
+    500: '#C45C26',
+    600: '#A34A1E',
+    700: '#853C18',
+    800: '#662E12',
+    900: '#4A210D',
+    950: '#2E1408',
   },
 
-  // Background — Near-black neutral
+  // Background — Deep ink
   background: {
-    primary:   '#09090F',
-    secondary: '#111118',
-    card:      '#1C1C27',
-    elevated:  '#26263A',
-    overlay:   'rgba(9, 9, 15, 0.82)',
+    primary:   '#121212',
+    secondary: '#1C1C1C',
+    card:      '#1C1C1C',
+    elevated:  '#2A2A2A',
+    overlay:   'rgba(18, 18, 18, 0.82)',
   },
 
   // Text
   text: {
-    primary:   '#F1F5F9',
-    secondary: '#94A3B8',
-    muted:     '#64748B',
-    inverse:   '#09090F',
+    primary:   '#F5F2EC',
+    secondary: '#A8A59E',
+    muted:     '#6E6B66',
+    inverse:   '#121212',
   },
 
   // Semantic
   success: '#22C55E',
   warning: '#EAB308',
   error:   '#EF4444',
-  info:    '#3B82F6',
+  info:    '#E07A45',
 
   // Card type colors (Pokémon types — unchanged)
   types: {
@@ -148,43 +148,43 @@ export const lightColors: ColorPalette = {
     950: '#F8FAFC',
   },
 
-  // Accent — Cobalt Blue (slightly deeper for light backgrounds)
+  // Accent — Amber progress
   accent: {
-    50:  '#172554',
-    100: '#1E3A8A',
-    200: '#1E40AF',
-    300: '#1D4ED8',
-    400: '#2563EB',
-    500: '#3B82F6',
-    600: '#60A5FA',
-    700: '#93C5FD',
-    800: '#BFDBFE',
-    900: '#DBEAFE',
-    950: '#EFF6FF',
+    50:  '#2E1408',
+    100: '#4A210D',
+    200: '#662E12',
+    300: '#853C18',
+    400: '#A34A1E',
+    500: '#C45C26',
+    600: '#E07A45',
+    700: '#E8A078',
+    800: '#F0C4A8',
+    900: '#F8E4D8',
+    950: '#FDF4EF',
   },
 
-  // Background — Clean whites and light greys
+  // Background — Warm paper
   background: {
-    primary:   '#FFFFFF',
-    secondary: '#F8FAFC',
-    card:      '#FFFFFF',
-    elevated:  '#F1F5F9',
-    overlay:   'rgba(255, 255, 255, 0.85)',
+    primary:   '#F7F4EF',
+    secondary: '#EFEBE4',
+    card:      '#FFFCFA',
+    elevated:  '#E8E2D9',
+    overlay:   'rgba(247, 244, 239, 0.88)',
   },
 
-  // Text — Deep slate for readability
+  // Text — Ink
   text: {
-    primary:   '#0F172A',
-    secondary: '#475569',
-    muted:     '#94A3B8',
-    inverse:   '#FFFFFF',
+    primary:   '#1A1A1A',
+    secondary: '#5C5A56',
+    muted:     '#8A8680',
+    inverse:   '#FFFCFA',
   },
 
   // Semantic
   success: '#16A34A',
   warning: '#D97706',
   error:   '#DC2626',
-  info:    '#2563EB',
+  info:    '#C45C26',
 
   // Card type colors (Pokémon types — unchanged)
   types: {

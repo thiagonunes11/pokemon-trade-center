@@ -50,7 +50,9 @@ export function SettingsPage() {
   return (
     <div className="mx-auto max-w-lg space-y-8">
       <header>
-        <h1 className="text-2xl font-bold text-[var(--color-text)]">Ajustes</h1>
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
+          Ajustes
+        </h1>
       </header>
 
       <section className="space-y-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">

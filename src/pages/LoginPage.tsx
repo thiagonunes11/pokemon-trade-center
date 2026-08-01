@@ -97,12 +97,19 @@ export function LoginPage() {
         : "Enviar link";
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-[var(--color-bg)] px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 shadow-sm sm:p-8">
-        <h1 className="text-center text-2xl font-bold text-[var(--color-text)]">
+    <div className="relative flex min-h-full items-center justify-center bg-[var(--color-bg)] px-4 py-10">
+      <div
+        className="absolute inset-0 -z-10 opacity-40"
+        style={{
+          background:
+            "radial-gradient(ellipse at 20% 10%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 50%), radial-gradient(ellipse at 80% 90%, color-mix(in srgb, var(--color-bg-elevated) 80%, transparent), transparent 45%)",
+        }}
+      />
+      <div className="w-full max-w-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 sm:p-8">
+        <h1 className="text-center font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
           Pokemon Trade Center
         </h1>
-        <p className="mt-2 text-center text-sm text-[var(--color-text-secondary)]">
+        <p className="mt-2 text-center font-[family-name:var(--font-serif)] text-sm text-[var(--color-text-secondary)]">
           {subtitle}
         </p>
 

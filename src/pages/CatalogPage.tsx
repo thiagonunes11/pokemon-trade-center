@@ -9,13 +9,14 @@ export function CatalogPage() {
   const ownedBySet = useOwnedCountsBySet();
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-[var(--color-text)]">
+    <div className="space-y-8">
+      <header className="space-y-2">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[var(--color-text)]">
           Coleções
         </h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Escolha uma expansão da série Megaevolução
+        <p className="max-w-xl font-[family-name:var(--font-serif)] text-[var(--color-text-secondary)]">
+          Escolha uma expansão da série Megaevolução e acompanhe o que falta
+          para completar sua vitrine.
         </p>
       </header>
 

@@ -97,7 +97,7 @@ export function CardDetailPage() {
 
         <div className="space-y-5">
           <div>
-            <h1 className="text-3xl font-bold text-[var(--color-text)]">
+            <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
               {card.name}
             </h1>
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">

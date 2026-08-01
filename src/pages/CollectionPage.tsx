@@ -1,9 +1,12 @@
+import { ProgressFolio } from "@/components/ProgressFolio";
 import { CardItem } from "@/features/cards";
 import { getCollectionById } from "@/lib/collections";
+import { useCollections } from "@/features/sets";
+import { COLLECTIONS } from "@/lib/collections";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 type DisplayMode = "all" | "bySet";
 
@@ -18,6 +21,16 @@ export function CollectionPage() {
   const allCards = useCollectionStore((s) => s.cards);
   const [displayMode, setDisplayMode] = useState<DisplayMode>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const queries = useCollections();
+
+  const totalsBySet = useMemo(() => {
+    const map: Record<string, number | undefined> = {};
+    COLLECTIONS.forEach((c, index) => {
+      const set = queries[index]?.data;
+      map[c.id] = set?.cardCount?.total ?? set?.cards?.length;
+    });
+    return map;
+  }, [queries]);
 
   const cards = useMemo(
     () =>
@@ -40,11 +53,11 @@ export function CollectionPage() {
 
   return (
     <div className="relative space-y-6 pb-20">
-      <header>
-        <h1 className="text-2xl font-bold text-[var(--color-text)]">
+      <header className="space-y-2">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
           Minha coleção
         </h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+        <p className="font-[family-name:var(--font-serif)] text-sm text-[var(--color-text-secondary)]">
           {cards.length === 0
             ? "Nenhuma carta ainda — adicione pelo catálogo"
             : `${cards.length} carta${cards.length === 1 ? "" : "s"} · ${displayOptions.find((o) => o.key === displayMode)?.label}`}
@@ -52,8 +65,8 @@ export function CollectionPage() {
       </header>
 
       {cards.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--color-border)] p-8 text-center text-[var(--color-text-muted)]">
-          Sua coleção está vazia neste navegador.
+        <p className="border border-dashed border-[var(--color-border)] p-8 text-center text-[var(--color-text-muted)]">
+          Sua vitrine está vazia neste navegador.
         </p>
       ) : displayMode === "all" ? (
         <div className="grid grid-cols-4 gap-1 sm:gap-2">
@@ -65,43 +78,60 @@ export function CollectionPage() {
               localId={card.id.split("-").pop() ?? ""}
               image={card.imageUrl}
               compact
+              isInCollection
               onPress={(id) => navigate(`/card/${id}`)}
             />
           ))}
         </div>
       ) : (
-        <div className="space-y-8">
-          {cardsBySet.map(([setId, setCards]) => (
-            <section key={setId}>
-              <h2 className="mb-3 text-sm font-semibold text-[var(--color-text)]">
-                {getCollectionById(setId)?.name ?? setId}
-                <span className="ml-2 font-normal text-[var(--color-text-muted)]">
-                  ({setCards.length})
-                </span>
-              </h2>
-              <div className="grid grid-cols-4 gap-1 sm:gap-2">
-                {[...setCards]
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((card) => (
-                    <CardItem
-                      key={card.id}
-                      id={card.id}
-                      name={card.name}
-                      localId={card.id.split("-").pop() ?? ""}
-                      image={card.imageUrl}
-                      compact
-                      onPress={(id) => navigate(`/card/${id}`)}
+        <div className="space-y-10">
+          {cardsBySet.map(([setId, setCards]) => {
+            const total = totalsBySet[setId];
+            return (
+              <section key={setId} className="space-y-3">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="min-w-0 space-y-2">
+                    <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-[var(--color-text)]">
+                      {getCollectionById(setId)?.name ?? setId}
+                    </h2>
+                    <ProgressFolio
+                      owned={setCards.length}
+                      total={total}
+                      className="max-w-xs"
                     />
-                  ))}
-              </div>
-            </section>
-          ))}
+                  </div>
+                  <Link
+                    to={`/catalog/${setId}`}
+                    className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+                  >
+                    Ver binder / compartilhar
+                  </Link>
+                </div>
+                <div className="grid grid-cols-4 gap-1 sm:gap-2">
+                  {[...setCards]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((card) => (
+                      <CardItem
+                        key={card.id}
+                        id={card.id}
+                        name={card.name}
+                        localId={card.id.split("-").pop() ?? ""}
+                        image={card.imageUrl}
+                        compact
+                        isInCollection
+                        onPress={(id) => navigate(`/card/${id}`)}
+                      />
+                    ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 
       <div className="fixed bottom-20 right-4 z-30 md:bottom-6 md:right-6">
         {filterMenuOpen && (
-          <div className="absolute bottom-14 right-0 mb-1 w-40 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-lg animate-in fade-in">
+          <div className="absolute right-0 bottom-14 mb-1 w-40 overflow-hidden border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-lg">
             {displayOptions.map((opt) => (
               <button
                 key={opt.key}
@@ -125,7 +155,7 @@ export function CollectionPage() {
           type="button"
           aria-label="Filtro da coleção"
           onClick={() => setFilterMenuOpen((o) => !o)}
-          className="flex h-13 w-13 items-center justify-center rounded-full bg-[var(--color-accent)] text-lg font-bold text-white shadow-lg hover:bg-[var(--color-accent-hover)]"
+          className="flex items-center justify-center rounded-full bg-[var(--color-accent)] text-lg font-bold text-white shadow-lg hover:bg-[var(--color-accent-hover)]"
           style={{ width: 52, height: 52 }}
         >
           {cards.length}

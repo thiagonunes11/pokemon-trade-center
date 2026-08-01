@@ -1,6 +1,7 @@
 import { CardGrid, useSetCards } from "@/features/cards";
+import { ShareSetButton } from "@/features/share";
+import { ProgressFolio } from "@/components/ProgressFolio";
 import { getCollectionById, isSupportedSetId } from "@/lib/collections";
-import { formatCollectionProgress } from "@/lib/formatCollectionProgress";
 import { useOwnedSetCount } from "@/hooks/useOwnedSetCount";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -39,8 +40,7 @@ export function CatalogSetPage() {
 
   const total =
     setData?.cardCount?.total ?? setData?.cards?.length ?? 0;
-  const progress =
-    total > 0 ? formatCollectionProgress(owned, total) : "—";
+  const setName = collection?.name ?? setId;
 
   const gridCards =
     setData?.cards?.map((c) => ({
@@ -52,29 +52,43 @@ export function CatalogSetPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1 space-y-3">
           <Link
             to="/catalog"
             className="text-sm text-[var(--color-accent)] hover:underline"
           >
             ← Coleções
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-[var(--color-text)]">
-            {collection?.name ?? setId}
+          <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
+            {setName}
           </h1>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            {progress}
-          </p>
+          <ProgressFolio
+            owned={owned}
+            total={total > 0 ? total : undefined}
+            isLoading={isLoading}
+            className="max-w-xs"
+          />
         </div>
-        <button
-          type="button"
-          onClick={() => void refetch()}
-          disabled={isFetching}
-          className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] disabled:opacity-50"
-        >
-          {isFetching ? "Atualizando…" : "Atualizar"}
-        </button>
+        <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          <ShareSetButton
+            setId={setId}
+            setName={setName}
+            cards={gridCards}
+            ownedIds={ownedIds}
+            owned={owned}
+            total={total}
+            disabled={isLoading || Boolean(error)}
+          />
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="rounded-sm border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] disabled:opacity-50"
+          >
+            {isFetching ? "Atualizando…" : "Atualizar"}
+          </button>
+        </div>
       </header>
 
       {isLoading && (
@@ -93,6 +107,7 @@ export function CatalogSetPage() {
         <CardGrid
           cards={gridCards}
           ownedIds={ownedIds}
+          binderMode
           onCardPress={(id) => navigate(`/card/${id}`)}
         />
       )}
