@@ -1,22 +1,34 @@
+type ImageQuality = "low" | "high";
+
 interface CardItemProps {
   id: string;
   name: string;
   localId: string;
   image: string | null;
   rarity?: string;
+  /** Grid usa low; detalhe/share usam high. */
+  imageQuality?: ImageQuality;
   isInCollection?: boolean;
   binderMode?: boolean;
   compact?: boolean;
   onPress: (id: string) => void;
 }
 
-function resolveImageUrl(image: string | null): string | null {
+function resolveImageUrl(
+  image: string | null,
+  quality: ImageQuality,
+): string | null {
   if (!image) return null;
   const lower = image.toLowerCase();
-  if (lower.endsWith("/high.webp") || lower.endsWith("/high.png")) {
+  if (
+    lower.endsWith("/high.webp") ||
+    lower.endsWith("/high.png") ||
+    lower.endsWith("/low.webp") ||
+    lower.endsWith("/low.png")
+  ) {
     return image;
   }
-  return `${image}/high.webp`;
+  return `${image}/${quality}.webp`;
 }
 
 export function CardItem({
@@ -25,12 +37,13 @@ export function CardItem({
   localId,
   image,
   rarity,
+  imageQuality = "low",
   isInCollection = false,
   binderMode = false,
   compact = false,
   onPress,
 }: CardItemProps) {
-  const imageUrl = resolveImageUrl(image);
+  const imageUrl = resolveImageUrl(image, imageQuality);
   const missing = binderMode && !isInCollection;
 
   const frameClass = binderMode
@@ -46,7 +59,7 @@ export function CardItem({
       className={`group w-full text-left transition hover:-translate-y-0.5 hover:opacity-95 ${compact ? "" : "space-y-2"}`}
     >
       <div
-        className={`relative overflow-hidden rounded-sm bg-[var(--color-bg-card)] ${frameClass} ${
+        className={`relative overflow-hidden rounded-xl bg-[var(--color-bg-card)] ${frameClass} ${
           compact ? "aspect-[0.715]" : "aspect-[0.72]"
         }`}
       >
@@ -58,17 +71,27 @@ export function CardItem({
               missing ? "opacity-40 grayscale" : ""
             }`}
             loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-[var(--color-text-muted)]">
             Sem imagem
           </div>
         )}
+        <span
+          className={`absolute right-1.5 bottom-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold backdrop-blur-sm ${
+            missing
+              ? "bg-black/45 text-white/80"
+              : "bg-black/55 text-white"
+          }`}
+        >
+          #{localId}
+        </span>
       </div>
       {!compact && (
-        <div className="px-0.5">
+        <div className="space-y-0.5 px-0.5">
           <p
-            className={`line-clamp-2 text-sm font-medium ${
+            className={`line-clamp-2 text-sm font-semibold leading-snug ${
               missing
                 ? "text-[var(--color-text-muted)]"
                 : "text-[var(--color-text)]"
@@ -76,10 +99,9 @@ export function CardItem({
           >
             {name}
           </p>
-          <p className="mt-0.5 font-[family-name:var(--font-mono)] text-xs text-[var(--color-text-muted)]">
-            #{localId}
-            {rarity ? ` · ${rarity}` : ""}
-          </p>
+          {rarity ? (
+            <p className="text-xs text-[var(--color-text-muted)]">{rarity}</p>
+          ) : null}
         </div>
       )}
     </button>

@@ -27,26 +27,39 @@ export function CollectionPickerCard({
       type="button"
       disabled={!openable}
       onClick={() => openable && onSelect(collection.id)}
-      className={`flex w-full items-center gap-4 border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 text-left transition ${
+      className={`group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left transition ${
         openable
-          ? "hover:border-[var(--color-accent)] hover:shadow-sm"
-          : "cursor-not-allowed opacity-55"
+          ? "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-accent)] hover:shadow-[0_12px_40px_-12px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]"
+          : "cursor-not-allowed border-[var(--color-border)] bg-[var(--color-bg-card)] opacity-55"
       }`}
     >
-      <div className="flex h-16 w-28 shrink-0 items-center justify-center bg-[var(--color-bg-elevated)] p-2">
+      <div className="relative flex aspect-[16/10] items-center justify-center bg-[var(--color-bg-elevated)] px-6 py-8">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-60"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 65%)",
+          }}
+        />
         <img
           src={collection.logoUrl}
           alt={collection.name}
-          className="max-h-full max-w-full object-contain"
+          className="relative z-[1] max-h-full max-w-[85%] object-contain drop-shadow-md transition group-hover:scale-[1.03]"
           loading="lazy"
         />
+        {!openable && !isLoading ? (
+          <span className="absolute top-3 right-3 rounded-full bg-[var(--color-bg)]/80 px-2.5 py-1 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">
+            Em breve
+          </span>
+        ) : null}
       </div>
-      <div className="min-w-0 flex-1 space-y-2">
+
+      <div className="space-y-3 border-t border-[var(--color-border)] p-4">
         <div>
-          <h2 className="truncate font-[family-name:var(--font-display)] text-lg font-semibold text-[var(--color-text)]">
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-text)]">
             {collection.name}
           </h2>
-          <p className="truncate font-[family-name:var(--font-serif)] text-sm text-[var(--color-text-secondary)]">
+          <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
             {collection.subtitle}
           </p>
         </div>

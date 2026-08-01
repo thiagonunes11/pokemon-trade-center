@@ -20,6 +20,7 @@ type PendingUpsert = {
   imageUrl: string | null;
   setId: string;
   addedAt: Date;
+  inShowcase?: boolean;
 };
 
 const pendingUpserts = new Map<string, PendingUpsert>();
@@ -42,6 +43,7 @@ function toFirestorePayload(card: PendingUpsert) {
     name: card.name,
     imageUrl: card.imageUrl,
     setId: card.setId,
+    inShowcase: Boolean(card.inShowcase),
     addedAt: Timestamp.fromDate(
       card.addedAt instanceof Date ? card.addedAt : new Date(card.addedAt),
     ),
@@ -84,6 +86,7 @@ function parseRemoteCard(
         : null,
     setId: data.setId,
     ownerId,
+    inShowcase: data.inShowcase === true,
     addedAt,
   };
 }
@@ -192,6 +195,7 @@ export async function pullAndMergeCollection(uid: string): Promise<void> {
         name: card.name,
         imageUrl: card.imageUrl,
         setId: card.setId,
+        inShowcase: Boolean(card.inShowcase),
         addedAt:
           card.addedAt instanceof Date ? card.addedAt : new Date(card.addedAt),
       });

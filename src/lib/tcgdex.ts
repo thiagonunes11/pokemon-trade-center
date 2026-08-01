@@ -10,6 +10,7 @@ export const SUPPORTED_SETS = {
   HEROIS_EXCELSOS: "me02.5",
   EQUILIBRIO_PERFEITO: "me03",
   CAOS_ASCENDENTE: "me04",
+  ESCURIDAO_ABSOLUTA: "me05",
 } as const;
 
 export type SupportedSetId =

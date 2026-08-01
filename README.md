@@ -100,7 +100,8 @@ Repos `firestore.rules` / `firebase.json` continuam válidos para o perfil `user
 | Fogo Fantasmagórico | `me02` | Disponível |
 | Heróis Excelsos | `me02.5` | Disponível |
 | Equilíbrio Perfeito | `me03` | Disponível |
-| Caos Ascendente | `me04` | Catálogo em breve (API sem cartas) |
+| Caos Ascendente | `me04` | Disponível |
+| Escuridão Absoluta | `me05` | Disponível |
 
 ---
 

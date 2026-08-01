@@ -3,35 +3,37 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-bg: #f7f4ef;
-  --color-bg-secondary: #efebe4;
-  --color-bg-card: #fffcfa;
-  --color-bg-elevated: #e8e2d9;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #5c5a56;
-  --color-text-muted: #8a8680;
-  --color-accent: #c45c26;
-  --color-accent-hover: #a34a1e;
-  --color-border: #d9d2c8;
+  --color-bg: #f5f6fa;
+  --color-bg-secondary: #e8eaef;
+  --color-bg-card: #ffffff;
+  --color-bg-elevated: #eef0f5;
+  --color-text: #0b0d12;
+  --color-text-secondary: #4a5160;
+  --color-text-muted: #8b92a3;
+  --color-accent: #ffcb05;
+  --color-accent-hover: #f5b800;
+  --color-on-accent: #0b0d12;
+  --color-border: #d5d9e2;
   --color-success: #16a34a;
   --color-error: #dc2626;
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "DM Mono", ui-monospace, monospace;
 }
 
 .dark {
-  --color-bg: #121212;
-  --color-bg-secondary: #1c1c1c;
-  --color-bg-card: #1c1c1c;
-  --color-bg-elevated: #2a2a2a;
-  --color-text: #f5f2ec;
-  --color-text-secondary: #a8a59e;
-  --color-text-muted: #6e6b66;
-  --color-accent: #e07a45;
-  --color-accent-hover: #f09060;
-  --color-border: #2a2a2a;
+  --color-bg: #0b0d12;
+  --color-bg-secondary: #11141c;
+  --color-bg-card: #151822;
+  --color-bg-elevated: #1e2330;
+  --color-text: #f4f5f7;
+  --color-text-secondary: #a8b0c0;
+  --color-text-muted: #6d7689;
+  --color-accent: #ffcb05;
+  --color-accent-hover: #ffe566;
+  --color-on-accent: #0b0d12;
+  --color-border: #2a3142;
   --color-success: #22c55e;
   --color-error: #ef4444;
 }
@@ -50,6 +52,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.dark body {
+  background-image:
+    radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      color-mix(in srgb, var(--color-accent) 12%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 100% 100%,
+      color-mix(in srgb, #3b82f6 8%, transparent),
+      transparent 50%
+    );
+  background-attachment: fixed;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -63,7 +80,7 @@ body {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;

@@ -7,5 +7,7 @@ export {
 export {
   addCardToCollection,
   removeCardFromCollection,
+  setCardInShowcase,
+  toggleCardInShowcase,
 } from "./collectionActions";
 export { CollectionSync } from "./CollectionSync";

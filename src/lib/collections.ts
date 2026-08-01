@@ -39,7 +39,12 @@ export const COLLECTIONS: CollectionConfig[] = [
     name: "Caos Ascendente",
     subtitle: "Megaevolução",
     logoUrl: "https://assets.tcgdex.net/pt/me/me04/logo.webp",
-    unavailableMessage: "Catálogo em breve",
+  },
+  {
+    id: SUPPORTED_SETS.ESCURIDAO_ABSOLUTA,
+    name: "Escuridão Absoluta",
+    subtitle: "Megaevolução",
+    logoUrl: "https://assets.tcgdex.net/pt/me/me05/logo.webp",
   },
 ];
 

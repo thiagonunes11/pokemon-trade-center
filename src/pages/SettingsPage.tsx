@@ -50,7 +50,7 @@ export function SettingsPage() {
   return (
     <div className="mx-auto max-w-lg space-y-8">
       <header>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold text-[var(--color-text)]">
           Ajustes
         </h1>
       </header>
@@ -74,7 +74,7 @@ export function SettingsPage() {
                     type="button"
                     disabled={isLoading}
                     onClick={() => void handleSaveName()}
-                    className="rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white"
+                    className="rounded-xl bg-[var(--color-accent)] px-3 py-1.5 text-sm font-bold text-[var(--color-on-accent)]"
                   >
                     Salvar
                   </button>

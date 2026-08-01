@@ -106,10 +106,11 @@ export function LoginPage() {
         }}
       />
       <div className="w-full max-w-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 sm:p-8">
-        <h1 className="text-center font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
-          Pokemon Trade Center
+        <h1 className="text-center font-[family-name:var(--font-display)] text-3xl font-extrabold text-[var(--color-text)]">
+          Pokemon <span className="text-[var(--color-accent)]">Trade</span>{" "}
+          Center
         </h1>
-        <p className="mt-2 text-center font-[family-name:var(--font-serif)] text-sm text-[var(--color-text-secondary)]">
+        <p className="mt-2 text-center text-sm text-[var(--color-text-secondary)]">
           {subtitle}
         </p>
 
@@ -175,7 +176,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full rounded-lg bg-[var(--color-accent)] px-4 py-2.5 font-semibold text-white transition hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
+            className="w-full rounded-xl bg-[var(--color-accent)] px-4 py-2.5 font-bold text-[var(--color-on-accent)] transition hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
           >
             {isLoading ? "Aguarde…" : submitLabel}
           </button>

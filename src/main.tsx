@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { CollectionSync } from "./features/collection";
+import { TradeSync } from "./features/trades";
 import { queryClient } from "./lib/queryClient";
 import {
   restoreQueryCache,
@@ -44,6 +45,7 @@ function Root() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <CollectionSync />
+        <TradeSync />
         <App />
       </BrowserRouter>
     </QueryClientProvider>

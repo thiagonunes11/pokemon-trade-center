@@ -11,9 +11,9 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | **Nome** | Pokemon Trade Center |
 | **Tipo** | SPA web (Vite / React) |
 | **Domínio** | Pokémon TCG — vitrine de coleção, catálogo, compartilhar binder, trocas (futuro) |
-| **UI** | Português (Brasil) · editorial (Fraunces / DM Sans / âmbar de progresso) |
+| **UI** | Português (Brasil) · marketplace TCG (Outfit / amarelo Pokémon) |
 | **Dados** | TCGdex locale `pt` |
-| **Estágio** | MVP web: catálogo + coleção sync + vitrine/compartilhar PNG + Firebase Auth |
+| **Estágio** | MVP web: catálogo + coleção/vitrine + listas de troca + Firebase Auth |
 | **Repo** | `https://github.com/thiagonunes11/pokemon-trade-center.git` |
 
 ### Objetivo
@@ -37,6 +37,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | Rotas | React Router 7 |
 | API cartas | `@tcgdex/sdk` (`pt`) |
 | Cache | TanStack Query + `safeStorage` / localStorage |
+| Virtualização | `@tanstack/react-virtual` (CardGrid) |
 | Estado | Zustand |
 | Backend | Firebase Auth + Firestore (Spark) |
 | Export vitrine | `html-to-image` (PNG do binder por set) |
@@ -59,12 +60,13 @@ src/
     auth/               ← authService, mapFirebaseUser, authErrors, userProfileService
     cards/              ← CardGrid, CardItem (binderMode), useSetCards/useCard/useSet
     sets/               ← CollectionPickerCard, useCollections
-    collection/         ← firestoreSync, CollectionSync, add/remove com sync
-    share/              ← ShareSetButton, ShareSetBinder, download PNG (html-to-image)
+    collection/         ← firestoreSync, CollectionSync, add/remove/showcase sync
+    trades/             ← TradeSync, offering/wanted actions + Firestore
+    share/              ← ShareShowcaseBinder / PNG (html-to-image)
   components/           ← EnergyIcon, UserAvatar, ProgressFolio
   hooks/useOwnedSetCount.ts
   lib/                  ← firebase, firestore, tcgdex, collections, safeStorage, query*, formatCollectionProgress
-  store/                ← useAuthStore, useCollectionStore
+  store/                ← useAuthStore, useCollectionStore, useTradeStore
   theme/                ← colors, ThemeContext (matchMedia + classe .dark)
   assets/images/energy/ ← PNGs de tipo
 public/                 ← favicon, icon
@@ -83,8 +85,8 @@ firebase.json
 | `/` | → `/catalog` |
 | `/catalog` | Lista de expansões |
 | `/catalog/:setId` | Grid do set |
-| `/collection` | Minha coleção (grid 4 cols + FAB filtro) |
-| `/trades` | Placeholder |
+| `/collection` | Minha coleção (Todas / Por coleção / Vitrine) |
+| `/trades` | Anunciando (coleção) + Procurando (catálogo) |
 | `/settings` | Conta, tema, sobre |
 | `/card/:id` | Detalhe |
 
@@ -98,7 +100,7 @@ Shell autenticado: sidebar desktop + bottom nav mobile. Guard: esperar `isAuthRe
 const tcgdex = new TCGdex("pt");
 ```
 
-Sets em `SUPPORTED_SETS` + `COLLECTIONS` (`src/lib/collections.ts`): `me01`–`me04`. Disponibilidade via `getCollectionAvailability` (não flag manual). Progresso: `formatCollectionProgress` + hooks `useOwnedSetCount` / `useOwnedCountsBySet`.
+Sets em `SUPPORTED_SETS` + `COLLECTIONS` (`src/lib/collections.ts`): `me01`–`me05` (série Megaevolução). Disponibilidade via `getCollectionAvailability` (não flag manual). Progresso: `formatCollectionProgress` + hooks `useOwnedSetCount` / `useOwnedCountsBySet`.
 
 Imagens: `${card.image}/high.webp` ou `/high.png`. IDs: `{setId}-{localId}` (setId pode ter ponto, ex. `me02.5`).
 
@@ -117,6 +119,19 @@ Sync (`src/features/collection/`):
 
 **Não** usar selector de função solta do store para contagem — preferir hooks em `useOwnedSetCount.ts`.
 
+Vitrine: `CollectionCard.inShowcase` + `setCardInShowcase` / `toggleCardInShowcase`. Campo permitido nas rules.
+
+---
+
+## 6b. Trocas (listas)
+
+`useTradeStore` — `offering` / `wanted`; persist `pokemon-trades-storage`.
+
+- **Anunciando** (`offering`): só cartas da coleção → `trades/{uid}/offering/{cardId}`
+- **Procurando** (`wanted`): qualquer carta do catálogo → `trades/{uid}/wanted/{cardId}`
+- Pull no login (`TradeSync`); push com debounce; remover da coleção também tira de offering
+- Sem matching/região nesta fatia — só as duas listas do usuário
+
 ---
 
 ## 7. Tema
@@ -131,7 +146,7 @@ Contrato: `Firebase UID → useAuthStore.userId → CollectionCard.ownerId`.
 
 Env obrigatório: `VITE_FIREBASE_API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `STORAGE_BUCKET`, `MESSAGING_SENDER_ID`, `APP_ID` (app **Web** no Console). Authorized domains: `localhost` + produção.
 
-Auth: `getAuth` (persistência browser). Perfil: `userProfileService` → `users/{uid}`. Coleção: sync em `features/collection/*`. Regras: `firestore.rules` (deploy necessário para sync funcionar).
+Auth: `getAuth` (persistência browser). Perfil: `userProfileService` → `users/{uid}`. Coleção: `features/collection/*`. Trocas: `features/trades/*`. Regras: `firestore.rules` (**deploy obrigatório** para `inShowcase` + paths `trades/`).
 
 ### Roadmap Firebase restante
 
@@ -140,6 +155,7 @@ Auth: `getAuth` (persistência browser). Perfil: `userProfileService` → `users
 | 0–5 Auth + perfil + rules | Feito |
 | 6 Migração UUID legado | Pendente / pouco relevante na web pura |
 | 7 Sync `collections/{uid}/cards` | Feito (pull no login + writes com debounce) |
+| 7b Listas `trades/{uid}/offering|wanted` | Feito (pull + debounce; matching futuro) |
 | 8 FCM | Pendente |
 
 ---
@@ -178,9 +194,10 @@ firebase deploy --only firestore:rules
 | Firebase | `lib/firebase.ts`, `lib/firestore.ts`, `.env.example` |
 | Catálogo | `pages/CatalogPage.tsx`, `CatalogSetPage.tsx`, `features/sets/*` |
 | Detalhe | `pages/CardDetailPage.tsx` |
-| Coleção | `pages/CollectionPage.tsx`, `useCollectionStore.ts`, `features/collection/*` |
-| Compartilhar | `features/share/*`, CTA em `CatalogSetPage` |
+| Coleção / vitrine | `pages/CollectionPage.tsx`, `useCollectionStore.ts`, `features/collection/*` |
+| Trocas | `pages/TradesPage.tsx`, `useTradeStore.ts`, `features/trades/*` |
+| Compartilhar | `features/share/*` (vitrine PNG) |
 | Tema | `theme/*`, `index.css`, `SettingsPage.tsx` |
 | Shell / guard | `layouts/AppLayout.tsx`, `AuthGuard.tsx` |
 
-_Última revisão: 2026-08-01 — UI vitrine editorial + share PNG do binder._
+_Última revisão: 2026-08-01 — coleção/vitrine + listas de troca Firestore._

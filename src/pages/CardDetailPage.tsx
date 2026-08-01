@@ -1,12 +1,14 @@
+import { BackButton } from "@/components/BackButton";
 import { EnergyIconRow } from "@/components/EnergyIcon";
 import {
   addCardToCollection,
   removeCardFromCollection,
+  setCardInShowcase,
 } from "@/features/collection";
 import { useCard } from "@/features/cards";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export function CardDetailPage() {
   const { id = "" } = useParams();
@@ -16,6 +18,14 @@ export function CardDetailPage() {
   const isInCollection = useCollectionStore((s) =>
     s.cards.some(
       (c) => c.id === id && (c.ownerId ?? null) === (userId ?? null),
+    ),
+  );
+  const inShowcase = useCollectionStore((s) =>
+    s.cards.some(
+      (c) =>
+        c.id === id &&
+        (c.ownerId ?? null) === (userId ?? null) &&
+        Boolean(c.inShowcase),
     ),
   );
 
@@ -33,6 +43,11 @@ export function CardDetailPage() {
     }
   };
 
+  const handleShowcaseToggle = () => {
+    if (!isInCollection) return;
+    setCardInShowcase(id, !inShowcase);
+  };
+
   if (isLoading) {
     return (
       <p className="text-[var(--color-text-secondary)]">Carregando carta…</p>
@@ -46,9 +61,9 @@ export function CardDetailPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="text-[var(--color-accent)] hover:underline"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-semibold text-[var(--color-text)]"
         >
-          Voltar
+          ← Voltar
         </button>
       </div>
     );
@@ -73,12 +88,9 @@ export function CardDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        to={card.set?.id ? `/catalog/${card.set.id}` : "/catalog"}
-        className="text-sm text-[var(--color-accent)] hover:underline"
-      >
-        ← Voltar
-      </Link>
+      <BackButton to={card.set?.id ? `/catalog/${card.set.id}` : "/catalog"}>
+        Voltar
+      </BackButton>
 
       <div className="grid gap-8 md:grid-cols-[280px_1fr]">
         <div className="mx-auto w-full max-w-[280px]">
@@ -97,7 +109,7 @@ export function CardDetailPage() {
 
         <div className="space-y-5">
           <div>
-            <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
+            <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold text-[var(--color-text)]">
               {card.name}
             </h1>
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">
@@ -114,17 +126,32 @@ export function CardDetailPage() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleToggle}
-            className={`rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition ${
-              isInCollection
-                ? "bg-[var(--color-error)] hover:opacity-90"
-                : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
-            }`}
-          >
-            {isInCollection ? "Remover da coleção" : "Adicionar à coleção"}
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleToggle}
+              className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                isInCollection
+                  ? "bg-[var(--color-error)] text-white hover:opacity-90"
+                  : "bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
+              }`}
+            >
+              {isInCollection ? "Remover da coleção" : "Adicionar à coleção"}
+            </button>
+            {isInCollection ? (
+              <button
+                type="button"
+                onClick={handleShowcaseToggle}
+                className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition ${
+                  inShowcase
+                    ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)]"
+                    : "border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-accent)]"
+                }`}
+              >
+                {inShowcase ? "★ Na vitrine" : "☆ Adicionar à vitrine"}
+              </button>
+            ) : null}
+          </div>
 
           {attacks.length > 0 && (
             <section className="space-y-3">

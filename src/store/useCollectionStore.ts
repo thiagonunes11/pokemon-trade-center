@@ -10,13 +10,17 @@ export interface CollectionCard {
   setId: string;
   ownerId?: string | null;
   addedAt: Date;
+  /** Carta escolhida para a vitrine compartilhável */
+  inShowcase?: boolean;
 }
 
 interface CollectionState {
   cards: CollectionCard[];
   addCard: (card: Omit<CollectionCard, "addedAt" | "ownerId">) => void;
   removeCard: (cardId: string) => void;
+  setCardShowcase: (cardId: string, inShowcase: boolean) => void;
   hasCard: (cardId: string) => boolean;
+  isInShowcase: (cardId: string) => boolean;
   getCardCount: () => number;
   getSetCardCount: (setId: string) => number;
   mergeRemoteCards: (ownerId: string, remote: CollectionCard[]) => void;
@@ -31,6 +35,13 @@ function normalizeAddedAt(value: unknown): Date {
   return new Date();
 }
 
+function ownedMatch(
+  card: CollectionCard,
+  ownerId: string | null,
+): boolean {
+  return (card.ownerId ?? null) === ownerId;
+}
+
 export const useCollectionStore = create<CollectionState>()(
   persist(
     (set, get) => ({
@@ -38,12 +49,17 @@ export const useCollectionStore = create<CollectionState>()(
 
       addCard: (card) => {
         const ownerId = useAuthStore.getState().userId ?? null;
-        if (ownerId && get().hasCard(card.id)) return;
+        if (get().hasCard(card.id)) return;
 
         set((state) => ({
           cards: [
             ...state.cards,
-            { ...card, ownerId, addedAt: new Date() },
+            {
+              ...card,
+              ownerId,
+              inShowcase: card.inShowcase ?? false,
+              addedAt: new Date(),
+            },
           ],
         }));
       },
@@ -52,7 +68,18 @@ export const useCollectionStore = create<CollectionState>()(
         const ownerId = useAuthStore.getState().userId ?? null;
         set((state) => ({
           cards: state.cards.filter(
-            (c) => !(c.id === cardId && c.ownerId === ownerId),
+            (c) => !(c.id === cardId && ownedMatch(c, ownerId)),
+          ),
+        }));
+      },
+
+      setCardShowcase: (cardId, inShowcase) => {
+        const ownerId = useAuthStore.getState().userId ?? null;
+        set((state) => ({
+          cards: state.cards.map((c) =>
+            c.id === cardId && ownedMatch(c, ownerId)
+              ? { ...c, inShowcase }
+              : c,
           ),
         }));
       },
@@ -60,19 +87,29 @@ export const useCollectionStore = create<CollectionState>()(
       hasCard: (cardId) => {
         const ownerId = useAuthStore.getState().userId ?? null;
         return get().cards.some(
-          (c) => c.id === cardId && c.ownerId === ownerId,
+          (c) => c.id === cardId && ownedMatch(c, ownerId),
+        );
+      },
+
+      isInShowcase: (cardId) => {
+        const ownerId = useAuthStore.getState().userId ?? null;
+        return get().cards.some(
+          (c) =>
+            c.id === cardId &&
+            ownedMatch(c, ownerId) &&
+            Boolean(c.inShowcase),
         );
       },
 
       getCardCount: () => {
         const ownerId = useAuthStore.getState().userId ?? null;
-        return get().cards.filter((c) => c.ownerId === ownerId).length;
+        return get().cards.filter((c) => ownedMatch(c, ownerId)).length;
       },
 
       getSetCardCount: (setId) => {
         const ownerId = useAuthStore.getState().userId ?? null;
         return get().cards.filter(
-          (c) => c.setId === setId && c.ownerId === ownerId,
+          (c) => c.setId === setId && ownedMatch(c, ownerId),
         ).length;
       },
 
@@ -90,16 +127,22 @@ export const useCollectionStore = create<CollectionState>()(
             byId.set(card.id, {
               ...card,
               ownerId,
+              inShowcase: Boolean(card.inShowcase),
               addedAt: normalizeAddedAt(card.addedAt),
             });
           }
           for (const card of localOwned) {
-            if (!byId.has(card.id)) {
+            const existing = byId.get(card.id);
+            if (!existing) {
               byId.set(card.id, {
                 ...card,
                 ownerId,
+                inShowcase: Boolean(card.inShowcase),
                 addedAt: normalizeAddedAt(card.addedAt),
               });
+            } else if (card.inShowcase && !existing.inShowcase) {
+              // Local showcase flag not yet on remote — keep until push
+              byId.set(card.id, { ...existing, inShowcase: true });
             }
           }
 

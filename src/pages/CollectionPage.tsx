@@ -1,26 +1,59 @@
 import { ProgressFolio } from "@/components/ProgressFolio";
 import { CardItem } from "@/features/cards";
-import { getCollectionById } from "@/lib/collections";
+import { toggleCardInShowcase } from "@/features/collection";
+import { ShareShowcaseButton } from "@/features/share";
+import { getCollectionById, COLLECTIONS } from "@/lib/collections";
 import { useCollections } from "@/features/sets";
-import { COLLECTIONS } from "@/lib/collections";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-type DisplayMode = "all" | "bySet";
+type DisplayMode = "all" | "bySet" | "showcase";
 
 const displayOptions: Array<{ key: DisplayMode; label: string }> = [
   { key: "all", label: "Todas" },
   { key: "bySet", label: "Por coleção" },
+  { key: "showcase", label: "Vitrine" },
 ];
+
+const cardGridClass =
+  "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
+
+function ShowcasePin({
+  active,
+  onToggle,
+}: {
+  active: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={active ? "Remover da vitrine" : "Adicionar à vitrine"}
+      aria-pressed={active}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle();
+      }}
+      className={`absolute top-2 left-2 z-10 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shadow-md transition ${
+        active
+          ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
+          : "bg-black/55 text-white hover:bg-black/70"
+      }`}
+    >
+      ★
+    </button>
+  );
+}
 
 export function CollectionPage() {
   const navigate = useNavigate();
   const authUserId = useAuthStore((s) => s.userId);
+  const username = useAuthStore((s) => s.username);
   const allCards = useCollectionStore((s) => s.cards);
   const [displayMode, setDisplayMode] = useState<DisplayMode>("all");
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const queries = useCollections();
 
   const totalsBySet = useMemo(() => {
@@ -38,9 +71,19 @@ export function CollectionPage() {
     [allCards, authUserId],
   );
 
+  const showcaseCards = useMemo(
+    () => cards.filter((c) => Boolean(c.inShowcase)),
+    [cards],
+  );
+
   const sortedCards = useMemo(
     () => [...cards].sort((a, b) => a.name.localeCompare(b.name)),
     [cards],
+  );
+
+  const sortedShowcase = useMemo(
+    () => [...showcaseCards].sort((a, b) => a.name.localeCompare(b.name)),
+    [showcaseCards],
   );
 
   const cardsBySet = useMemo(() => {
@@ -51,116 +94,189 @@ export function CollectionPage() {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [cards]);
 
+  const shareCards = useMemo(
+    () =>
+      sortedShowcase.map((c) => ({
+        id: c.id,
+        name: c.name,
+        image: c.imageUrl,
+      })),
+    [sortedShowcase],
+  );
+
   return (
-    <div className="relative space-y-6 pb-20">
-      <header className="space-y-2">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-[var(--color-text)]">
-          Minha coleção
-        </h1>
-        <p className="font-[family-name:var(--font-serif)] text-sm text-[var(--color-text-secondary)]">
-          {cards.length === 0
-            ? "Nenhuma carta ainda — adicione pelo catálogo"
-            : `${cards.length} carta${cards.length === 1 ? "" : "s"} · ${displayOptions.find((o) => o.key === displayMode)?.label}`}
-        </p>
+    <div className="relative space-y-5 pb-24">
+      <header className="space-y-3">
+        <div className="space-y-1">
+          <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-tight text-[var(--color-text)]">
+            Minha coleção
+          </h1>
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            {cards.length === 0
+              ? "Nenhuma carta ainda — adicione pelo catálogo"
+              : `${cards.length} carta${cards.length === 1 ? "" : "s"} · ${showcaseCards.length} na vitrine`}
+          </p>
+        </div>
+
+        {cards.length > 0 ? (
+          <div
+            className="flex rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
+            role="tablist"
+            aria-label="Organizar coleção"
+          >
+            {displayOptions.map((opt) => {
+              const active = displayMode === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setDisplayMode(opt.key)}
+                  className={`min-h-11 flex-1 rounded-lg px-1 text-xs font-semibold transition sm:text-sm ${
+                    active
+                      ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </header>
 
       {cards.length === 0 ? (
-        <p className="border border-dashed border-[var(--color-border)] p-8 text-center text-[var(--color-text-muted)]">
-          Sua vitrine está vazia neste navegador.
+        <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-8 text-center text-[var(--color-text-muted)]">
+          Sua coleção está vazia neste navegador.
         </p>
+      ) : displayMode === "showcase" ? (
+        <div className="space-y-4">
+          {sortedShowcase.length === 0 ? (
+            <div className="space-y-3 rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center">
+              <p className="text-[var(--color-text-secondary)]">
+                Nenhuma carta na vitrine ainda.
+              </p>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Toque na estrela ★ nas cartas da coleção para montar o que quer
+                mostrar.
+              </p>
+              <button
+                type="button"
+                onClick={() => setDisplayMode("all")}
+                className="text-sm font-semibold text-[var(--color-accent)] hover:underline"
+              >
+                Ir para Todas
+              </button>
+            </div>
+          ) : (
+            <>
+              <ShareShowcaseButton
+                cards={shareCards}
+                ownerLabel={username}
+              />
+              <div className={cardGridClass}>
+                {sortedShowcase.map((card) => (
+                  <div key={card.id} className="relative">
+                    <ShowcasePin
+                      active
+                      onToggle={() => toggleCardInShowcase(card.id)}
+                    />
+                    <CardItem
+                      id={card.id}
+                      name={card.name}
+                      localId={card.id.split("-").pop() ?? ""}
+                      image={card.imageUrl}
+                      compact
+                      onPress={(id) => navigate(`/card/${id}`)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       ) : displayMode === "all" ? (
-        <div className="grid grid-cols-4 gap-1 sm:gap-2">
+        <div className={cardGridClass}>
           {sortedCards.map((card) => (
-            <CardItem
-              key={card.id}
-              id={card.id}
-              name={card.name}
-              localId={card.id.split("-").pop() ?? ""}
-              image={card.imageUrl}
-              compact
-              isInCollection
-              onPress={(id) => navigate(`/card/${id}`)}
-            />
+            <div key={card.id} className="relative">
+              <ShowcasePin
+                active={Boolean(card.inShowcase)}
+                onToggle={() => toggleCardInShowcase(card.id)}
+              />
+              <CardItem
+                id={card.id}
+                name={card.name}
+                localId={card.id.split("-").pop() ?? ""}
+                image={card.imageUrl}
+                compact
+                onPress={(id) => navigate(`/card/${id}`)}
+              />
+            </div>
           ))}
         </div>
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-4">
           {cardsBySet.map(([setId, setCards]) => {
             const total = totalsBySet[setId];
+            const setName = getCollectionById(setId)?.name ?? setId;
+            const sorted = [...setCards].sort((a, b) =>
+              a.name.localeCompare(b.name),
+            );
+            const setLoading = COLLECTIONS.some((c, i) => {
+              if (c.id !== setId) return false;
+              return queries[i]?.isLoading ?? true;
+            });
+
             return (
-              <section key={setId} className="space-y-3">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                  <div className="min-w-0 space-y-2">
-                    <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-[var(--color-text)]">
-                      {getCollectionById(setId)?.name ?? setId}
+              <section
+                key={setId}
+                className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]"
+              >
+                <div className="space-y-3 p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h2 className="min-w-0 font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
+                      {setName}
                     </h2>
-                    <ProgressFolio
-                      owned={setCards.length}
-                      total={total}
-                      className="max-w-xs"
-                    />
+                    <span className="shrink-0 text-xs text-[var(--color-text-muted)]">
+                      {setCards.length}{" "}
+                      {setCards.length === 1 ? "carta" : "cartas"}
+                    </span>
                   </div>
-                  <Link
-                    to={`/catalog/${setId}`}
-                    className="text-sm font-medium text-[var(--color-accent)] hover:underline"
-                  >
-                    Ver binder / compartilhar
-                  </Link>
-                </div>
-                <div className="grid grid-cols-4 gap-1 sm:gap-2">
-                  {[...setCards]
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((card) => (
-                      <CardItem
+                  <ProgressFolio
+                    owned={setCards.length}
+                    total={total}
+                    isLoading={setLoading && total == null}
+                  />
+
+                  <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {sorted.map((card) => (
+                      <div
                         key={card.id}
-                        id={card.id}
-                        name={card.name}
-                        localId={card.id.split("-").pop() ?? ""}
-                        image={card.imageUrl}
-                        compact
-                        isInCollection
-                        onPress={(id) => navigate(`/card/${id}`)}
-                      />
+                        className="relative w-[46%] min-w-[148px] max-w-[180px] shrink-0 sm:w-[30%] sm:max-w-[160px]"
+                      >
+                        <ShowcasePin
+                          active={Boolean(card.inShowcase)}
+                          onToggle={() => toggleCardInShowcase(card.id)}
+                        />
+                        <CardItem
+                          id={card.id}
+                          name={card.name}
+                          localId={card.id.split("-").pop() ?? ""}
+                          image={card.imageUrl}
+                          compact
+                          onPress={(id) => navigate(`/card/${id}`)}
+                        />
+                      </div>
                     ))}
+                  </div>
                 </div>
               </section>
             );
           })}
         </div>
       )}
-
-      <div className="fixed bottom-20 right-4 z-30 md:bottom-6 md:right-6">
-        {filterMenuOpen && (
-          <div className="absolute right-0 bottom-14 mb-1 w-40 overflow-hidden border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-lg">
-            {displayOptions.map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                className={`block w-full px-3 py-2.5 text-left text-sm ${
-                  displayMode === opt.key
-                    ? "bg-[var(--color-bg-elevated)] font-semibold text-[var(--color-text)]"
-                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)]"
-                }`}
-                onClick={() => {
-                  setDisplayMode(opt.key);
-                  setFilterMenuOpen(false);
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        )}
-        <button
-          type="button"
-          aria-label="Filtro da coleção"
-          onClick={() => setFilterMenuOpen((o) => !o)}
-          className="flex items-center justify-center rounded-full bg-[var(--color-accent)] text-lg font-bold text-white shadow-lg hover:bg-[var(--color-accent-hover)]"
-          style={{ width: 52, height: 52 }}
-        >
-          {cards.length}
-        </button>
-      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * Theme colors for Pokemon Trade Center
- * Editorial vitrine — ink / paper / amber progress
+ * Marketplace TCG — dark storefront / Pokémon yellow
  */
 
 export interface ColorPalette {
@@ -63,60 +63,54 @@ export interface ColorPalette {
 }
 
 export const darkColors: ColorPalette = {
-  // Primary — Slate (blue-grey neutral)
   primary: {
-    50:  '#F8FAFC',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    300: '#CBD5E1',
-    400: '#94A3B8',
-    500: '#64748B',
-    600: '#475569',
-    700: '#334155',
-    800: '#1E293B',
-    900: '#0F172A',
-    950: '#020617',
+    50:  '#F4F5F7',
+    100: '#E8EAEF',
+    200: '#C5CAD6',
+    300: '#A8B0C0',
+    400: '#6D7689',
+    500: '#4A5160',
+    600: '#2A3142',
+    700: '#1E2330',
+    800: '#151822',
+    900: '#11141C',
+    950: '#0B0D12',
   },
 
-  // Accent — Amber progress
   accent: {
-    50:  '#FDF4EF',
-    100: '#F8E4D8',
-    200: '#F0C4A8',
-    300: '#E8A078',
-    400: '#E07A45',
-    500: '#C45C26',
-    600: '#A34A1E',
-    700: '#853C18',
-    800: '#662E12',
-    900: '#4A210D',
-    950: '#2E1408',
+    50:  '#FFF9E0',
+    100: '#FFF0B3',
+    200: '#FFE566',
+    300: '#FFD633',
+    400: '#FFCB05',
+    500: '#F5B800',
+    600: '#D9A000',
+    700: '#B38600',
+    800: '#8C6900',
+    900: '#664D00',
+    950: '#3D2E00',
   },
 
-  // Background — Deep ink
   background: {
-    primary:   '#121212',
-    secondary: '#1C1C1C',
-    card:      '#1C1C1C',
-    elevated:  '#2A2A2A',
-    overlay:   'rgba(18, 18, 18, 0.82)',
+    primary:   '#0B0D12',
+    secondary: '#11141C',
+    card:      '#151822',
+    elevated:  '#1E2330',
+    overlay:   'rgba(11, 13, 18, 0.85)',
   },
 
-  // Text
   text: {
-    primary:   '#F5F2EC',
-    secondary: '#A8A59E',
-    muted:     '#6E6B66',
-    inverse:   '#121212',
+    primary:   '#F4F5F7',
+    secondary: '#A8B0C0',
+    muted:     '#6D7689',
+    inverse:   '#0B0D12',
   },
 
-  // Semantic
   success: '#22C55E',
-  warning: '#EAB308',
+  warning: '#FFCB05',
   error:   '#EF4444',
-  info:    '#E07A45',
+  info:    '#FFCB05',
 
-  // Card type colors (Pokémon types — unchanged)
   types: {
     fire:      '#F97316',
     water:     '#3B82F6',
@@ -133,60 +127,54 @@ export const darkColors: ColorPalette = {
 };
 
 export const lightColors: ColorPalette = {
-  // Primary — Slate (inverted contrast for light mode)
   primary: {
-    50:  '#020617',
-    100: '#0F172A',
-    200: '#1E293B',
-    300: '#334155',
-    400: '#475569',
-    500: '#64748B',
-    600: '#94A3B8',
-    700: '#CBD5E1',
-    800: '#E2E8F0',
-    900: '#F1F5F9',
-    950: '#F8FAFC',
+    50:  '#0B0D12',
+    100: '#11141C',
+    200: '#151822',
+    300: '#1E2330',
+    400: '#2A3142',
+    500: '#4A5160',
+    600: '#6D7689',
+    700: '#A8B0C0',
+    800: '#C5CAD6',
+    900: '#E8EAEF',
+    950: '#F5F6FA',
   },
 
-  // Accent — Amber progress
   accent: {
-    50:  '#2E1408',
-    100: '#4A210D',
-    200: '#662E12',
-    300: '#853C18',
-    400: '#A34A1E',
-    500: '#C45C26',
-    600: '#E07A45',
-    700: '#E8A078',
-    800: '#F0C4A8',
-    900: '#F8E4D8',
-    950: '#FDF4EF',
+    50:  '#3D2E00',
+    100: '#664D00',
+    200: '#8C6900',
+    300: '#B38600',
+    400: '#D9A000',
+    500: '#F5B800',
+    600: '#FFCB05',
+    700: '#FFD633',
+    800: '#FFE566',
+    900: '#FFF0B3',
+    950: '#FFF9E0',
   },
 
-  // Background — Warm paper
   background: {
-    primary:   '#F7F4EF',
-    secondary: '#EFEBE4',
-    card:      '#FFFCFA',
-    elevated:  '#E8E2D9',
-    overlay:   'rgba(247, 244, 239, 0.88)',
+    primary:   '#F5F6FA',
+    secondary: '#E8EAEF',
+    card:      '#FFFFFF',
+    elevated:  '#EEF0F5',
+    overlay:   'rgba(245, 246, 250, 0.9)',
   },
 
-  // Text — Ink
   text: {
-    primary:   '#1A1A1A',
-    secondary: '#5C5A56',
-    muted:     '#8A8680',
-    inverse:   '#FFFCFA',
+    primary:   '#0B0D12',
+    secondary: '#4A5160',
+    muted:     '#8B92A3',
+    inverse:   '#FFFFFF',
   },
 
-  // Semantic
   success: '#16A34A',
   warning: '#D97706',
   error:   '#DC2626',
-  info:    '#C45C26',
+  info:    '#F5B800',
 
-  // Card type colors (Pokémon types — unchanged)
   types: {
     fire:      '#F97316',
     water:     '#3B82F6',
@@ -202,7 +190,6 @@ export const lightColors: ColorPalette = {
   },
 };
 
-// Keep export of colors as default darkColors for backward compatibility
 export const colors = darkColors;
 
 export type ColorToken = ColorPalette;

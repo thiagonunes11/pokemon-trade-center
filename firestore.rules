@@ -100,7 +100,7 @@ service cloud.firestore {
     /// Validate a collection card document (used in both create and update)
     function isValidCard() {
       let data = request.resource.data;
-      let allowedFields = ['id', 'name', 'imageUrl', 'setId', 'addedAt'];
+      let allowedFields = ['id', 'name', 'imageUrl', 'setId', 'addedAt', 'inShowcase'];
       let requiredFields = ['id', 'name', 'setId', 'addedAt'];
 
       return hasOnlyAllowedFields(allowedFields) &&
@@ -122,7 +122,32 @@ service cloud.firestore {
         data.setId.size() >= 1 &&
         data.setId.size() <= 20 &&
         // addedAt: timestamp
-        data.addedAt is timestamp;
+        data.addedAt is timestamp &&
+        // inShowcase: optional bool
+        (!('inShowcase' in data) || data.inShowcase is bool);
+    }
+
+    /// Validate a trade list card (offering / wanted)
+    function isValidTradeCard() {
+      let data = request.resource.data;
+      let allowedFields = ['id', 'name', 'imageUrl', 'setId', 'updatedAt'];
+      let requiredFields = ['id', 'name', 'setId', 'updatedAt'];
+
+      return hasOnlyAllowedFields(allowedFields) &&
+        hasRequiredFields(requiredFields) &&
+        data.id is string &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 30 &&
+        data.name is string &&
+        data.name.size() >= 1 &&
+        data.name.size() <= 200 &&
+        (!('imageUrl' in data) || data.imageUrl == null ||
+          (data.imageUrl is string && data.imageUrl.size() <= 500 &&
+           data.imageUrl.matches('^https://.*'))) &&
+        data.setId is string &&
+        data.setId.size() >= 1 &&
+        data.setId.size() <= 20 &&
+        data.updatedAt is timestamp;
     }
 
     // =============================================================
@@ -168,6 +193,23 @@ service cloud.firestore {
 
       // Delete: owner can remove cards from their collection
       allow delete: if isOwner(userId);
+    }
+
+    // =============================================================
+    // Rules: trades/{userId}/offering|wanted/{cardId}
+    // =============================================================
+
+    match /trades/{userId}/{listKind}/{cardId} {
+      allow read: if isOwner(userId) &&
+        (listKind == 'offering' || listKind == 'wanted');
+
+      allow create, update: if isOwner(userId) &&
+        (listKind == 'offering' || listKind == 'wanted') &&
+        isValidTradeCard() &&
+        request.resource.data.id == cardId;
+
+      allow delete: if isOwner(userId) &&
+        (listKind == 'offering' || listKind == 'wanted');
     }
 
     // =============================================================
