@@ -106,24 +106,25 @@ export function ConversationsList() {
   }
 
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-2.5">
       {threads.map((thread) => {
         const peerId =
           thread.peerId ??
           thread.participantIds.find((id) => id !== userId) ??
           "—";
         const name = names[peerId] ?? "Treinador";
+        const preview = thread.lastMessagePreview ?? "Sem mensagens ainda";
         return (
           <li key={thread.id}>
             <Link
               to={`/trades/chat/${thread.id}`}
-              className="flex min-h-14 flex-col justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3 hover:border-[var(--color-accent)]"
+              className="flex min-h-16 flex-col justify-center gap-1 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3 transition hover:border-[var(--color-accent)]"
             >
-              <span className="font-semibold text-[var(--color-text)]">
+              <span className="font-[family-name:var(--font-display)] text-base font-bold text-[var(--color-text)]">
                 {name}
               </span>
-              <span className="truncate text-xs text-[var(--color-text-muted)]">
-                {thread.lastMessagePreview ?? "Sem mensagens ainda"}
+              <span className="truncate text-sm font-medium text-[var(--color-text-secondary)]">
+                {preview}
               </span>
             </Link>
           </li>

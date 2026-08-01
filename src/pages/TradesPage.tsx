@@ -60,16 +60,20 @@ function TradeSectionTabs({
         role="tab"
         aria-selected={active}
         onClick={() => onChange(opt.key)}
-        className={`min-h-11 rounded-lg px-2 text-sm font-semibold ${
+        className={`min-h-11 rounded-lg px-2 text-sm font-bold ${
           active
-            ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
-            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)]/60"
+            ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
+            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
         }`}
       >
         {opt.label}
         {opt.count != null ? (
           <span
-            className={`ml-1 ${active ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}`}
+            className={`ml-1 tabular-nums ${
+              active
+                ? "text-[var(--color-on-accent)]/80"
+                : "text-[var(--color-text-muted)]"
+            }`}
           >
             {opt.count}
           </span>

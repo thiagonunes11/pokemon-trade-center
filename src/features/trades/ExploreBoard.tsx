@@ -160,10 +160,10 @@ export function ExploreBoard() {
             key={opt.key}
             type="button"
             onClick={() => setKind(opt.key)}
-            className={`min-h-10 flex-1 rounded-xl text-sm font-semibold ${
+            className={`min-h-11 flex-1 rounded-xl text-sm font-bold ${
               kind === opt.key
                 ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                : "border border-[var(--color-border)] text-[var(--color-text-secondary)]"
+                : "border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)]"
             }`}
           >
             {opt.label}
@@ -171,14 +171,16 @@ export function ExploreBoard() {
         ))}
       </div>
 
-      <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3">
+      <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] px-3">
         <input
           type="checkbox"
           checked={onlyMine}
           onChange={(e) => setOnlyMine(e.target.checked)}
-          className="h-4 w-4 accent-[var(--color-accent)]"
+          className="h-5 w-5 accent-[var(--color-accent)]"
         />
-        <span className="text-sm text-[var(--color-text)]">{filterLabel}</span>
+        <span className="text-sm font-semibold text-[var(--color-text)]">
+          {filterLabel}
+        </span>
       </label>
 
       {chatError ? (
@@ -209,7 +211,7 @@ export function ExploreBoard() {
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+              className="flex gap-3 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
             >
               <div className="w-20 shrink-0">
                 <CardItem
@@ -223,10 +225,10 @@ export function ExploreBoard() {
               </div>
               <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
                 <div>
-                  <p className="truncate text-sm font-semibold text-[var(--color-text)]">
+                  <p className="truncate text-base font-bold text-[var(--color-text)]">
                     {item.name}
                   </p>
-                  <p className="truncate text-xs text-[var(--color-text-muted)]">
+                  <p className="truncate text-sm font-medium text-[var(--color-text-secondary)]">
                     {item.displayName}
                     {kind === "offering" ? " · anunciando" : " · procurando"}
                   </p>
@@ -235,7 +237,7 @@ export function ExploreBoard() {
                   type="button"
                   disabled={startingChat === item.ownerId}
                   onClick={() => void startChat(item.ownerId, item.displayName)}
-                  className="min-h-10 rounded-xl bg-[var(--color-accent)] px-3 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-50"
+                  className="min-h-11 rounded-xl bg-[var(--color-accent)] px-3 text-sm font-extrabold text-[var(--color-on-accent)] disabled:opacity-50"
                 >
                   {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
                 </button>

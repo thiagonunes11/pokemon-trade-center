@@ -70,28 +70,30 @@ export function TradeChatPage() {
 
   if (!threadId || !userId) {
     return (
-      <p className="text-sm text-[var(--color-text-muted)]">Conversa inválida.</p>
+      <p className="text-sm text-[var(--color-text-secondary)]">
+        Conversa inválida.
+      </p>
     );
   }
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-8rem)] max-w-lg flex-col md:h-[calc(100dvh-3rem)]">
-      <header className="mb-3 flex items-center gap-3">
-        <BackButton to="/trades">Trocas</BackButton>
-        <h1 className="min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-xl font-bold text-[var(--color-text)]">
-          {peerName}
-        </h1>
+      <header className="mb-4 space-y-1">
+        <div className="flex items-center gap-3">
+          <BackButton to="/trades">Trocas</BackButton>
+          <h1 className="min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-xl font-extrabold text-[var(--color-text)]">
+            {peerName}
+          </h1>
+        </div>
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          Combine a troca aqui. Grupos da cidade: aba Comunidade (WhatsApp).
+        </p>
       </header>
 
-      <p className="mb-3 text-xs text-[var(--color-text-muted)]">
-        Chat simples para combinar a troca. Grupos da cidade ficam no WhatsApp
-        (aba Comunidade).
-      </p>
-
-      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]">
-        <div className="flex-1 space-y-2 overflow-y-auto p-3">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+        <div className="flex-1 space-y-3 overflow-y-auto p-4">
           {messages.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">
+            <p className="py-10 text-center text-sm font-medium text-[var(--color-text-secondary)]">
               Diga oi e combine a troca.
             </p>
           ) : (
@@ -103,10 +105,10 @@ export function TradeChatPage() {
                   className={`flex ${mine ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-snug font-medium ${
                       mine
                         ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                        : "bg-[var(--color-bg-elevated)] text-[var(--color-text)]"
+                        : "border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text)] shadow-sm"
                     }`}
                   >
                     {msg.text}
@@ -119,11 +121,13 @@ export function TradeChatPage() {
         </div>
 
         {error ? (
-          <p className="px-3 pb-1 text-xs text-[var(--color-error)]">{error}</p>
+          <p className="px-4 pb-1 text-sm font-medium text-[var(--color-error)]">
+            {error}
+          </p>
         ) : null}
 
         <form
-          className="flex gap-2 border-t border-[var(--color-border)] p-2"
+          className="flex gap-2 border-t-2 border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
           onSubmit={(e) => {
             e.preventDefault();
             void handleSend();
@@ -133,13 +137,13 @@ export function TradeChatPage() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             maxLength={1000}
-            placeholder="Mensagem…"
-            className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+            placeholder="Escreva uma mensagem…"
+            className="min-h-12 min-w-0 flex-1 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]"
           />
           <button
             type="submit"
             disabled={sending || !draft.trim()}
-            className="min-h-11 shrink-0 rounded-xl bg-[var(--color-accent)] px-4 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-50"
+            className="min-h-12 shrink-0 rounded-xl bg-[var(--color-accent)] px-5 text-sm font-extrabold text-[var(--color-on-accent)] disabled:opacity-50"
           >
             Enviar
           </button>
