@@ -1,7 +1,7 @@
 # Vitrine UI — Design Spec
 
 **Date:** 2026-08-01  
-**Status:** Approved  
+**Status:** Superseded visually by marketplace spec; product evolved to curated showcase PNG (not share-by-set)  
 **Product:** Pokemon Trade Center (Vite / React SPA)
 
 ## Goal

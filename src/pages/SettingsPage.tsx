@@ -126,6 +126,23 @@ export function SettingsPage() {
 
       <section className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+          Comunidade
+        </h2>
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          Cidade e link do grupo WhatsApp ficam em{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/trades")}
+            className="font-semibold text-[var(--color-accent)] hover:underline"
+          >
+            Trocas → Comunidade
+          </button>
+          .
+        </p>
+      </section>
+
+      <section className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
           Aparência
         </h2>
         <div className="space-y-2">

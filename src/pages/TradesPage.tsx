@@ -1,5 +1,8 @@
 import { CardItem } from "@/features/cards";
 import { useSetCards } from "@/features/cards";
+import { CommunityPanel } from "@/features/trades/CommunityPanel";
+import { ConversationsList } from "@/features/trades/ConversationsList";
+import { ExploreBoard } from "@/features/trades/ExploreBoard";
 import {
   addCardToOffering,
   addCardToWanted,
@@ -12,7 +15,12 @@ import { useCollectionStore } from "@/store/useCollectionStore";
 import { useTradeStore } from "@/store/useTradeStore";
 import { useMemo, useState } from "react";
 
-type TradeTab = "offering" | "wanted";
+type TradeTab =
+  | "offering"
+  | "wanted"
+  | "explore"
+  | "chats"
+  | "community";
 
 type PickerMode =
   | null
@@ -22,7 +30,7 @@ type PickerMode =
 
 export function TradesPage() {
   const userId = useAuthStore((s) => s.userId);
-  const [tab, setTab] = useState<TradeTab>("offering");
+  const [tab, setTab] = useState<TradeTab>("explore");
   const [picker, setPicker] = useState<PickerMode>(null);
 
   const offering = useTradeStore((s) => s.offering);
@@ -54,6 +62,7 @@ export function TradesPage() {
   );
 
   const list = tab === "offering" ? myOffering : myWanted;
+  const showMyLists = tab === "offering" || tab === "wanted";
 
   return (
     <div className="space-y-5 pb-8">
@@ -62,20 +71,23 @@ export function TradesPage() {
           Trocas
         </h1>
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Monte o que você anuncia e o que está procurando. Matching na região
-          chega em breve.
+          Monte suas listas, explore anúncios, converse no app e entre no grupo
+          WhatsApp da sua cidade.
         </p>
       </header>
 
       <div
-        className="flex rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
+        className="flex flex-wrap gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
         role="tablist"
-        aria-label="Listas de troca"
+        aria-label="Seções de trocas"
       >
         {(
           [
-            { key: "offering" as const, label: "Anunciando", count: myOffering.length },
-            { key: "wanted" as const, label: "Procurando", count: myWanted.length },
+            { key: "explore" as const, label: "Explorar" },
+            { key: "offering" as const, label: "Anunciando" },
+            { key: "wanted" as const, label: "Procurando" },
+            { key: "chats" as const, label: "Conversas" },
+            { key: "community" as const, label: "Comunidade" },
           ] as const
         ).map((opt) => {
           const active = tab === opt.key;
@@ -86,75 +98,78 @@ export function TradesPage() {
               role="tab"
               aria-selected={active}
               onClick={() => setTab(opt.key)}
-              className={`flex min-h-11 flex-1 flex-col items-center justify-center rounded-lg text-xs font-semibold sm:flex-row sm:gap-1.5 sm:text-sm ${
+              className={`min-h-10 flex-1 rounded-lg px-2 text-[11px] font-semibold sm:text-sm ${
                 active
                   ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
                   : "text-[var(--color-text-secondary)]"
               }`}
             >
-              <span>{opt.label}</span>
-              <span
-                className={
-                  active
-                    ? "text-[var(--color-accent)]"
-                    : "text-[var(--color-text-muted)]"
-                }
-              >
-                {opt.count}
-              </span>
+              {opt.label}
+              {opt.key === "offering" ? ` (${myOffering.length})` : null}
+              {opt.key === "wanted" ? ` (${myWanted.length})` : null}
             </button>
           );
         })}
       </div>
 
-      <button
-        type="button"
-        onClick={() =>
-          setPicker(
-            tab === "offering"
-              ? { kind: "offering" }
-              : { kind: "wanted", step: "sets" },
-          )
-        }
-        className="flex h-11 w-full items-center justify-center rounded-xl bg-[var(--color-accent)] text-sm font-bold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
-      >
-        {tab === "offering" ? "Adicionar da coleção" : "Adicionar do catálogo"}
-      </button>
+      {tab === "explore" ? <ExploreBoard /> : null}
+      {tab === "chats" ? <ConversationsList /> : null}
+      {tab === "community" ? <CommunityPanel /> : null}
 
-      {list.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-text-muted)]">
-          {tab === "offering"
-            ? "Nenhuma carta anunciada. Adicione cartas que você tem e quer trocar."
-            : "Nenhuma carta na lista de procura. Adicione o que você busca."}
-        </p>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {list.map((card) => (
-            <div key={card.id} className="relative">
-              <button
-                type="button"
-                aria-label="Remover da lista"
-                onClick={() =>
-                  tab === "offering"
-                    ? removeCardFromOffering(card.id)
-                    : removeCardFromWanted(card.id)
-                }
-                className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-sm font-bold text-white"
-              >
-                ×
-              </button>
-              <CardItem
-                id={card.id}
-                name={card.name}
-                localId={card.id.split("-").pop() ?? ""}
-                image={card.imageUrl}
-                compact
-                onPress={() => {}}
-              />
+      {showMyLists ? (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              setPicker(
+                tab === "offering"
+                  ? { kind: "offering" }
+                  : { kind: "wanted", step: "sets" },
+              )
+            }
+            className="flex h-11 w-full items-center justify-center rounded-xl bg-[var(--color-accent)] text-sm font-bold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
+          >
+            {tab === "offering"
+              ? "Adicionar da coleção"
+              : "Adicionar do catálogo"}
+          </button>
+
+          {list.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-text-muted)]">
+              {tab === "offering"
+                ? "Nenhuma carta anunciada. Adicione cartas que você tem e quer trocar."
+                : "Nenhuma carta na lista de procura. Adicione o que você busca."}
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {list.map((card) => (
+                <div key={card.id} className="relative">
+                  <button
+                    type="button"
+                    aria-label="Remover da lista"
+                    onClick={() =>
+                      tab === "offering"
+                        ? removeCardFromOffering(card.id)
+                        : removeCardFromWanted(card.id)
+                    }
+                    className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-sm font-bold text-white"
+                  >
+                    ×
+                  </button>
+                  <CardItem
+                    id={card.id}
+                    name={card.name}
+                    localId={card.id.split("-").pop() ?? ""}
+                    image={card.imageUrl}
+                    compact
+                    onPress={() => {}}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
+        </>
+      ) : null}
 
       {picker ? (
         <TradePickerModal

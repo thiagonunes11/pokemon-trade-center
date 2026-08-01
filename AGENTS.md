@@ -10,18 +10,19 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 |-------|--------|
 | **Nome** | Pokemon Trade Center |
 | **Tipo** | SPA web (Vite / React) |
-| **Domínio** | Pokémon TCG — vitrine de coleção, catálogo, compartilhar binder, trocas (futuro) |
+| **Domínio** | Pokémon TCG — catálogo, coleção/vitrine, mural de trocas, chat 1:1, WhatsApp por cidade |
 | **UI** | Português (Brasil) · marketplace TCG (Outfit / amarelo Pokémon) |
 | **Dados** | TCGdex locale `pt` |
-| **Estágio** | MVP web: catálogo + coleção/vitrine + listas de troca + Firebase Auth |
+| **Estágio** | MVP web: catálogo + coleção/vitrine + mural/chat/comunidade + Firebase Auth |
 | **Repo** | `https://github.com/thiagonunes11/pokemon-trade-center.git` |
 
 ### Objetivo
 
-1. Escolher expansão (série Megaevolução)
+1. Escolher expansão (série Megaevolução, `me01`–`me05`)
 2. Navegar catálogo com binder (possuídas vs faltantes) e progresso
-3. Detalhe da carta + adicionar/remover da coleção
-4. Compartilhar vitrine do set (PNG); link público e trocas regionais (futuro)
+3. Detalhe da carta + adicionar/remover da coleção; pin na vitrine
+4. Compartilhar vitrine curada (PNG); link público (futuro)
+5. Listas Anunciando / Procurando → mural público + chat 1:1 + grupo WhatsApp da cidade
 
 **Auth:** Firebase Auth + `users/{uid}` no Firestore.  
 **Coleção:** Zustand local + sync Firestore (`collections/{uid}/cards`) com debounce nas escritas e pull no login. Coleção do antigo app nativo **não migra** automaticamente.
@@ -40,7 +41,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | Virtualização | `@tanstack/react-virtual` (CardGrid) |
 | Estado | Zustand |
 | Backend | Firebase Auth + Firestore (Spark) |
-| Export vitrine | `html-to-image` (PNG do binder por set) |
+| Export vitrine | `html-to-image` (PNG da vitrine curada) |
 | Env | `VITE_FIREBASE_*` (`.env` gitignored) |
 
 ---
@@ -55,13 +56,13 @@ src/
   App.tsx               ← rotas
   index.css             ← Tailwind + tokens de tema
   layouts/              ← AppLayout (sidebar/bottom nav), AuthGuard
-  pages/                ← Login, Catalog, CatalogSet, Collection, Trades, Settings, CardDetail
+  pages/                ← Login, Catalog, CatalogSet, Collection, Trades, TradeChat, Settings, CardDetail
   features/
     auth/               ← authService, mapFirebaseUser, authErrors, userProfileService
     cards/              ← CardGrid, CardItem (binderMode), useSetCards/useCard/useSet
     sets/               ← CollectionPickerCard, useCollections
     collection/         ← firestoreSync, CollectionSync, add/remove/showcase sync
-    trades/             ← TradeSync, offering/wanted actions + Firestore
+    trades/             ← TradeSync, listings, threads, Explore/Community panels
     share/              ← ShareShowcaseBinder / PNG (html-to-image)
   components/           ← EnergyIcon, UserAvatar, ProgressFolio
   hooks/useOwnedSetCount.ts
@@ -86,7 +87,8 @@ firebase.json
 | `/catalog` | Lista de expansões |
 | `/catalog/:setId` | Grid do set |
 | `/collection` | Minha coleção (Todas / Por coleção / Vitrine) |
-| `/trades` | Anunciando (coleção) + Procurando (catálogo) |
+| `/trades` | Explorar / Anunciando / Procurando / Conversas / Comunidade |
+| `/trades/chat/:threadId` | Chat texto 1:1 |
 | `/settings` | Conta, tema, sobre |
 | `/card/:id` | Detalhe |
 
@@ -102,7 +104,9 @@ const tcgdex = new TCGdex("pt");
 
 Sets em `SUPPORTED_SETS` + `COLLECTIONS` (`src/lib/collections.ts`): `me01`–`me05` (série Megaevolução). Disponibilidade via `getCollectionAvailability` (não flag manual). Progresso: `formatCollectionProgress` + hooks `useOwnedSetCount` / `useOwnedCountsBySet`.
 
-Imagens: `${card.image}/high.webp` ou `/high.png`. IDs: `{setId}-{localId}` (setId pode ter ponto, ex. `me02.5`).
+Imagens no grid: `${card.image}/low.webp`. Detalhe/share: `/high.webp` (ou `/high.png`). IDs: `{setId}-{localId}` (setId pode ter ponto, ex. `me02.5`).
+
+`CardGrid` virtualiza linhas com `@tanstack/react-virtual` (scroll de janela).
 
 React Query keys: `['set-cards', setId]`, `['card', cardId]`, `['set', setId]`.
 
@@ -123,14 +127,17 @@ Vitrine: `CollectionCard.inShowcase` + `setCardInShowcase` / `toggleCardInShowca
 
 ---
 
-## 6b. Trocas (listas)
+## 6b. Trocas (listas + mural + chat + comunidade)
 
 `useTradeStore` — `offering` / `wanted`; persist `pokemon-trades-storage`.
 
-- **Anunciando** (`offering`): só cartas da coleção → `trades/{uid}/offering/{cardId}`
-- **Procurando** (`wanted`): qualquer carta do catálogo → `trades/{uid}/wanted/{cardId}`
-- Pull no login (`TradeSync`); push com debounce; remover da coleção também tira de offering
-- Sem matching/região nesta fatia — só as duas listas do usuário
+- Listas privadas: `trades/{uid}/offering|wanted/{cardId}`
+- Mural público: `listings/{uid}_{kind}_{cardId}` (espelho no write + backfill no login)
+- Perfil público: `publicProfiles/{uid}` (`displayName`, `cityId?`)
+- Chat: `threads/{uidA_uidB}/messages` (texto só; nacional)
+- Comunidade: `communities/{cityId}` (`name`, `whatsappUrl`) — **read-only** no cliente; seed no Console
+- UI Trocas: Explorar (filtro opcional “só o que eu quero”), Conversas, Comunidade
+- Sem FCM / geo GPS / WhatsApp pessoal no perfil nesta fatia
 
 ---
 
@@ -155,7 +162,8 @@ Auth: `getAuth` (persistência browser). Perfil: `userProfileService` → `users
 | 0–5 Auth + perfil + rules | Feito |
 | 6 Migração UUID legado | Pendente / pouco relevante na web pura |
 | 7 Sync `collections/{uid}/cards` | Feito (pull no login + writes com debounce) |
-| 7b Listas `trades/{uid}/offering|wanted` | Feito (pull + debounce; matching futuro) |
+| 7b Listas `trades/{uid}/offering|wanted` | Feito |
+| 7c Mural `listings` + chat + `communities` WA | Feito (deploy rules/indexes + seed cidades) |
 | 8 FCM | Pendente |
 
 ---
@@ -195,9 +203,9 @@ firebase deploy --only firestore:rules
 | Catálogo | `pages/CatalogPage.tsx`, `CatalogSetPage.tsx`, `features/sets/*` |
 | Detalhe | `pages/CardDetailPage.tsx` |
 | Coleção / vitrine | `pages/CollectionPage.tsx`, `useCollectionStore.ts`, `features/collection/*` |
-| Trocas | `pages/TradesPage.tsx`, `useTradeStore.ts`, `features/trades/*` |
+| Trocas | `pages/TradesPage.tsx`, `TradeChatPage.tsx`, `useTradeStore.ts`, `features/trades/*` |
 | Compartilhar | `features/share/*` (vitrine PNG) |
 | Tema | `theme/*`, `index.css`, `SettingsPage.tsx` |
 | Shell / guard | `layouts/AppLayout.tsx`, `AuthGuard.tsx` |
 
-_Última revisão: 2026-08-01 — coleção/vitrine + listas de troca Firestore._
+_Última revisão: 2026-08-01 — mural de anúncios, chat 1:1 e comunidades WhatsApp._

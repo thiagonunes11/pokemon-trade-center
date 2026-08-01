@@ -76,6 +76,12 @@ export function ShareShowcaseButton({
         <IconShare className="h-4 w-4" />
         {busy ? "Gerando…" : "Compartilhar vitrine"}
       </button>
+      <p className="text-center text-xs text-[var(--color-text-muted)]">
+        Link público{" "}
+        <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+          Em breve
+        </span>
+      </p>
       {error ? (
         <p className="text-center text-sm text-[var(--color-error)]">{error}</p>
       ) : null}

@@ -1,103 +1,71 @@
 rules_version = '2';
 
 // ===============================================================
-// Assumed Data Model — Pokemon Trade Center (Etapa 5)
+// Pokemon Trade Center — Firestore rules
 // ===============================================================
-//
-// Collection: users
-// Document ID: Firebase Auth UID ({userId})
-// Fields:
-//   - displayName: string (required, 1-100 chars) — nome exibido no app
-//   - email: string (required, valid email, immutable after create)
-//   - createdAt: timestamp (required, immutable) — serverTimestamp no create
-//   - pushToken: string (optional, max 512 chars) — Etapa 8 (FCM)
-//   - migrationCompleted: bool (optional) — Etapa 6 (migração UUID)
-//
-// Collection: collections/{userId}/cards
-// Document ID: cardId (e.g. "me02-001", max 30 chars)
-// Fields:
-//   - id: string (required, max 30 chars) — same as document ID
-//   - name: string (required, max 200 chars) — card name
-//   - imageUrl: string|null (optional, max 500 chars, https://)
-//   - setId: string (required, max 20 chars) — e.g. "me02", "me02.5"
-//   - addedAt: timestamp (required)
-//
+// users/{uid} — perfil privado (e-mail)
+// publicProfiles/{uid} — displayName + cityId (auth read)
+// collections/{uid}/cards/{cardId}
+// trades/{uid}/offering|wanted/{cardId}
+// listings/{uid_kind_cardId} — mural público
+// threads/{threadId}/messages/{messageId}
+// communities/{cityId} — links WhatsApp (read-only no cliente)
 // ===============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // =============================================================
-    // Helper Functions
-    // =============================================================
-
-    /// Check if the user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    /// Check if the authenticated user owns the resource at {userId}
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    /// Validate required fields exist in the incoming document
     function hasRequiredFields(fields) {
       return request.resource.data.keys().hasAll(fields);
     }
 
-    /// Validate the document contains only the allowed fields
     function hasOnlyAllowedFields(fields) {
       return request.resource.data.keys().hasOnly(fields);
     }
 
-    /// Check that immutable fields have not changed between old and new
     function areImmutableFieldsUnchanged(fields) {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
     }
 
-    /// Validate email format
     function isValidEmail(email) {
       return email is string &&
         email.matches('^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$');
     }
 
-    /// Validate that a timestamp is recent (within the last 5 minutes)
     function isRecent(time) {
       return time is timestamp &&
         time > request.time - duration.value(5, 'm') &&
         time <= request.time;
     }
 
-    // =============================================================
-    // Domain Validators
-    // =============================================================
-
-    /// Validate a user profile document (used in both create and update)
     function isValidUserProfile() {
       let data = request.resource.data;
-      let allowedFields = ['displayName', 'email', 'createdAt', 'pushToken', 'migrationCompleted'];
+      let allowedFields = ['displayName', 'email', 'createdAt', 'pushToken', 'migrationCompleted', 'cityId'];
       let requiredFields = ['displayName', 'email', 'createdAt'];
 
       return hasOnlyAllowedFields(allowedFields) &&
         hasRequiredFields(requiredFields) &&
-        // displayName: string, 1-100 chars
         data.displayName is string &&
         data.displayName.size() >= 1 &&
         data.displayName.size() <= 100 &&
-        // email: string, valid email
         data.email is string &&
         isValidEmail(data.email) &&
         data.email.size() <= 254 &&
-        // createdAt: timestamp
         data.createdAt is timestamp &&
-        // pushToken: optional string, max 512 chars
         (!('pushToken' in data) || (data.pushToken is string && data.pushToken.size() <= 512)) &&
-        // migrationCompleted: optional bool
-        (!('migrationCompleted' in data) || data.migrationCompleted is bool);
+        (!('migrationCompleted' in data) || data.migrationCompleted is bool) &&
+        (!('cityId' in data) || data.cityId == null ||
+          (data.cityId is string && data.cityId.size() >= 1 && data.cityId.size() <= 64));
     }
 
-    /// Validate a collection card document (used in both create and update)
     function isValidCard() {
       let data = request.resource.data;
       let allowedFields = ['id', 'name', 'imageUrl', 'setId', 'addedAt', 'inShowcase'];
@@ -105,29 +73,22 @@ service cloud.firestore {
 
       return hasOnlyAllowedFields(allowedFields) &&
         hasRequiredFields(requiredFields) &&
-        // id: string, max 30 chars
         data.id is string &&
         data.id.size() >= 1 &&
         data.id.size() <= 30 &&
-        // name: string, max 200 chars
         data.name is string &&
         data.name.size() >= 1 &&
         data.name.size() <= 200 &&
-        // imageUrl: optional, string (https) or null
         (!('imageUrl' in data) || data.imageUrl == null ||
           (data.imageUrl is string && data.imageUrl.size() <= 500 &&
            data.imageUrl.matches('^https://.*'))) &&
-        // setId: string, max 20 chars
         data.setId is string &&
         data.setId.size() >= 1 &&
         data.setId.size() <= 20 &&
-        // addedAt: timestamp
         data.addedAt is timestamp &&
-        // inShowcase: optional bool
         (!('inShowcase' in data) || data.inShowcase is bool);
     }
 
-    /// Validate a trade list card (offering / wanted)
     function isValidTradeCard() {
       let data = request.resource.data;
       let allowedFields = ['id', 'name', 'imageUrl', 'setId', 'updatedAt'];
@@ -150,71 +111,161 @@ service cloud.firestore {
         data.updatedAt is timestamp;
     }
 
-    // =============================================================
-    // Rules: users/{userId}
-    // =============================================================
+    function isValidListing() {
+      let data = request.resource.data;
+      let allowedFields = ['ownerId', 'kind', 'cardId', 'name', 'imageUrl', 'setId', 'displayName', 'updatedAt'];
+      let requiredFields = ['ownerId', 'kind', 'cardId', 'name', 'setId', 'displayName', 'updatedAt'];
+
+      return hasOnlyAllowedFields(allowedFields) &&
+        hasRequiredFields(requiredFields) &&
+        data.ownerId == request.auth.uid &&
+        (data.kind == 'offering' || data.kind == 'wanted') &&
+        data.cardId is string &&
+        data.cardId.size() >= 1 &&
+        data.cardId.size() <= 30 &&
+        data.name is string &&
+        data.name.size() >= 1 &&
+        data.name.size() <= 200 &&
+        (!('imageUrl' in data) || data.imageUrl == null ||
+          (data.imageUrl is string && data.imageUrl.size() <= 500 &&
+           data.imageUrl.matches('^https://.*'))) &&
+        data.setId is string &&
+        data.setId.size() >= 1 &&
+        data.setId.size() <= 20 &&
+        data.displayName is string &&
+        data.displayName.size() >= 1 &&
+        data.displayName.size() <= 100 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPublicProfile() {
+      let data = request.resource.data;
+      let allowedFields = ['displayName', 'cityId', 'updatedAt'];
+      let requiredFields = ['displayName', 'updatedAt'];
+
+      return hasOnlyAllowedFields(allowedFields) &&
+        hasRequiredFields(requiredFields) &&
+        data.displayName is string &&
+        data.displayName.size() >= 1 &&
+        data.displayName.size() <= 100 &&
+        data.updatedAt is timestamp &&
+        (!('cityId' in data) || data.cityId == null ||
+          (data.cityId is string && data.cityId.size() >= 1 && data.cityId.size() <= 64));
+    }
+
+    function isThreadParticipant() {
+      return isAuthenticated() &&
+        resource.data.participantIds is list &&
+        request.auth.uid in resource.data.participantIds;
+    }
+
+    function isValidThreadCreate() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['participantIds', 'updatedAt', 'lastMessagePreview', 'lastSenderId']) &&
+        data.participantIds is list &&
+        data.participantIds.size() == 2 &&
+        request.auth.uid in data.participantIds &&
+        data.updatedAt is timestamp &&
+        (!('lastMessagePreview' in data) || data.lastMessagePreview == null ||
+          (data.lastMessagePreview is string && data.lastMessagePreview.size() <= 200)) &&
+        (!('lastSenderId' in data) || data.lastSenderId == null ||
+          (data.lastSenderId is string && data.lastSenderId.size() <= 128));
+    }
+
+    function isValidThreadUpdate() {
+      let data = request.resource.data;
+      return isThreadParticipant() &&
+        data.keys().hasOnly(['participantIds', 'updatedAt', 'lastMessagePreview', 'lastSenderId']) &&
+        data.participantIds == resource.data.participantIds &&
+        data.updatedAt is timestamp &&
+        (!('lastMessagePreview' in data) || data.lastMessagePreview == null ||
+          (data.lastMessagePreview is string && data.lastMessagePreview.size() <= 200)) &&
+        (!('lastSenderId' in data) || data.lastSenderId == null ||
+          (data.lastSenderId is string && data.lastSenderId.size() <= 128));
+    }
+
+    function isValidMessageCreate() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['senderId', 'text', 'createdAt']) &&
+        data.senderId == request.auth.uid &&
+        data.text is string &&
+        data.text.size() >= 1 &&
+        data.text.size() <= 1000 &&
+        data.createdAt is timestamp;
+    }
 
     match /users/{userId} {
-      // Only the owner can read their own profile (contains PII: email)
       allow read: if isOwner(userId);
-
-      // Create: owner only, valid data, email must match auth, recent createdAt
       allow create: if isOwner(userId) &&
         isValidUserProfile() &&
         request.resource.data.email == request.auth.token.email &&
         isRecent(request.resource.data.createdAt);
-
-      // Update: owner only, valid data, immutable fields protected
       allow update: if isOwner(userId) &&
         isValidUserProfile() &&
         areImmutableFieldsUnchanged(['email', 'createdAt']);
-
-      // Delete: not allowed (user profile should not be deleted from client)
       allow delete: if false;
     }
 
-    // =============================================================
-    // Rules: collections/{userId}/cards/{cardId}
-    // =============================================================
+    match /publicProfiles/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) && isValidPublicProfile();
+      allow delete: if false;
+    }
 
     match /collections/{userId}/cards/{cardId} {
-      // Only the owner can read their own cards
       allow read: if isOwner(userId);
-
-      // Create: owner only, valid card, document ID must match card.id
       allow create: if isOwner(userId) &&
         isValidCard() &&
         request.resource.data.id == cardId;
-
-      // Update: owner only, valid card, id and addedAt immutable
       allow update: if isOwner(userId) &&
         isValidCard() &&
         areImmutableFieldsUnchanged(['id', 'addedAt']);
-
-      // Delete: owner can remove cards from their collection
       allow delete: if isOwner(userId);
     }
-
-    // =============================================================
-    // Rules: trades/{userId}/offering|wanted/{cardId}
-    // =============================================================
 
     match /trades/{userId}/{listKind}/{cardId} {
       allow read: if isOwner(userId) &&
         (listKind == 'offering' || listKind == 'wanted');
-
       allow create, update: if isOwner(userId) &&
         (listKind == 'offering' || listKind == 'wanted') &&
         isValidTradeCard() &&
         request.resource.data.id == cardId;
-
       allow delete: if isOwner(userId) &&
         (listKind == 'offering' || listKind == 'wanted');
     }
 
-    // =============================================================
-    // Default deny: all other paths
-    // =============================================================
-    // No match = denied by default in Firestore
+    match /listings/{listingId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() &&
+        isValidListing() &&
+        listingId == request.auth.uid + '_' + request.resource.data.kind + '_' + request.resource.data.cardId;
+      allow delete: if isAuthenticated() &&
+        resource.data.ownerId == request.auth.uid;
+    }
+
+    match /threads/{threadId} {
+      allow read: if isAuthenticated() &&
+        resource.data.participantIds is list &&
+        request.auth.uid in resource.data.participantIds;
+      allow create: if isAuthenticated() && isValidThreadCreate();
+      allow update: if isValidThreadUpdate();
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() &&
+          get(/databases/$(database)/documents/threads/$(threadId)).data.participantIds is list &&
+          request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participantIds;
+        allow create: if isAuthenticated() &&
+          get(/databases/$(database)/documents/threads/$(threadId)).data.participantIds is list &&
+          request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participantIds &&
+          isValidMessageCreate();
+        allow update, delete: if false;
+      }
+    }
+
+    match /communities/{cityId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
   }
 }

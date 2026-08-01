@@ -1,26 +1,26 @@
-# Trocas — listas Anunciando / Procurando
+# Trocas — listas, mural, chat e comunidade
 
 **Date:** 2026-08-01  
-**Status:** Approved
+**Status:** Implemented (mural + chat simples + WhatsApp por cidade)
 
 ## Goal
 
-Permitir que o usuário monte e salve duas listas de troca: cartas que **anuncia** (da coleção) e cartas que **procura** (do catálogo). Sem matching/região nesta fatia.
+Listas Anunciando/Procurando, mural público de todos os anúncios (filtro opcional), chat texto 1:1 nacional, e links de grupos WhatsApp por cidade.
 
 ## Data
 
-- `trades/{uid}/offering/{cardId}`
-- `trades/{uid}/wanted/{cardId}`
-- Fields: `id`, `name`, `imageUrl`, `setId`, `updatedAt`
-- Zustand + local persist + pull on login + debounced writes
+- `trades/{uid}/offering|wanted/{cardId}` — listas privadas
+- `listings/{uid}_{kind}_{cardId}` — mural
+- `publicProfiles/{uid}` — `displayName`, `cityId?`
+- `threads/{threadId}/messages` — texto
+- `communities/{cityId}` — `name`, `whatsappUrl` (seed no Console)
 
 ## UI
 
-- Trades tab: Anunciando | Procurando
-- Add from collection (offering) / catalog (wanted)
-- Remove from list
-- Matching/region: stub copy only
+- Trocas: Explorar | Anunciando | Procurando | Conversas | Comunidade
+- `/trades/chat/:threadId` — chat mínimo
+- Filtro Explorar: “Só o que eu quero” (off por padrão)
 
 ## Out of scope
 
-- Geo, matching, chat, card-detail shortcuts
+- Geo GPS, FCM, proposta estruturada, WhatsApp pessoal no perfil, admin de comunidades no app

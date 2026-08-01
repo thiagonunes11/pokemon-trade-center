@@ -1,7 +1,7 @@
 # Marketplace TCG UI — Design Spec
 
 **Date:** 2026-08-01  
-**Status:** Approved (supersedes editorial direction for visual system)
+**Status:** Implemented (visual system; Trades lists shipped separately)
 
 ## Goal
 
@@ -30,4 +30,4 @@ Replace the editorial “magazine” look with a **commercial Pokémon TCG marke
 - Set / Collection / Share: yellow primary CTAs; binder unchanged in behavior
 - Shell: yellow active nav
 - Login: bold brand + yellow submit
-- Trades: commercial “coming soon” stub
+- Trades: commercial hub for Anunciando / Procurando (matching later)

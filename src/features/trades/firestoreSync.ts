@@ -6,7 +6,13 @@ import {
   setDoc,
   Timestamp,
 } from "firebase/firestore";
+import {
+  backfillListingsFromStore,
+  deleteListing,
+  upsertListing,
+} from "@/features/trades/listingsSync";
 import { getFirestoreDb } from "@/lib/firestore";
+import { useAuthStore } from "@/store/useAuthStore";
 import {
   useTradeStore,
   type TradeListCard,
@@ -42,6 +48,10 @@ function listCollectionRef(uid: string, kind: TradeListKind) {
 
 function listDocRef(uid: string, kind: TradeListKind, cardId: string) {
   return doc(getFirestoreDb(), "trades", uid, kind, cardId);
+}
+
+function displayNameForListings() {
+  return useAuthStore.getState().username?.trim() || "Treinador";
 }
 
 function toFirestorePayload(card: PendingUpsert["card"]) {
@@ -110,6 +120,7 @@ async function flushPendingWrites(): Promise<void> {
   const deletes = [...pendingDeletes.values()];
   pendingUpserts.clear();
   pendingDeletes.clear();
+  const displayName = displayNameForListings();
 
   await Promise.all([
     ...upserts.map(async ({ kind, card }) => {
@@ -117,6 +128,7 @@ async function flushPendingWrites(): Promise<void> {
         await setDoc(listDocRef(uid, kind, card.id), toFirestorePayload(card), {
           merge: true,
         });
+        await upsertListing(uid, kind, card, displayName);
       } catch (error) {
         console.warn("[TradeSync] Falha ao enviar:", kind, card.id, error);
         pendingUpserts.set(pendingKey(kind, card.id), { kind, card });
@@ -125,6 +137,7 @@ async function flushPendingWrites(): Promise<void> {
     ...deletes.map(async ({ kind, cardId }) => {
       try {
         await deleteDoc(listDocRef(uid, kind, cardId));
+        await deleteListing(uid, kind, cardId);
       } catch (error) {
         console.warn("[TradeSync] Falha ao remover:", kind, cardId, error);
         pendingDeletes.set(pendingKey(kind, cardId), { kind, cardId });
@@ -207,6 +220,25 @@ async function pullKind(uid: string, kind: TradeListKind): Promise<void> {
   }
 }
 
+function toListingInput(card: TradeListCard): {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  setId: string;
+  updatedAt: Date;
+} {
+  return {
+    id: card.id,
+    name: card.name,
+    imageUrl: card.imageUrl,
+    setId: card.setId,
+    updatedAt:
+      card.updatedAt instanceof Date
+        ? card.updatedAt
+        : new Date(card.updatedAt),
+  };
+}
+
 export async function pullAndMergeTrades(uid: string): Promise<void> {
   if (pullInFlight) return pullInFlight;
 
@@ -214,6 +246,19 @@ export async function pullAndMergeTrades(uid: string): Promise<void> {
     setTradeSyncUser(uid);
     await pullKind(uid, "offering");
     await pullKind(uid, "wanted");
+
+    const store = useTradeStore.getState();
+    const offering = store.offering
+      .filter((c) => (c.ownerId ?? null) === uid)
+      .map(toListingInput);
+    const wanted = store.wanted
+      .filter((c) => (c.ownerId ?? null) === uid)
+      .map(toListingInput);
+    try {
+      await backfillListingsFromStore(uid, offering, wanted);
+    } catch (error) {
+      console.warn("[TradeSync] Falha ao espelhar mural:", error);
+    }
   })()
     .catch((error) => {
       console.warn("[TradeSync] Falha ao puxar listas:", error);
