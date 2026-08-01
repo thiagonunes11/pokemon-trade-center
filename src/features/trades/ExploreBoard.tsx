@@ -213,8 +213,8 @@ export function ExploreBoard() {
               key={item.id}
               className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4"
             >
-              <div className="flex items-stretch gap-4">
-                <div className="w-28 shrink-0 self-start sm:w-32">
+              <div className="flex gap-4">
+                <div className="w-28 shrink-0 sm:w-32">
                   <CardItem
                     id={item.cardId}
                     name={item.name}
@@ -224,14 +224,14 @@ export function ExploreBoard() {
                     onPress={() => navigate(`/card/${item.cardId}`)}
                   />
                 </div>
-                <div className="flex min-h-[9.5rem] min-w-0 flex-1 flex-col justify-between py-1 sm:min-h-[11rem]">
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
                   <p className="line-clamp-2 text-xl font-bold leading-tight text-[var(--color-text)] sm:text-2xl">
                     {item.name}
                   </p>
-                  <p className="truncate text-lg font-semibold text-[var(--color-text-secondary)] sm:text-xl">
+                  <p className="truncate text-base font-semibold text-[var(--color-text-secondary)] sm:text-lg">
                     {item.displayName}
                   </p>
-                  <p className="text-base font-semibold text-[var(--color-text-muted)] sm:text-lg">
+                  <p className="text-base font-medium text-[var(--color-text-muted)]">
                     {kind === "offering" ? "Anunciando" : "Procurando"}
                   </p>
                 </div>
