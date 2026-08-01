@@ -2,11 +2,16 @@ import { getAuthErrorMessage } from "@/features/auth";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useState, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 type AuthMode = "login" | "register" | "forgot";
 
 export function LoginPage() {
+  const location = useLocation();
+  const from =
+    (location.state as { from?: { pathname?: string } } | null)?.from
+      ?.pathname ?? "/catalog";
+
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +33,7 @@ export function LoginPage() {
   }, [mode]);
 
   if (isAuthReady && userId) {
-    return <Navigate to="/catalog" replace />;
+    return <Navigate to={from.startsWith("/") ? from : "/catalog"} replace />;
   }
 
   const handleSubmit = async (e: FormEvent) => {

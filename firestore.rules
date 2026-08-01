@@ -5,7 +5,8 @@ rules_version = '2';
 // ===============================================================
 // users/{uid} — perfil privado (e-mail)
 // publicProfiles/{uid} — displayName + cityId (auth read)
-// collections/{uid}/cards/{cardId} — dono lê tudo; outros só inShowcase
+// publicShowcases/{uid}/cards — vitrine pública
+// collections/{uid}/cards/{cardId} — dono lê tudo; vitrine pública via publicShowcases
 // trades/{uid}/offering|wanted/{cardId}
 // listings/{uid_kind_cardId} — mural público
 // threads/{threadId}/messages/{messageId}
@@ -213,10 +214,24 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Vitrine pública espelhada — leitura autenticada sem query filtrada em collections
+    match /publicShowcases/{userId}/cards/{cardId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) &&
+        request.resource.data.keys().hasOnly(['id', 'name', 'imageUrl', 'setId', 'updatedAt']) &&
+        request.resource.data.id == cardId &&
+        request.resource.data.id is string &&
+        request.resource.data.name is string &&
+        request.resource.data.setId is string &&
+        request.resource.data.updatedAt is timestamp &&
+        (!('imageUrl' in request.resource.data) || request.resource.data.imageUrl == null ||
+          (request.resource.data.imageUrl is string && request.resource.data.imageUrl.size() <= 500));
+      allow delete: if isOwner(userId);
+    }
+
     match /collections/{userId}/cards/{cardId} {
-      // Dono lê tudo; outros só cartas da vitrine (query com inShowcase == true).
-      allow read: if isOwner(userId) ||
-        (isAuthenticated() && resource.data.inShowcase == true);
+      // Coleção privada; vitrine pública via publicShowcases
+      allow read: if isOwner(userId);
       allow create: if isOwner(userId) &&
         isValidCard() &&
         request.resource.data.id == cardId;

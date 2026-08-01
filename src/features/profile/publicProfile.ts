@@ -1,7 +1,6 @@
 import {
   collection,
   getDocs,
-  orderBy,
   query,
   where,
 } from "firebase/firestore";
@@ -15,6 +14,7 @@ import {
   type PublicListing,
   parseListingDoc,
 } from "@/features/trades/listingsQuery";
+import { fetchPublicShowcaseCards } from "@/features/profile/showcaseMirror";
 import type { TradeListKind } from "@/store/useTradeStore";
 
 export type PublicShowcaseCard = {
@@ -31,9 +31,16 @@ export type PublicUserProfile = {
   cityName: string | null;
 };
 
+function firestoreErrorCode(err: unknown): string {
+  if (err && typeof err === "object" && "code" in err) {
+    return String((err as { code: unknown }).code);
+  }
+  return "";
+}
+
 export async function fetchPublicUserProfile(
   uid: string,
-): Promise<PublicUserProfile | null> {
+): Promise<PublicUserProfile> {
   const profile = await getPublicProfile(uid);
   if (!profile) {
     return {
@@ -46,9 +53,14 @@ export async function fetchPublicUserProfile(
 
   let cityName: string | null = null;
   if (profile.cityId) {
-    const communities = await fetchCommunities();
-    cityName =
-      communities.find((c: Community) => c.id === profile.cityId)?.name ?? null;
+    try {
+      const communities = await fetchCommunities();
+      cityName =
+        communities.find((c: Community) => c.id === profile.cityId)?.name ??
+        null;
+    } catch (err) {
+      console.warn("[Profile] communities", err);
+    }
   }
 
   return {
@@ -62,45 +74,47 @@ export async function fetchPublicUserProfile(
 export async function fetchPublicShowcase(
   uid: string,
 ): Promise<PublicShowcaseCard[]> {
-  const col = collection(getFirestoreDb(), "collections", uid, "cards");
-  const q = query(col, where("inShowcase", "==", true));
-  const snap = await getDocs(q);
-  const cards: PublicShowcaseCard[] = [];
-
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data();
-    if (typeof data.id !== "string" || typeof data.name !== "string") continue;
-    cards.push({
-      id: data.id,
-      name: data.name,
-      imageUrl:
-        data.imageUrl === null || typeof data.imageUrl === "string"
-          ? data.imageUrl
-          : null,
-      setId: typeof data.setId === "string" ? data.setId : "",
-    });
+  try {
+    return await fetchPublicShowcaseCards(uid);
+  } catch (err) {
+    console.warn("[Profile] showcase", firestoreErrorCode(err), err);
+    throw err;
   }
-
-  cards.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-  return cards;
 }
 
+/**
+ * Lista anúncios/procuras de um dono.
+ * Só filtra por ownerId (índice automático) e aplica kind no cliente —
+ * evita depender do índice composto ownerId+kind+updatedAt.
+ */
 export async function fetchListingsByOwner(
   uid: string,
   kind: TradeListKind,
 ): Promise<PublicListing[]> {
-  const col = collection(getFirestoreDb(), "listings");
-  const q = query(
-    col,
-    where("ownerId", "==", uid),
-    where("kind", "==", kind),
-    orderBy("updatedAt", "desc"),
-  );
-  const snap = await getDocs(q);
-  const items: PublicListing[] = [];
-  for (const docSnap of snap.docs) {
-    const parsed = parseListingDoc(docSnap);
-    if (parsed) items.push(parsed);
+  try {
+    const col = collection(getFirestoreDb(), "listings");
+    const q = query(col, where("ownerId", "==", uid));
+    const snap = await getDocs(q);
+    const items: PublicListing[] = [];
+    for (const docSnap of snap.docs) {
+      const parsed = parseListingDoc(docSnap);
+      if (parsed && parsed.kind === kind) items.push(parsed);
+    }
+    items.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    return items;
+  } catch (err) {
+    console.warn("[Profile] listings", firestoreErrorCode(err), err);
+    throw err;
   }
-  return items;
+}
+
+export function profileLoadErrorMessage(err: unknown): string {
+  const code = firestoreErrorCode(err);
+  if (code === "permission-denied") {
+    return "Sem permissão para ler este perfil. Confirme o deploy das regras Firestore.";
+  }
+  if (code === "failed-precondition") {
+    return "Índice do Firestore ainda não está pronto. Aguarde alguns minutos ou rode: firebase deploy --only firestore";
+  }
+  return "Não foi possível carregar este perfil. Tente de novo.";
 }

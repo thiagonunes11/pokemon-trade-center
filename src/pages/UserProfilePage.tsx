@@ -5,6 +5,7 @@ import {
   fetchListingsByOwner,
   fetchPublicShowcase,
   fetchPublicUserProfile,
+  profileLoadErrorMessage,
   type PublicShowcaseCard,
   type PublicUserProfile,
 } from "@/features/profile";
@@ -62,6 +63,7 @@ export function UserProfilePage() {
   const [wanted, setWanted] = useState<PublicListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sectionWarning, setSectionWarning] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -69,31 +71,57 @@ export function UserProfilePage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setSectionWarning(null);
 
-    void Promise.all([
-      fetchPublicUserProfile(uid),
-      fetchPublicShowcase(uid),
-      fetchListingsByOwner(uid, "offering"),
-      fetchListingsByOwner(uid, "wanted"),
-    ])
-      .then(([p, show, off, want]) => {
+    void (async () => {
+      try {
+        const p = await fetchPublicUserProfile(uid);
         if (cancelled) return;
         setProfile(p);
-        setShowcase(show);
-        setOffering(off);
-        setWanted(want);
-      })
-      .catch((err) => {
+
+        const results = await Promise.allSettled([
+          fetchPublicShowcase(uid),
+          fetchListingsByOwner(uid, "offering"),
+          fetchListingsByOwner(uid, "wanted"),
+        ]);
+        if (cancelled) return;
+
+        const [showRes, offRes, wantRes] = results;
+        const warnings: string[] = [];
+
+        if (showRes.status === "fulfilled") {
+          setShowcase(showRes.value);
+        } else {
+          setShowcase([]);
+          warnings.push(profileLoadErrorMessage(showRes.reason));
+        }
+
+        if (offRes.status === "fulfilled") {
+          setOffering(offRes.value);
+        } else {
+          setOffering([]);
+          warnings.push(profileLoadErrorMessage(offRes.reason));
+        }
+
+        if (wantRes.status === "fulfilled") {
+          setWanted(wantRes.value);
+        } else {
+          setWanted([]);
+          warnings.push(profileLoadErrorMessage(wantRes.reason));
+        }
+
+        if (warnings.length > 0) {
+          setSectionWarning(warnings[0] ?? null);
+        }
+      } catch (err) {
         console.warn("[Profile]", err);
         if (!cancelled) {
-          setError(
-            "Não foi possível carregar este perfil. Verifique as regras Firestore e os índices.",
-          );
+          setError(profileLoadErrorMessage(err));
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -160,6 +188,12 @@ export function UserProfilePage() {
               </button>
             </div>
           </header>
+
+          {sectionWarning ? (
+            <p className="rounded-xl border border-[var(--color-error)]/40 bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-error)]">
+              {sectionWarning}
+            </p>
+          ) : null}
 
           <section className="space-y-3">
             <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">

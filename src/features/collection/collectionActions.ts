@@ -2,6 +2,10 @@ import {
   scheduleDeleteCard,
   scheduleUpsertCard,
 } from "@/features/collection/firestoreSync";
+import {
+  deletePublicShowcaseCard,
+  syncPublicShowcaseCard,
+} from "@/features/profile/showcaseMirror";
 import { removeCardFromOffering } from "@/features/trades/tradeActions";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
@@ -34,6 +38,22 @@ function scheduleSavedCard(cardId: string) {
   });
 }
 
+function syncShowcaseMirror(cardId: string, inShowcase: boolean) {
+  const uid = useAuthStore.getState().userId;
+  const saved = findOwnedCard(cardId);
+  if (!uid || !saved) return;
+  void syncPublicShowcaseCard(
+    uid,
+    {
+      id: saved.id,
+      name: saved.name,
+      imageUrl: saved.imageUrl,
+      setId: saved.setId,
+    },
+    inShowcase,
+  ).catch((err) => console.warn("[ShowcaseMirror]", err));
+}
+
 /** Adiciona localmente e agenda escrita no Firestore. */
 export function addCardToCollection(card: NewCard) {
   const before = useCollectionStore.getState().hasCard(card.id);
@@ -44,11 +64,17 @@ export function addCardToCollection(card: NewCard) {
 
 /** Remove localmente e agenda delete no Firestore. */
 export function removeCardFromCollection(cardId: string) {
+  const uid = useAuthStore.getState().userId;
   const had = useCollectionStore.getState().hasCard(cardId);
   useCollectionStore.getState().removeCard(cardId);
   if (had) {
     scheduleDeleteCard(cardId);
     removeCardFromOffering(cardId);
+    if (uid) {
+      void deletePublicShowcaseCard(uid, cardId).catch((err) =>
+        console.warn("[ShowcaseMirror] delete", err),
+      );
+    }
   }
 }
 
@@ -57,6 +83,7 @@ export function setCardInShowcase(cardId: string, inShowcase: boolean) {
   if (!useCollectionStore.getState().hasCard(cardId)) return;
   useCollectionStore.getState().setCardShowcase(cardId, inShowcase);
   scheduleSavedCard(cardId);
+  syncShowcaseMirror(cardId, inShowcase);
 }
 
 export function toggleCardInShowcase(cardId: string) {
