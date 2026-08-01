@@ -4,7 +4,7 @@ rules_version = '2';
 // Pokemon Trade Center — Firestore rules
 // ===============================================================
 // users/{uid} — perfil privado (e-mail)
-// publicProfiles/{uid} — displayName + cityId + handle (auth read)
+// publicProfiles/{uid} — displayName + cityId + handle + avatar preset (auth read)
 // handles/{slug} — reserva de slug único → uid
 // publicShowcases/{uid}/cards — vitrine pública
 // collections/{uid}/cards/{cardId} — dono lê tudo; vitrine pública via publicShowcases
@@ -86,7 +86,7 @@ service cloud.firestore {
 
     function isValidPublicProfile() {
       let data = request.resource.data;
-      let allowedFields = ['displayName', 'cityId', 'updatedAt', 'handle'];
+      let allowedFields = ['displayName', 'cityId', 'updatedAt', 'handle', 'avatarType', 'avatarPresetId', 'avatarUrl'];
       let requiredFields = ['displayName', 'updatedAt'];
 
       return hasOnlyAllowedFields(allowedFields) &&
@@ -97,7 +97,18 @@ service cloud.firestore {
         data.updatedAt is timestamp &&
         (!('cityId' in data) || data.cityId == null ||
           (data.cityId is string && data.cityId.size() >= 1 && data.cityId.size() <= 64)) &&
-        (!('handle' in data) || data.handle == null || isValidHandleString(data.handle));
+        (!('handle' in data) || data.handle == null || isValidHandleString(data.handle)) &&
+        (!('avatarType' in data) || data.avatarType == null ||
+          data.avatarType == 'preset' || data.avatarType == 'custom') &&
+        (!('avatarPresetId' in data) || data.avatarPresetId == null ||
+          data.avatarPresetId == 'bulbasaur' ||
+          data.avatarPresetId == 'charmander' ||
+          data.avatarPresetId == 'squirtle' ||
+          data.avatarPresetId == 'pikachu' ||
+          data.avatarPresetId == 'eevee') &&
+        (!('avatarUrl' in data) || data.avatarUrl == null ||
+          (data.avatarUrl is string && data.avatarUrl.size() <= 1000 &&
+           data.avatarUrl.matches('^https://.*')));
     }
 
     function isValidCard() {

@@ -16,6 +16,7 @@ import {
 } from "@/features/trades/listingsQuery";
 import { fetchPublicShowcaseCards } from "@/features/profile/showcaseMirror";
 import type { TradeListKind } from "@/store/useTradeStore";
+import type { PublicAvatar } from "@/features/profile/avatarPresets";
 
 export type PublicShowcaseCard = {
   id: string;
@@ -30,7 +31,12 @@ export type PublicUserProfile = {
   cityId: string | null;
   cityName: string | null;
   handle: string | null;
+  avatar: PublicAvatar;
 };
+
+function emptyAvatar(): PublicAvatar {
+  return { avatarType: null, avatarPresetId: null, avatarUrl: null };
+}
 
 function firestoreErrorCode(err: unknown): string {
   if (err && typeof err === "object" && "code" in err) {
@@ -50,6 +56,7 @@ export async function fetchPublicUserProfile(
       cityId: null,
       cityName: null,
       handle: null,
+      avatar: emptyAvatar(),
     };
   }
 
@@ -71,6 +78,11 @@ export async function fetchPublicUserProfile(
     cityId: profile.cityId,
     cityName,
     handle: profile.handle,
+    avatar: {
+      avatarType: profile.avatarType,
+      avatarPresetId: profile.avatarPresetId,
+      avatarUrl: profile.avatarUrl,
+    },
   };
 }
 

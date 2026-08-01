@@ -21,7 +21,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 1. Escolher expansão (série Megaevolução, `me01`–`me05`)
 2. Navegar catálogo com binder (possuídas vs faltantes) e progresso
 3. Detalhe da carta + adicionar/remover da coleção; pin na vitrine
-4. Compartilhar perfil (`/u/:uid`: vitrine + anúncios/procuras)
+4. Compartilhar perfil (`/u/:slug`: vitrine + anúncios/procuras); avatar = preset Pokémon (Spark; sem Storage)
 5. Listas Anunciando / Procurando → mural público + chat 1:1 + grupo WhatsApp da cidade
 
 **Auth:** Firebase Auth + `users/{uid}` no Firestore.  
@@ -63,12 +63,13 @@ src/
     collection/         ← firestoreSync, CollectionSync, add/remove/showcase sync
     trades/             ← TradeSync, listings, threads, Explore/Community panels
     share/              ← ShareProfileButton (copiar link /u/:uid)
-    profile/            ← perfil público (vitrine + listings)
+    profile/            ← perfil público, avatarService (presets), avatarPresets
   components/           ← EnergyIcon, UserAvatar, ProgressFolio
   hooks/useOwnedSetCount.ts
-  lib/                  ← firebase, firestore, tcgdex, collections, safeStorage, query*, formatCollectionProgress
+  lib/                  ← firebase (Auth/Firestore), tcgdex, …
   store/                ← useAuthStore, useCollectionStore, useTradeStore
   theme/                ← colors, ThemeContext (matchMedia + classe .dark)
+  assets/avatars/       ← sprites preset (bulbasaur…eevee)
   assets/images/energy/ ← PNGs de tipo
 public/                 ← favicon, icon
 docs/superpowers/       ← specs e planos de implementação
@@ -154,7 +155,9 @@ Contrato: `Firebase UID → useAuthStore.userId → CollectionCard.ownerId`.
 
 Env obrigatório: `VITE_FIREBASE_API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `STORAGE_BUCKET`, `MESSAGING_SENDER_ID`, `APP_ID` (app **Web** no Console). Authorized domains: `localhost` + produção.
 
-Auth: `getAuth` (persistência browser). Perfil privado: `userProfileService` → `users/{uid}`. Perfil público: `publicProfiles/{uid}` + UI `/u/:uid`. Coleção: `features/collection/*`. Trocas: `features/trades/*`. Regras: `firestore.rules` (**deploy obrigatório** para vitrine pública + paths `trades/` / `listings/`).
+Auth: `getAuth` (persistência browser). Perfil privado: `userProfileService` → `users/{uid}`. Perfil público: `publicProfiles/{uid}` + UI `/u/:slug`. Coleção: `features/collection/*`. Trocas: `features/trades/*`. Regras: `firestore.rules` (**deploy obrigatório**).
+
+**Avatar (Spark):** Ajustes → 5 presets Pokémon (`src/assets/avatars/`) em `publicProfiles` (`avatarType: preset`, `avatarPresetId`). Sem Firebase Storage / upload custom (exige Blaze). Fallback: inicial em `UserAvatar`.
 
 ### Roadmap Firebase restante
 
@@ -165,6 +168,7 @@ Auth: `getAuth` (persistência browser). Perfil privado: `userProfileService` �
 | 7 Sync `collections/{uid}/cards` | Feito (pull no login + writes com debounce) |
 | 7b Listas `trades/{uid}/offering|wanted` | Feito |
 | 7c Mural `listings` + chat + `communities` WA | Feito (deploy rules/indexes + seed cidades) |
+| 7d Avatar presets Pokémon | Feito (Spark; upload custom adiado — Storage exige Blaze) |
 | 8 FCM | Pendente |
 
 ---
@@ -204,10 +208,10 @@ firebase deploy --only firestore:rules
 | Catálogo | `pages/CatalogPage.tsx`, `CatalogSetPage.tsx`, `features/sets/*` |
 | Detalhe | `pages/CardDetailPage.tsx` |
 | Coleção / vitrine | `pages/CollectionPage.tsx`, `useCollectionStore.ts`, `features/collection/*` |
-| Perfil público | `pages/UserProfilePage.tsx`, `features/profile/*` |
+| Perfil / avatar | `pages/UserProfilePage.tsx`, `features/profile/*`, `UserAvatar.tsx` |
 | Trocas | `pages/TradesPage.tsx`, `TradeChatPage.tsx`, `useTradeStore.ts`, `features/trades/*` |
-| Compartilhar | `features/share/*` (copiar link `/u/:uid`) |
+| Compartilhar | `features/share/*` (copiar link `/u/:slug`) |
 | Tema | `theme/*`, `index.css`, `SettingsPage.tsx` |
 | Shell / guard | `layouts/AppLayout.tsx`, `AuthGuard.tsx` |
 
-_Última revisão: 2026-08-01 — perfil `/u/:uid` (vitrine + listas) e Conversar só em anúncios._
+_Última revisão: 2026-08-01 — avatar presets Pokémon (Spark, sem Storage)._

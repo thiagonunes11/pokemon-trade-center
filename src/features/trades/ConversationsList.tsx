@@ -1,3 +1,5 @@
+import { UserAvatar } from "@/components/UserAvatar";
+import type { PublicAvatar } from "@/features/profile";
 import {
   getPublicProfile,
   subscribeToMyThreads,
@@ -8,10 +10,15 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+type PeerInfo = {
+  name: string;
+  avatar: PublicAvatar;
+};
+
 export function ConversationsList() {
   const userId = useAuthStore((s) => s.userId);
   const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [names, setNames] = useState<Record<string, string>>({});
+  const [peers, setPeers] = useState<Record<string, PeerInfo>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,16 +47,35 @@ export function ConversationsList() {
           unique.map(async (id) => {
             try {
               const profile = await getPublicProfile(id);
-              return [id, profile?.displayName ?? "Treinador"] as const;
+              return [
+                id,
+                {
+                  name: profile?.displayName ?? "Treinador",
+                  avatar: {
+                    avatarType: profile?.avatarType ?? null,
+                    avatarPresetId: profile?.avatarPresetId ?? null,
+                    avatarUrl: profile?.avatarUrl ?? null,
+                  },
+                } satisfies PeerInfo,
+              ] as const;
             } catch {
-              return [id, "Treinador"] as const;
+              return [
+                id,
+                {
+                  name: "Treinador",
+                  avatar: {
+                    avatarType: null,
+                    avatarPresetId: null,
+                    avatarUrl: null,
+                  },
+                } satisfies PeerInfo,
+              ] as const;
             }
           }),
         ).then((entries) => {
-          setNames((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+          setPeers((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
         });
 
-        // Repara preview apagado por ensureThread antigo
         for (const item of list) {
           if (item.lastMessagePreview) continue;
           void syncInboxPreviewFromThread(userId, item.id).then((fixed) => {
@@ -112,32 +138,43 @@ export function ConversationsList() {
           thread.peerId ??
           thread.participantIds.find((id) => id !== userId) ??
           "—";
-        const name = names[peerId] ?? "Treinador";
+        const peer = peers[peerId];
+        const name = peer?.name ?? "Treinador";
         const preview = thread.lastMessagePreview ?? "Sem mensagens ainda";
         return (
           <li
             key={thread.id}
             className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3"
           >
-            <div className="flex min-h-16 flex-col justify-center gap-1">
+            <div className="flex min-h-16 items-center gap-3">
               {peerId !== "—" ? (
+                <UserAvatar
+                  userId={peerId}
+                  name={name}
+                  size={44}
+                  avatar={peer?.avatar}
+                />
+              ) : null}
+              <div className="min-w-0 flex-1 flex-col justify-center gap-1">
+                {peerId !== "—" ? (
+                  <Link
+                    to={`/u/${peerId}`}
+                    className="font-[family-name:var(--font-display)] text-base font-bold text-[var(--color-accent)] underline-offset-2 hover:underline"
+                  >
+                    {name}
+                  </Link>
+                ) : (
+                  <span className="font-[family-name:var(--font-display)] text-base font-bold text-[var(--color-text)]">
+                    {name}
+                  </span>
+                )}
                 <Link
-                  to={`/u/${peerId}`}
-                  className="font-[family-name:var(--font-display)] text-base font-bold text-[var(--color-accent)] underline-offset-2 hover:underline"
+                  to={`/trades/chat/${thread.id}`}
+                  className="block truncate text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
                 >
-                  {name}
+                  {preview}
                 </Link>
-              ) : (
-                <span className="font-[family-name:var(--font-display)] text-base font-bold text-[var(--color-text)]">
-                  {name}
-                </span>
-              )}
-              <Link
-                to={`/trades/chat/${thread.id}`}
-                className="truncate text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-              >
-                {preview}
-              </Link>
+              </div>
             </div>
           </li>
         );

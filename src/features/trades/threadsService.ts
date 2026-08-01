@@ -14,6 +14,11 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firestore";
+import {
+  parsePublicAvatar,
+  type AvatarPresetId,
+  type AvatarType,
+} from "@/features/profile/avatarPresets";
 
 export function threadIdFor(uidA: string, uidB: string): string {
   return [uidA, uidB].sort().join("_");
@@ -307,14 +312,21 @@ export async function getPublicProfile(uid: string): Promise<{
   displayName: string;
   cityId: string | null;
   handle: string | null;
+  avatarType: AvatarType | null;
+  avatarPresetId: AvatarPresetId | null;
+  avatarUrl: string | null;
 } | null> {
   const snap = await getDoc(doc(getFirestoreDb(), "publicProfiles", uid));
   if (!snap.exists()) return null;
   const data = snap.data();
+  const avatar = parsePublicAvatar(data);
   return {
     displayName:
       typeof data.displayName === "string" ? data.displayName : "Treinador",
     cityId: typeof data.cityId === "string" ? data.cityId : null,
     handle: typeof data.handle === "string" ? data.handle : null,
+    avatarType: avatar.avatarType,
+    avatarPresetId: avatar.avatarPresetId,
+    avatarUrl: avatar.avatarUrl,
   };
 }

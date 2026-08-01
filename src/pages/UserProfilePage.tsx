@@ -193,6 +193,7 @@ export function UserProfilePage() {
               userId={resolvedUid}
               name={profile?.displayName}
               size={64}
+              avatar={profile?.avatar}
             />
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex flex-wrap items-center gap-2">

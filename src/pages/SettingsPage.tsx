@@ -1,11 +1,17 @@
 import { UserAvatar } from "@/components/UserAvatar";
 import { getAuthErrorMessage } from "@/features/auth";
 import {
+  AVATAR_PRESETS,
   claimHandle,
+  clearAvatar,
   getHandleForUid,
   HandleInvalidError,
   HandleTakenError,
+  setAvatarPreset,
+  type AvatarPresetId,
+  type PublicAvatar,
 } from "@/features/profile";
+import { getPublicProfile } from "@/features/trades/threadsService";
 import {
   HANDLE_MAX,
   HANDLE_MIN,
@@ -24,6 +30,10 @@ const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
   { value: "system", label: "Sistema" },
 ];
 
+function emptyAvatar(): PublicAvatar {
+  return { avatarType: null, avatarPresetId: null, avatarUrl: null };
+}
+
 export function SettingsPage() {
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.userId);
@@ -40,18 +50,28 @@ export function SettingsPage() {
   const [editingHandle, setEditingHandle] = useState(false);
   const [handleDraft, setHandleDraft] = useState("");
   const [handleBusy, setHandleBusy] = useState(false);
+  const [avatar, setAvatar] = useState<PublicAvatar>(emptyAvatar());
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [handleHint, setHandleHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    void getHandleForUid(userId).then((h) => {
-      if (!cancelled) {
+    void Promise.all([getHandleForUid(userId), getPublicProfile(userId)]).then(
+      ([h, profile]) => {
+        if (cancelled) return;
         setHandle(h);
         setHandleDraft(h ?? "");
-      }
-    });
+        if (profile) {
+          setAvatar({
+            avatarType: profile.avatarType,
+            avatarPresetId: profile.avatarPresetId,
+            avatarUrl: profile.avatarUrl,
+          });
+        }
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -96,6 +116,38 @@ export function SettingsPage() {
     }
   };
 
+  const pickPreset = async (presetId: AvatarPresetId) => {
+    if (!userId) return;
+    setError(null);
+    setAvatarBusy(true);
+    try {
+      await setAvatarPreset(userId, presetId);
+      setAvatar({
+        avatarType: "preset",
+        avatarPresetId: presetId,
+        avatarUrl: null,
+      });
+    } catch {
+      setError("Não foi possível salvar o ícone.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    if (!userId) return;
+    setError(null);
+    setAvatarBusy(true);
+    try {
+      await clearAvatar(userId);
+      setAvatar(emptyAvatar());
+    } catch {
+      setError("Não foi possível remover o ícone.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
   const handleLogout = async () => {
     if (!window.confirm("Sair da conta neste navegador?")) return;
     try {
@@ -121,7 +173,12 @@ export function SettingsPage() {
           Conta
         </h2>
         <div className="flex items-center gap-4">
-          <UserAvatar userId={userId} name={username} size={56} />
+          <UserAvatar
+            userId={userId}
+            name={username}
+            size={56}
+            avatar={avatar}
+          />
           <div className="min-w-0 flex-1">
             {editingName ? (
               <div className="space-y-2">
@@ -169,6 +226,55 @@ export function SettingsPage() {
               </>
             )}
           </div>
+        </div>
+
+        <div className="space-y-3 border-t border-[var(--color-border)] pt-4">
+          <p className="text-sm font-semibold text-[var(--color-text)]">
+            Foto de perfil
+          </p>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            Escolha um Pokémon como ícone.
+          </p>
+          <div className="grid grid-cols-5 gap-2">
+            {AVATAR_PRESETS.map((preset) => {
+              const selected =
+                avatar.avatarType === "preset" &&
+                avatar.avatarPresetId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  disabled={avatarBusy}
+                  title={preset.label}
+                  aria-label={preset.label}
+                  aria-pressed={selected}
+                  onClick={() => void pickPreset(preset.id)}
+                  className={`flex aspect-square items-center justify-center rounded-xl border-2 bg-[var(--color-bg)] p-1 transition disabled:opacity-50 ${
+                    selected
+                      ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]"
+                      : "border-[var(--color-border)] hover:border-[var(--color-accent)]"
+                  }`}
+                >
+                  <img
+                    src={preset.src}
+                    alt=""
+                    className="h-full w-full object-contain"
+                    style={{ imageRendering: "pixelated" }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          {avatar.avatarType ? (
+            <button
+              type="button"
+              disabled={avatarBusy}
+              onClick={() => void removeAvatar()}
+              className="min-h-10 rounded-xl border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text-secondary)] disabled:opacity-50"
+            >
+              Remover
+            </button>
+          ) : null}
         </div>
 
         <div className="space-y-2 border-t border-[var(--color-border)] pt-4">

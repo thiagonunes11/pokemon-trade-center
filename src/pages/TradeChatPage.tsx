@@ -1,4 +1,5 @@
 import { BackButton } from "@/components/BackButton";
+import { UserAvatar } from "@/components/UserAvatar";
 import {
   getPublicProfile,
   getThread,
@@ -6,6 +7,7 @@ import {
   subscribeToMessages,
   type ChatMessage,
 } from "@/features/trades/threadsService";
+import type { PublicAvatar } from "@/features/profile";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -16,6 +18,7 @@ export function TradeChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peerName, setPeerName] = useState("Treinador");
   const [peerId, setPeerId] = useState<string | null>(null);
+  const [peerAvatar, setPeerAvatar] = useState<PublicAvatar | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +33,13 @@ export function TradeChatPage() {
       if (!other) return;
       setPeerId(other);
       void getPublicProfile(other).then((p) => {
-        if (!cancelled && p) setPeerName(p.displayName);
+        if (cancelled || !p) return;
+        setPeerName(p.displayName);
+        setPeerAvatar({
+          avatarType: p.avatarType,
+          avatarPresetId: p.avatarPresetId,
+          avatarUrl: p.avatarUrl,
+        });
       });
     });
     return () => {
@@ -83,6 +92,14 @@ export function TradeChatPage() {
       <header className="mb-4 space-y-1">
         <div className="flex items-center gap-3">
           <BackButton to="/trades">Trocas</BackButton>
+          {peerId ? (
+            <UserAvatar
+              userId={peerId}
+              name={peerName}
+              size={40}
+              avatar={peerAvatar}
+            />
+          ) : null}
           <h1 className="min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-xl font-extrabold text-[var(--color-text)]">
             {peerId ? (
               <Link
