@@ -243,30 +243,53 @@ service cloud.firestore {
         resource.data.ownerId == request.auth.uid;
     }
 
+    function isValidUserThreadItem(inboxUserId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['threadId', 'peerId', 'participantIds', 'lastMessagePreview', 'lastSenderId', 'updatedAt']) &&
+        data.threadId is string &&
+        data.threadId.size() >= 1 &&
+        data.threadId.size() <= 200 &&
+        data.peerId is string &&
+        data.peerId.size() >= 1 &&
+        data.peerId.size() <= 128 &&
+        data.participantIds is list &&
+        data.participantIds.size() == 2 &&
+        request.auth.uid in data.participantIds &&
+        inboxUserId in data.participantIds &&
+        data.updatedAt is timestamp &&
+        (!('lastMessagePreview' in data) || data.lastMessagePreview == null ||
+          (data.lastMessagePreview is string && data.lastMessagePreview.size() <= 200)) &&
+        (!('lastSenderId' in data) || data.lastSenderId == null ||
+          (data.lastSenderId is string && data.lastSenderId.size() <= 128));
+    }
+
     match /threads/{threadId} {
-      // get em doc inexistente precisa passar (abertura da conversa)
       allow get: if isAuthenticated() && (
         !exists(/databases/$(database)/documents/threads/$(threadId)) ||
-        (resource.data.participantIds is list &&
-          request.auth.uid in resource.data.participantIds)
+        request.auth.uid in resource.data.participantIds
       );
-      allow list: if isAuthenticated() &&
-        resource.data.participantIds is list &&
-        request.auth.uid in resource.data.participantIds;
+      allow list: if false;
       allow create: if isAuthenticated() && isValidThreadCreate();
       allow update: if isValidThreadUpdate();
       allow delete: if false;
 
       match /messages/{messageId} {
         allow read: if isAuthenticated() &&
-          get(/databases/$(database)/documents/threads/$(threadId)).data.participantIds is list &&
           request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participantIds;
         allow create: if isAuthenticated() &&
-          get(/databases/$(database)/documents/threads/$(threadId)).data.participantIds is list &&
           request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participantIds &&
           isValidMessageCreate();
         allow update, delete: if false;
       }
+    }
+
+    // Inbox por usuário — evita list query com array-contains nas rules
+    match /userThreads/{userId}/items/{threadId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isAuthenticated() &&
+        isValidUserThreadItem(userId) &&
+        request.resource.data.threadId == threadId;
+      allow delete: if isOwner(userId);
     }
 
     match /communities/{cityId} {

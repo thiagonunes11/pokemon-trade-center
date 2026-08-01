@@ -3,7 +3,6 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
   limit,
   onSnapshot,
   orderBy,
@@ -11,7 +10,6 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
   type Timestamp,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -24,6 +22,7 @@ export function threadIdFor(uidA: string, uidB: string): string {
 export type ChatThread = {
   id: string;
   participantIds: string[];
+  peerId?: string;
   updatedAt: Date;
   lastMessagePreview: string | null;
   lastSenderId: string | null;
@@ -43,22 +42,68 @@ function parseDate(raw: unknown): Date {
   return new Date();
 }
 
+function inboxRef(uid: string, threadId: string) {
+  return doc(getFirestoreDb(), "userThreads", uid, "items", threadId);
+}
+
+async function upsertInboxItem(input: {
+  inboxUid: string;
+  threadId: string;
+  peerId: string;
+  participantIds: string[];
+  lastMessagePreview: string | null;
+  lastSenderId: string | null;
+}): Promise<void> {
+  await setDoc(
+    inboxRef(input.inboxUid, input.threadId),
+    {
+      threadId: input.threadId,
+      peerId: input.peerId,
+      participantIds: input.participantIds,
+      lastMessagePreview: input.lastMessagePreview,
+      lastSenderId: input.lastSenderId,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
 export async function ensureThread(
   myUid: string,
   peerUid: string,
 ): Promise<string> {
   const id = threadIdFor(myUid, peerUid);
-  const ref = doc(getFirestoreDb(), "threads", id);
-  // Não usar getDoc antes: rules bloqueiam leitura de doc inexistente.
-  // merge cria se não existe e não apaga lastMessagePreview se já existir.
+  const participantIds = [myUid, peerUid].sort();
+  const db = getFirestoreDb();
+
   await setDoc(
-    ref,
+    doc(db, "threads", id),
     {
-      participantIds: [myUid, peerUid].sort(),
+      participantIds,
       updatedAt: serverTimestamp(),
     },
     { merge: true },
   );
+
+  await Promise.all([
+    upsertInboxItem({
+      inboxUid: myUid,
+      threadId: id,
+      peerId: peerUid,
+      participantIds,
+      lastMessagePreview: null,
+      lastSenderId: null,
+    }),
+    upsertInboxItem({
+      inboxUid: peerUid,
+      threadId: id,
+      peerId: myUid,
+      participantIds,
+      lastMessagePreview: null,
+      lastSenderId: null,
+    }),
+  ]);
+
   return id;
 }
 
@@ -74,8 +119,22 @@ export async function sendTextMessage(
   }
 
   const db = getFirestoreDb();
-  const messagesRef = collection(db, "threads", threadId, "messages");
-  await addDoc(messagesRef, {
+  const threadSnap = await getDoc(doc(db, "threads", threadId));
+  if (!threadSnap.exists()) {
+    throw new Error("Conversa não encontrada");
+  }
+  const participantIds = Array.isArray(threadSnap.data().participantIds)
+    ? (threadSnap.data().participantIds as string[])
+    : [];
+  if (!participantIds.includes(senderId) || participantIds.length !== 2) {
+    throw new Error("Participantes inválidos");
+  }
+  const peerId = participantIds.find((id) => id !== senderId);
+  if (!peerId) throw new Error("Peer não encontrado");
+
+  const preview = trimmed.slice(0, 200);
+
+  await addDoc(collection(db, "threads", threadId, "messages"), {
     senderId,
     text: trimmed,
     createdAt: serverTimestamp(),
@@ -83,9 +142,28 @@ export async function sendTextMessage(
 
   await updateDoc(doc(db, "threads", threadId), {
     updatedAt: serverTimestamp(),
-    lastMessagePreview: trimmed.slice(0, 200),
+    lastMessagePreview: preview,
     lastSenderId: senderId,
   });
+
+  await Promise.all([
+    upsertInboxItem({
+      inboxUid: senderId,
+      threadId,
+      peerId,
+      participantIds,
+      lastMessagePreview: preview,
+      lastSenderId: senderId,
+    }),
+    upsertInboxItem({
+      inboxUid: peerId,
+      threadId,
+      peerId: senderId,
+      participantIds,
+      lastMessagePreview: preview,
+      lastSenderId: senderId,
+    }),
+  ]);
 }
 
 export function subscribeToMessages(
@@ -115,51 +193,26 @@ export function subscribeToMessages(
   );
 }
 
-export async function fetchMyThreads(uid: string): Promise<ChatThread[]> {
-  // Só array-contains (sem orderBy) — evita depender do índice composto.
-  const q = query(
-    collection(getFirestoreDb(), "threads"),
-    where("participantIds", "array-contains", uid),
-    limit(50),
-  );
-  const snap = await getDocs(q);
-  const threads = snap.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: d.id,
-      participantIds: Array.isArray(data.participantIds)
-        ? (data.participantIds as string[])
-        : [],
-      updatedAt: parseDate(data.updatedAt),
-      lastMessagePreview:
-        typeof data.lastMessagePreview === "string"
-          ? data.lastMessagePreview
-          : null,
-      lastSenderId:
-        typeof data.lastSenderId === "string" ? data.lastSenderId : null,
-    };
-  });
-  return threads.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-}
-
-/** Lista em tempo real das conversas do usuário. */
+/** Inbox em tempo real: userThreads/{uid}/items */
 export function subscribeToMyThreads(
   uid: string,
   onData: (threads: ChatThread[]) => void,
   onError?: (error: Error) => void,
 ): Unsubscribe {
   const q = query(
-    collection(getFirestoreDb(), "threads"),
-    where("participantIds", "array-contains", uid),
+    collection(getFirestoreDb(), "userThreads", uid, "items"),
+    orderBy("updatedAt", "desc"),
     limit(50),
   );
   return onSnapshot(
     q,
     (snap) => {
-      const threads = snap.docs.map((d) => {
+      const threads: ChatThread[] = snap.docs.map((d) => {
         const data = d.data();
         return {
-          id: d.id,
+          id:
+            typeof data.threadId === "string" ? data.threadId : d.id,
+          peerId: typeof data.peerId === "string" ? data.peerId : undefined,
           participantIds: Array.isArray(data.participantIds)
             ? (data.participantIds as string[])
             : [],
@@ -172,7 +225,6 @@ export function subscribeToMyThreads(
             typeof data.lastSenderId === "string" ? data.lastSenderId : null,
         };
       });
-      threads.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
       onData(threads);
     },
     (err) => onError?.(err),

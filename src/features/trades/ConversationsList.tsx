@@ -28,7 +28,10 @@ export function ConversationsList() {
         setError(null);
 
         const peerIds = list
-          .map((t) => t.participantIds.find((id) => id !== userId))
+          .map(
+            (t) =>
+              t.peerId ?? t.participantIds.find((id) => id !== userId),
+          )
           .filter((id): id is string => Boolean(id));
         const unique = [...new Set(peerIds)];
 
@@ -85,7 +88,9 @@ export function ConversationsList() {
     <ul className="space-y-2">
       {threads.map((thread) => {
         const peerId =
-          thread.participantIds.find((id) => id !== userId) ?? "—";
+          thread.peerId ??
+          thread.participantIds.find((id) => id !== userId) ??
+          "—";
         const name = names[peerId] ?? "Treinador";
         return (
           <li key={thread.id}>
