@@ -4,6 +4,7 @@ import { toggleCardInShowcase } from "@/features/collection";
 import { ShareShowcaseButton } from "@/features/share";
 import { getCollectionById, COLLECTIONS } from "@/lib/collections";
 import { useCollections } from "@/features/sets";
+import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useMemo, useState } from "react";
@@ -55,6 +56,7 @@ export function CollectionPage() {
   const allCards = useCollectionStore((s) => s.cards);
   const [displayMode, setDisplayMode] = useState<DisplayMode>("all");
   const queries = useCollections();
+  useScrollMemory();
 
   const totalsBySet = useMemo(() => {
     const map: Record<string, number | undefined> = {};

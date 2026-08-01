@@ -3,6 +3,7 @@ import { BackButton } from "@/components/BackButton";
 import { ProgressFolio } from "@/components/ProgressFolio";
 import { getCollectionById, isSupportedSetId } from "@/lib/collections";
 import { useOwnedSetCount } from "@/hooks/useOwnedSetCount";
+import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useNavigate, useParams } from "react-router-dom";
@@ -45,6 +46,8 @@ export function CatalogSetPage() {
   const userId = useAuthStore((s) => s.userId);
   const cards = useCollectionStore((s) => s.cards);
   const [filter, setFilter] = useState<SetFilter>("all");
+
+  useScrollMemory(valid && !isLoading && !error);
 
   const ownedIds = useMemo(() => {
     const ids = new Set<string>();
