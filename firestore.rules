@@ -244,7 +244,13 @@ service cloud.firestore {
     }
 
     match /threads/{threadId} {
-      allow read: if isAuthenticated() &&
+      // get em doc inexistente precisa passar (abertura da conversa)
+      allow get: if isAuthenticated() && (
+        !exists(/databases/$(database)/documents/threads/$(threadId)) ||
+        (resource.data.participantIds is list &&
+          request.auth.uid in resource.data.participantIds)
+      );
+      allow list: if isAuthenticated() &&
         resource.data.participantIds is list &&
         request.auth.uid in resource.data.participantIds;
       allow create: if isAuthenticated() && isValidThreadCreate();

@@ -19,6 +19,20 @@ import type { TradeListKind } from "@/store/useTradeStore";
 
 type ExploreKind = TradeListKind;
 
+function exploreErrorMessage(err: unknown): string {
+  const code =
+    err && typeof err === "object" && "code" in err
+      ? String((err as { code: unknown }).code)
+      : "";
+  if (code === "permission-denied") {
+    return "Sem permissão para ler o mural. Faça deploy das regras Firestore.";
+  }
+  if (code === "failed-precondition" || code === "unimplemented") {
+    return "Índice do Firestore ainda não está pronto. Rode: firebase deploy --only firestore";
+  }
+  return "Não foi possível carregar o mural. Verifique a conexão e o deploy do Firestore.";
+}
+
 export function ExploreBoard() {
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.userId);
@@ -34,6 +48,7 @@ export function ExploreBoard() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState<string | null>(null);
 
   const myWantedIds = useMemo(
@@ -70,7 +85,7 @@ export function ExploreBoard() {
       }
     } catch (err) {
       console.warn("[Explore]", err);
-      setError("Não foi possível carregar o mural. Tente de novo.");
+      setError(exploreErrorMessage(err));
       setItems([]);
     } finally {
       setLoading(false);
@@ -105,6 +120,7 @@ export function ExploreBoard() {
   const startChat = async (peerId: string, cardName: string) => {
     if (!userId || peerId === userId) return;
     setStartingChat(peerId);
+    setChatError(null);
     try {
       const threadId = await ensureThread(userId, peerId);
       navigate(`/trades/chat/${threadId}`, {
@@ -112,7 +128,15 @@ export function ExploreBoard() {
       });
     } catch (err) {
       console.warn("[Explore] chat", err);
-      setError("Não foi possível abrir a conversa.");
+      const code =
+        err && typeof err === "object" && "code" in err
+          ? String((err as { code: unknown }).code)
+          : "";
+      setChatError(
+        code === "permission-denied"
+          ? "Sem permissão para iniciar conversa. Faça deploy das regras Firestore."
+          : "Não foi possível abrir a conversa. Tente de novo.",
+      );
     } finally {
       setStartingChat(null);
     }
@@ -157,17 +181,28 @@ export function ExploreBoard() {
         <span className="text-sm text-[var(--color-text)]">{filterLabel}</span>
       </label>
 
-      {error ? (
-        <p className="text-sm text-[var(--color-error)]">{error}</p>
+      {chatError ? (
+        <p className="text-sm text-[var(--color-error)]">{chatError}</p>
       ) : null}
 
       {loading ? (
         <p className="text-sm text-[var(--color-text-muted)]">Carregando mural…</p>
+      ) : error ? (
+        <div className="space-y-3 rounded-2xl border border-[var(--color-error)]/40 bg-[var(--color-bg-card)] p-4">
+          <p className="text-sm text-[var(--color-error)]">{error}</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="min-h-10 rounded-xl border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text)]"
+          >
+            Tentar de novo
+          </button>
+        </div>
       ) : items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-text-muted)]">
           {onlyMine
             ? "Nenhum anúncio cruza com suas listas ainda."
-            : "Nenhum anúncio público por enquanto. Seja o primeiro a publicar."}
+            : "Nenhum anúncio de outros usuários por enquanto. Os seus não aparecem aqui — só os de outras pessoas."}
         </p>
       ) : (
         <ul className="space-y-3">

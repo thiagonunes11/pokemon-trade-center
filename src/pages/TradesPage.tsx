@@ -28,6 +28,68 @@ type PickerMode =
   | { kind: "wanted"; step: "sets" }
   | { kind: "wanted"; step: "cards"; setId: string };
 
+function TradeSectionTabs({
+  tab,
+  onChange,
+  offeringCount,
+  wantedCount,
+}: {
+  tab: TradeTab;
+  onChange: (tab: TradeTab) => void;
+  offeringCount: number;
+  wantedCount: number;
+}) {
+  const primary = [
+    { key: "explore" as const, label: "Explorar" },
+    { key: "offering" as const, label: "Anunciando", count: offeringCount },
+    { key: "wanted" as const, label: "Procurando", count: wantedCount },
+  ];
+  const secondary = [
+    { key: "chats" as const, label: "Conversas" },
+    { key: "community" as const, label: "Comunidade" },
+  ];
+
+  const renderBtn = (
+    opt: { key: TradeTab; label: string; count?: number },
+  ) => {
+    const active = tab === opt.key;
+    return (
+      <button
+        key={opt.key}
+        type="button"
+        role="tab"
+        aria-selected={active}
+        onClick={() => onChange(opt.key)}
+        className={`min-h-11 rounded-lg px-2 text-sm font-semibold ${
+          active
+            ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
+            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)]/60"
+        }`}
+      >
+        {opt.label}
+        {opt.count != null ? (
+          <span
+            className={`ml-1 ${active ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}`}
+          >
+            {opt.count}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
+  return (
+    <div
+      className="space-y-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
+      role="tablist"
+      aria-label="Seções de trocas"
+    >
+      <div className="grid grid-cols-3 gap-1">{primary.map(renderBtn)}</div>
+      <div className="grid grid-cols-2 gap-1">{secondary.map(renderBtn)}</div>
+    </div>
+  );
+}
+
 export function TradesPage() {
   const userId = useAuthStore((s) => s.userId);
   const [tab, setTab] = useState<TradeTab>("explore");
@@ -76,41 +138,12 @@ export function TradesPage() {
         </p>
       </header>
 
-      <div
-        className="flex flex-wrap gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
-        role="tablist"
-        aria-label="Seções de trocas"
-      >
-        {(
-          [
-            { key: "explore" as const, label: "Explorar" },
-            { key: "offering" as const, label: "Anunciando" },
-            { key: "wanted" as const, label: "Procurando" },
-            { key: "chats" as const, label: "Conversas" },
-            { key: "community" as const, label: "Comunidade" },
-          ] as const
-        ).map((opt) => {
-          const active = tab === opt.key;
-          return (
-            <button
-              key={opt.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(opt.key)}
-              className={`min-h-10 flex-1 rounded-lg px-2 text-[11px] font-semibold sm:text-sm ${
-                active
-                  ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
-                  : "text-[var(--color-text-secondary)]"
-              }`}
-            >
-              {opt.label}
-              {opt.key === "offering" ? ` (${myOffering.length})` : null}
-              {opt.key === "wanted" ? ` (${myWanted.length})` : null}
-            </button>
-          );
-        })}
-      </div>
+      <TradeSectionTabs
+        tab={tab}
+        onChange={setTab}
+        offeringCount={myOffering.length}
+        wantedCount={myWanted.length}
+      />
 
       {tab === "explore" ? <ExploreBoard /> : null}
       {tab === "chats" ? <ConversationsList /> : null}

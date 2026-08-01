@@ -49,15 +49,16 @@ export async function ensureThread(
 ): Promise<string> {
   const id = threadIdFor(myUid, peerUid);
   const ref = doc(getFirestoreDb(), "threads", id);
-  const existing = await getDoc(ref);
-  if (!existing.exists()) {
-    await setDoc(ref, {
+  // Não usar getDoc antes: rules bloqueiam leitura de doc inexistente.
+  // merge cria se não existe e não apaga lastMessagePreview se já existir.
+  await setDoc(
+    ref,
+    {
       participantIds: [myUid, peerUid].sort(),
       updatedAt: serverTimestamp(),
-      lastMessagePreview: null,
-      lastSenderId: null,
-    });
-  }
+    },
+    { merge: true },
+  );
   return id;
 }
 
