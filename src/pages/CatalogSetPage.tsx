@@ -3,8 +3,9 @@ import {
   addCardToCollection,
   removeCardFromCollection,
 } from "@/features/collection";
-import { addCardToWanted } from "@/features/trades";
+import { addCardToWanted, removeCardFromWanted } from "@/features/trades";
 import { BackButton } from "@/components/BackButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ProgressFolio } from "@/components/ProgressFolio";
 import { getCollectionById, isSupportedSetId } from "@/lib/collections";
 import { compareByLocalId } from "@/lib/cardOrder";
@@ -57,6 +58,13 @@ export function CatalogSetPage() {
   const [markMode, setMarkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [wantedHint, setWantedHint] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    message?: string;
+    confirmLabel: string;
+    danger?: boolean;
+    action: () => void;
+  } | null>(null);
 
   useScrollMemory(valid && !isLoading && !error);
 
@@ -94,6 +102,11 @@ export function CatalogSetPage() {
 
   const missingNotWanted = useMemo(
     () => missingCards.filter((c) => !wantedIds.has(c.id)),
+    [missingCards, wantedIds],
+  );
+
+  const missingInWanted = useMemo(
+    () => missingCards.filter((c) => wantedIds.has(c.id)),
     [missingCards, wantedIds],
   );
 
@@ -179,18 +192,53 @@ export function CatalogSetPage() {
       added += 1;
     }
     if (added === 0) {
-      setWantedHint("Essas cartas já estão em Procurando.");
+      setWantedHint("Essas cartas já estão na busca.");
     } else {
       setWantedHint(
         added === 1
-          ? "1 carta adicionada à Procurando."
-          : `${added} cartas adicionadas à Procurando.`,
+          ? "1 carta adicionada à busca."
+          : `${added} cartas adicionadas à busca.`,
       );
     }
   };
 
   const addMissingToWanted = () => {
-    addCardsToWanted(missingNotWanted);
+    const n = missingNotWanted.length;
+    if (n === 0) return;
+    setConfirm({
+      title:
+        n === 1
+          ? "Adicionar 1 carta à busca?"
+          : `Adicionar ${n} cartas à busca?`,
+      message:
+        "Só confirme se você realmente procura essas cartas. Dá para remover depois neste mesmo set.",
+      confirmLabel: n === 1 ? "Adicionar" : `Adicionar ${n}`,
+      action: () => addCardsToWanted(missingNotWanted),
+    });
+  };
+
+  const removeMissingFromWanted = () => {
+    const n = missingInWanted.length;
+    if (n === 0) return;
+    setConfirm({
+      title:
+        n === 1
+          ? "Remover 1 carta da busca?"
+          : `Remover ${n} cartas da busca?`,
+      message: "Remove só as faltantes deste set que estão na sua lista de busca.",
+      confirmLabel: n === 1 ? "Remover" : `Remover ${n}`,
+      danger: true,
+      action: () => {
+        for (const card of missingInWanted) {
+          removeCardFromWanted(card.id);
+        }
+        setWantedHint(
+          n === 1
+            ? "1 carta removida da busca."
+            : `${n} cartas removidas da busca.`,
+        );
+      },
+    });
   };
 
   const addSelectedToWanted = () => {
@@ -198,8 +246,24 @@ export function CatalogSetPage() {
       (c) =>
         selectedIds.has(c.id) && !ownedIds.has(c.id) && !wantedIds.has(c.id),
     );
-    addCardsToWanted(cardsToAdd);
-    setSelectedIds(new Set());
+    if (cardsToAdd.length === 0) return;
+
+    const run = () => {
+      addCardsToWanted(cardsToAdd);
+      setSelectedIds(new Set());
+    };
+
+    if (cardsToAdd.length < 10) {
+      run();
+      return;
+    }
+
+    setConfirm({
+      title: `Adicionar ${cardsToAdd.length} cartas à busca?`,
+      message: "As cartas selecionadas que você ainda não tem vão para a lista de busca.",
+      confirmLabel: `Adicionar ${cardsToAdd.length}`,
+      action: run,
+    });
   };
 
   if (!valid) {
@@ -262,14 +326,30 @@ export function CatalogSetPage() {
             total={total > 0 ? total : undefined}
             isLoading={isLoading}
           />
-          {!isLoading && !error && missingNotWanted.length > 0 && !markMode ? (
-            <button
-              type="button"
-              onClick={addMissingToWanted}
-              className="w-full min-h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 text-sm font-bold text-[var(--color-text)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] sm:w-auto"
-            >
-              Procurar faltantes ({missingNotWanted.length})
-            </button>
+          {!isLoading &&
+          !error &&
+          !markMode &&
+          (missingNotWanted.length > 0 || missingInWanted.length > 0) ? (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {missingNotWanted.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={addMissingToWanted}
+                  className="min-h-11 w-full flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 text-sm font-bold text-[var(--color-text)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                >
+                  Adicionar à busca ({missingNotWanted.length})
+                </button>
+              ) : null}
+              {missingInWanted.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={removeMissingFromWanted}
+                  className="min-h-11 w-full flex-1 rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)]"
+                >
+                  Remover da busca ({missingInWanted.length})
+                </button>
+              ) : null}
+            </div>
           ) : null}
           {wantedHint ? (
             <p className="text-sm text-[var(--color-text-secondary)]">
@@ -279,7 +359,7 @@ export function CatalogSetPage() {
                 onClick={() => navigate("/trades?tab=wanted")}
                 className="font-semibold text-[var(--color-accent)] hover:underline"
               >
-                Ver Procurando
+                Ver busca
               </button>
             </p>
           ) : null}
@@ -392,7 +472,7 @@ export function CatalogSetPage() {
                 onClick={addSelectedToWanted}
                 className="min-h-11 flex-1 rounded-xl border border-[var(--color-accent)] px-4 text-sm font-bold text-[var(--color-accent)] disabled:opacity-40 sm:flex-none"
               >
-                À Procurando
+                Adicionar à busca
                 {selectedMissingNotWanted > 0
                   ? ` (${selectedMissingNotWanted})`
                   : ""}
@@ -417,6 +497,20 @@ export function CatalogSetPage() {
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.title ?? ""}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        danger={confirm?.danger}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          const action = confirm?.action;
+          setConfirm(null);
+          action?.();
+        }}
+      />
     </div>
   );
 }

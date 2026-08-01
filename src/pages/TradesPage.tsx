@@ -15,6 +15,7 @@ import {
   compareByLocalId,
   compareBySetAndNumber,
 } from "@/lib/cardOrder";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useTradeStore } from "@/store/useTradeStore";
@@ -131,6 +132,7 @@ export function TradesPage() {
     isTradeTab(tabParam) ? tabParam : "explore",
   );
   const [picker, setPicker] = useState<PickerMode>(null);
+  const [clearWantedOpen, setClearWantedOpen] = useState(false);
 
   const selectTab = (next: TradeTab) => {
     setTab(next);
@@ -211,6 +213,16 @@ export function TradesPage() {
               : "Adicionar do catálogo"}
           </button>
 
+          {tab === "wanted" && list.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setClearWantedOpen(true)}
+              className="flex h-11 w-full items-center justify-center rounded-xl border border-[var(--color-error)] text-sm font-bold text-[var(--color-error)]"
+            >
+              Limpar busca ({list.length})
+            </button>
+          ) : null}
+
           {list.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-text-muted)]">
               {tab === "offering"
@@ -267,6 +279,25 @@ export function TradesPage() {
           onBackToSets={() => setPicker({ kind: "wanted", step: "sets" })}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={clearWantedOpen}
+        title={
+          list.length === 1
+            ? "Limpar a busca?"
+            : `Limpar a busca (${list.length} cartas)?`
+        }
+        message="Remove todas as cartas da sua lista Procurando."
+        confirmLabel="Limpar"
+        danger
+        onCancel={() => setClearWantedOpen(false)}
+        onConfirm={() => {
+          for (const card of list) {
+            removeCardFromWanted(card.id);
+          }
+          setClearWantedOpen(false);
+        }}
+      />
     </div>
   );
 }

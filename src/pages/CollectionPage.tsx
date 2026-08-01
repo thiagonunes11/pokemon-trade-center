@@ -295,20 +295,25 @@ export function CollectionPage() {
                 className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]"
               >
                 <div className="space-y-3 p-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <h2 className="min-w-0 font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
-                      {setName}
-                    </h2>
-                    <span className="shrink-0 text-xs text-[var(--color-text-muted)]">
-                      {setCards.length}{" "}
-                      {setCards.length === 1 ? "carta" : "cartas"}
-                    </span>
-                  </div>
-                  <ProgressFolio
-                    owned={setCards.length}
-                    total={total}
-                    isLoading={setLoading && total == null}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/catalog/${setId}`)}
+                    className="w-full space-y-3 rounded-xl text-left transition hover:opacity-95"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h2 className="min-w-0 font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
+                        {setName}
+                      </h2>
+                      <span className="shrink-0 text-sm font-semibold text-[var(--color-accent)]">
+                        Abrir →
+                      </span>
+                    </div>
+                    <ProgressFolio
+                      owned={setCards.length}
+                      total={total}
+                      isLoading={setLoading && total == null}
+                    />
+                  </button>
 
                   <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {setCards.map((card) => (
