@@ -1,8 +1,21 @@
 import { UserAvatar } from "@/components/UserAvatar";
 import { getAuthErrorMessage } from "@/features/auth";
+import {
+  claimHandle,
+  getHandleForUid,
+  HandleInvalidError,
+  HandleTakenError,
+} from "@/features/profile";
+import {
+  HANDLE_MAX,
+  HANDLE_MIN,
+  handleValidationMessage,
+  normalizeHandle,
+  validateHandle,
+} from "@/lib/handle";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAppTheme, type ThemeMode } from "@/theme";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
@@ -23,7 +36,26 @@ export function SettingsPage() {
 
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(username ?? "");
+  const [handle, setHandle] = useState<string | null>(null);
+  const [editingHandle, setEditingHandle] = useState(false);
+  const [handleDraft, setHandleDraft] = useState("");
+  const [handleBusy, setHandleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [handleHint, setHandleHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    void getHandleForUid(userId).then((h) => {
+      if (!cancelled) {
+        setHandle(h);
+        setHandleDraft(h ?? "");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const handleSaveName = async () => {
     setError(null);
@@ -32,6 +64,35 @@ export function SettingsPage() {
       setEditingName(false);
     } catch (err) {
       setError(getAuthErrorMessage(err));
+    }
+  };
+
+  const handleSaveHandle = async () => {
+    if (!userId) return;
+    setError(null);
+    setHandleHint(null);
+    const checked = validateHandle(handleDraft);
+    if (!checked.ok) {
+      setError(handleValidationMessage(checked.error));
+      return;
+    }
+    setHandleBusy(true);
+    try {
+      const next = await claimHandle(userId, checked.handle);
+      setHandle(next);
+      setHandleDraft(next);
+      setEditingHandle(false);
+      setHandleHint(`Seu link: /u/${next}`);
+    } catch (err) {
+      if (err instanceof HandleTakenError) {
+        setError("Esse nome de usuário já está em uso.");
+      } else if (err instanceof HandleInvalidError) {
+        setError(err.message);
+      } else {
+        setError("Não foi possível salvar o nome de usuário.");
+      }
+    } finally {
+      setHandleBusy(false);
     }
   };
 
@@ -109,6 +170,80 @@ export function SettingsPage() {
             )}
           </div>
         </div>
+
+        <div className="space-y-2 border-t border-[var(--color-border)] pt-4">
+          <p className="text-sm font-semibold text-[var(--color-text)]">
+            Nome de usuário (slug)
+          </p>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            Único no app. Letras minúsculas, números e hífen · {HANDLE_MIN}–
+            {HANDLE_MAX} caracteres. Usado no link do perfil.
+          </p>
+          {editingHandle ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2">
+                <span className="text-[var(--color-text-muted)]">@</span>
+                <input
+                  className="min-w-0 flex-1 bg-transparent font-[family-name:var(--font-mono)] text-[var(--color-text)] outline-none"
+                  value={handleDraft}
+                  maxLength={HANDLE_MAX}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onChange={(e) => {
+                    setHandleDraft(normalizeHandle(e.target.value));
+                    setError(null);
+                  }}
+                  placeholder="treinador-sonambulo"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={handleBusy}
+                  onClick={() => void handleSaveHandle()}
+                  className="rounded-xl bg-[var(--color-accent)] px-3 py-1.5 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-50"
+                >
+                  {handleBusy ? "Salvando…" : "Salvar slug"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingHandle(false);
+                    setHandleDraft(handle ?? "");
+                    setError(null);
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-sm text-[var(--color-text-secondary)]"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="font-[family-name:var(--font-mono)] text-sm text-[var(--color-text)]">
+                {handle ? `@${handle}` : "Ainda não definido"}
+              </p>
+              <button
+                type="button"
+                className="text-sm text-[var(--color-accent)] hover:underline"
+                onClick={() => {
+                  setHandleDraft(handle ?? "");
+                  setEditingHandle(true);
+                  setHandleHint(null);
+                }}
+              >
+                {handle ? "Alterar slug" : "Escolher slug"}
+              </button>
+            </div>
+          )}
+          {handleHint ? (
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {handleHint}
+            </p>
+          ) : null}
+        </div>
+
         <p className="text-sm text-[var(--color-text-secondary)]">
           <span className="text-[var(--color-text-muted)]">E-mail: </span>
           {email}

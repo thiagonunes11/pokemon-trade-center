@@ -6,10 +6,12 @@ import {
   fetchPublicShowcase,
   fetchPublicUserProfile,
   profileLoadErrorMessage,
+  resolveUidFromProfileParam,
   type PublicShowcaseCard,
   type PublicUserProfile,
 } from "@/features/profile";
 import type { PublicListing } from "@/features/trades/listingsQuery";
+import { profilePathFor } from "@/lib/handle";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -52,11 +54,11 @@ function ProfileCardGrid({
 }
 
 export function UserProfilePage() {
-  const { uid = "" } = useParams();
+  const { uid: profileParam = "" } = useParams();
   const navigate = useNavigate();
   const myId = useAuthStore((s) => s.userId);
-  const isSelf = Boolean(myId && uid && myId === uid);
 
+  const [resolvedUid, setResolvedUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [showcase, setShowcase] = useState<PublicShowcaseCard[]>([]);
   const [offering, setOffering] = useState<PublicListing[]>([]);
@@ -66,18 +68,35 @@ export function UserProfilePage() {
   const [sectionWarning, setSectionWarning] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const isSelf = Boolean(myId && resolvedUid && myId === resolvedUid);
+
   useEffect(() => {
-    if (!uid) return;
+    if (!profileParam) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
     setSectionWarning(null);
+    setResolvedUid(null);
 
     void (async () => {
       try {
+        const uid = await resolveUidFromProfileParam(profileParam);
+        if (cancelled) return;
+        if (!uid) {
+          setError("Perfil não encontrado.");
+          setLoading(false);
+          return;
+        }
+        setResolvedUid(uid);
+
         const p = await fetchPublicUserProfile(uid);
         if (cancelled) return;
         setProfile(p);
+
+        // Canonical URL when handle exists
+        if (p.handle && profileParam !== p.handle) {
+          navigate(profilePathFor(p.handle), { replace: true });
+        }
 
         const results = await Promise.allSettled([
           fetchPublicShowcase(uid),
@@ -126,10 +145,12 @@ export function UserProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [uid]);
+  }, [profileParam, navigate]);
 
   const copyLink = async () => {
-    const url = `${window.location.origin}/u/${uid}`;
+    const slug = profile?.handle ?? resolvedUid;
+    if (!slug) return;
+    const url = `${window.location.origin}${profilePathFor(slug)}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -139,7 +160,7 @@ export function UserProfilePage() {
     }
   };
 
-  if (!uid) {
+  if (!profileParam) {
     return (
       <p className="text-sm text-[var(--color-error)]">Perfil inválido.</p>
     );
@@ -155,11 +176,11 @@ export function UserProfilePage() {
         </p>
       ) : error ? (
         <p className="text-sm text-[var(--color-error)]">{error}</p>
-      ) : (
+      ) : resolvedUid ? (
         <>
           <header className="flex items-start gap-4">
             <UserAvatar
-              userId={uid}
+              userId={resolvedUid}
               name={profile?.displayName}
               size={64}
             />
@@ -174,6 +195,11 @@ export function UserProfilePage() {
                   </span>
                 ) : null}
               </div>
+              {profile?.handle ? (
+                <p className="font-[family-name:var(--font-mono)] text-sm text-[var(--color-accent)]">
+                  @{profile.handle}
+                </p>
+              ) : null}
               <p className="text-sm text-[var(--color-text-secondary)]">
                 {profile?.cityName
                   ? profile.cityName
@@ -236,7 +262,7 @@ export function UserProfilePage() {
             />
           </section>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { getHandleForUid } from "@/features/profile";
+import { profilePathFor } from "@/lib/handle";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useState } from "react";
 
@@ -8,8 +10,10 @@ export function ShareProfileButton() {
 
   const copyProfileLink = async () => {
     if (!userId) return;
-    const url = `${window.location.origin}/u/${userId}`;
     try {
+      const handle = await getHandleForUid(userId);
+      const slug = handle ?? userId;
+      const url = `${window.location.origin}${profilePathFor(slug)}`;
       await navigator.clipboard.writeText(url);
       setError(null);
       setCopied(true);

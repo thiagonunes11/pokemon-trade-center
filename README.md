@@ -13,7 +13,7 @@ App **web** para montar sua vitrine de Pokémon TCG, acompanhar expansões, anun
 1. **Login** — e-mail e senha (Firebase Auth)
 2. **Catálogo** — expansões Megaevolução (`me01`–`me05`) + binder com progresso
 3. **Coleção** — sync Firestore; abas Todas / Por coleção / Vitrine (★)
-4. **Compartilhar** — link do perfil (`/u/:uid`: vitrine, Anunciando, Procurando)
+4. **Compartilhar** — link do perfil (`/u/slug` ou UID: vitrine, Anunciando, Procurando)
 5. **Trocas** — listas próprias, **mural** (Explorar; Conversar só em anúncios), **chat** 1:1, **Comunidade** (WhatsApp por cidade)
 6. **Ajustes** — avatar, nome, tema, logout
 
@@ -104,7 +104,7 @@ Sem `whatsappUrl` (ou vazio), o app mostra “Em breve” para aquela cidade. Es
 | `/collection` | Coleção / vitrine |
 | `/trades` | Explorar / listas / conversas / comunidade |
 | `/trades/chat/:threadId` | Chat 1:1 |
-| `/u/:uid` | Perfil (vitrine + anúncios + procuras) |
+| `/u/:slug` | Perfil (slug ou UID) |
 | `/settings` | Conta e tema |
 | `/card/:id` | Detalhe |
 

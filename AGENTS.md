@@ -89,7 +89,7 @@ firebase.json
 | `/collection` | Minha coleção (Todas / Por coleção / Vitrine) |
 | `/trades` | Explorar / Anunciando / Procurando / Conversas / Comunidade |
 | `/trades/chat/:threadId` | Chat texto 1:1 |
-| `/u/:uid` | Perfil público: vitrine + Anunciando + Procurando |
+| `/u/:slug` | Perfil público por slug (ou UID legado) |
 | `/settings` | Conta, tema, sobre |
 | `/card/:id` | Detalhe |
 
@@ -124,7 +124,7 @@ Sync (`src/features/collection/`):
 
 **Não** usar selector de função solta do store para contagem — preferir hooks em `useOwnedSetCount.ts`.
 
-Vitrine: `CollectionCard.inShowcase` + `setCardInShowcase` / `toggleCardInShowcase`. Rules: dono lê tudo; outros só `inShowcase == true` (query com filtro). Perfil `/u/:uid` em `features/profile/*` + `UserProfilePage`. Conversar no mural só em **Anúncios** (`offering`).
+Vitrine: `CollectionCard.inShowcase` + espelho `publicShowcases/{uid}/cards`. Perfil `/u/:slug` com handle único (`handles/{slug}` + `publicProfiles.handle`). Conversar no mural só em **Anúncios**.
 
 ---
 

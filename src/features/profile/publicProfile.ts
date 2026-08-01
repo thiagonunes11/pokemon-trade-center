@@ -29,6 +29,7 @@ export type PublicUserProfile = {
   displayName: string;
   cityId: string | null;
   cityName: string | null;
+  handle: string | null;
 };
 
 function firestoreErrorCode(err: unknown): string {
@@ -48,6 +49,7 @@ export async function fetchPublicUserProfile(
       displayName: "Treinador",
       cityId: null,
       cityName: null,
+      handle: null,
     };
   }
 
@@ -68,6 +70,7 @@ export async function fetchPublicUserProfile(
     displayName: profile.displayName,
     cityId: profile.cityId,
     cityName,
+    handle: profile.handle,
   };
 }
 

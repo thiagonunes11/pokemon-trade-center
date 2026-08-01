@@ -306,6 +306,7 @@ export async function syncInboxPreviewFromThread(
 export async function getPublicProfile(uid: string): Promise<{
   displayName: string;
   cityId: string | null;
+  handle: string | null;
 } | null> {
   const snap = await getDoc(doc(getFirestoreDb(), "publicProfiles", uid));
   if (!snap.exists()) return null;
@@ -314,5 +315,6 @@ export async function getPublicProfile(uid: string): Promise<{
     displayName:
       typeof data.displayName === "string" ? data.displayName : "Treinador",
     cityId: typeof data.cityId === "string" ? data.cityId : null,
+    handle: typeof data.handle === "string" ? data.handle : null,
   };
 }

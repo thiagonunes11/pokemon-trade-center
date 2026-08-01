@@ -4,14 +4,15 @@ rules_version = '2';
 // Pokemon Trade Center — Firestore rules
 // ===============================================================
 // users/{uid} — perfil privado (e-mail)
-// publicProfiles/{uid} — displayName + cityId (auth read)
+// publicProfiles/{uid} — displayName + cityId + handle (auth read)
+// handles/{slug} — reserva de slug único → uid
 // publicShowcases/{uid}/cards — vitrine pública
 // collections/{uid}/cards/{cardId} — dono lê tudo; vitrine pública via publicShowcases
 // trades/{uid}/offering|wanted/{cardId}
 // listings/{uid_kind_cardId} — mural público
 // threads/{threadId}/messages/{messageId}
 // communities/{cityId} — links WhatsApp (read-only no cliente)
-// Perfil público UI: /u/:uid (vitrine + offering + wanted)
+// Perfil público UI: /u/:slug (vitrine + offering + wanted)
 // ===============================================================
 
 service cloud.firestore {
@@ -50,7 +51,7 @@ service cloud.firestore {
 
     function isValidUserProfile() {
       let data = request.resource.data;
-      let allowedFields = ['displayName', 'email', 'createdAt', 'pushToken', 'migrationCompleted', 'cityId'];
+      let allowedFields = ['displayName', 'email', 'createdAt', 'pushToken', 'migrationCompleted', 'cityId', 'handle'];
       let requiredFields = ['displayName', 'email', 'createdAt'];
 
       return hasOnlyAllowedFields(allowedFields) &&
@@ -65,7 +66,38 @@ service cloud.firestore {
         (!('pushToken' in data) || (data.pushToken is string && data.pushToken.size() <= 512)) &&
         (!('migrationCompleted' in data) || data.migrationCompleted is bool) &&
         (!('cityId' in data) || data.cityId == null ||
-          (data.cityId is string && data.cityId.size() >= 1 && data.cityId.size() <= 64));
+          (data.cityId is string && data.cityId.size() >= 1 && data.cityId.size() <= 64)) &&
+        (!('handle' in data) || data.handle == null || isValidHandleString(data.handle));
+    }
+
+    function isValidHandleString(value) {
+      return value is string &&
+        value.size() >= 3 &&
+        value.size() <= 20 &&
+        value.matches('^[a-z0-9]+(-[a-z0-9]+)*$');
+    }
+
+    function isValidHandleDoc() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['uid', 'updatedAt']) &&
+        data.uid == request.auth.uid &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPublicProfile() {
+      let data = request.resource.data;
+      let allowedFields = ['displayName', 'cityId', 'updatedAt', 'handle'];
+      let requiredFields = ['displayName', 'updatedAt'];
+
+      return hasOnlyAllowedFields(allowedFields) &&
+        hasRequiredFields(requiredFields) &&
+        data.displayName is string &&
+        data.displayName.size() >= 1 &&
+        data.displayName.size() <= 100 &&
+        data.updatedAt is timestamp &&
+        (!('cityId' in data) || data.cityId == null ||
+          (data.cityId is string && data.cityId.size() >= 1 && data.cityId.size() <= 64)) &&
+        (!('handle' in data) || data.handle == null || isValidHandleString(data.handle));
     }
 
     function isValidCard() {
@@ -140,21 +172,6 @@ service cloud.firestore {
         data.updatedAt is timestamp;
     }
 
-    function isValidPublicProfile() {
-      let data = request.resource.data;
-      let allowedFields = ['displayName', 'cityId', 'updatedAt'];
-      let requiredFields = ['displayName', 'updatedAt'];
-
-      return hasOnlyAllowedFields(allowedFields) &&
-        hasRequiredFields(requiredFields) &&
-        data.displayName is string &&
-        data.displayName.size() >= 1 &&
-        data.displayName.size() <= 100 &&
-        data.updatedAt is timestamp &&
-        (!('cityId' in data) || data.cityId == null ||
-          (data.cityId is string && data.cityId.size() >= 1 && data.cityId.size() <= 64));
-    }
-
     function isThreadParticipant() {
       return isAuthenticated() &&
         resource.data.participantIds is list &&
@@ -212,6 +229,16 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create, update: if isOwner(userId) && isValidPublicProfile();
       allow delete: if false;
+    }
+
+    match /handles/{handleId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        isValidHandleString(handleId) &&
+        isValidHandleDoc();
+      allow update: if false;
+      allow delete: if isAuthenticated() &&
+        resource.data.uid == request.auth.uid;
     }
 
     // Vitrine pública espelhada — leitura autenticada sem query filtrada em collections
