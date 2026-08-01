@@ -5,6 +5,7 @@ import {
   fetchListingsByOwner,
   fetchPublicShowcase,
   fetchPublicUserProfile,
+  ensurePublicShowcaseSynced,
   profileLoadErrorMessage,
   resolveUidFromProfileParam,
   type PublicShowcaseCard,
@@ -98,6 +99,15 @@ export function UserProfilePage() {
           navigate(profilePathFor(p.handle), { replace: true });
         }
 
+        // Dono: garante espelho da vitrine antes de ler
+        if (myId && myId === uid) {
+          try {
+            await ensurePublicShowcaseSynced(uid);
+          } catch (err) {
+            console.warn("[Profile] showcase ensure", err);
+          }
+        }
+
         const results = await Promise.allSettled([
           fetchPublicShowcase(uid),
           fetchListingsByOwner(uid, "offering"),
@@ -145,7 +155,7 @@ export function UserProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [profileParam, navigate]);
+  }, [profileParam, navigate, myId]);
 
   const copyLink = async () => {
     const slug = profile?.handle ?? resolvedUid;
@@ -222,9 +232,15 @@ export function UserProfilePage() {
           ) : null}
 
           <section className="space-y-3">
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
-              Vitrine
-            </h2>
+            <div className="space-y-1">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
+                Vitrine
+              </h2>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Cartas com ★ — o que o treinador quer mostrar. Pode coincidir
+                com Anunciando ou Procurando.
+              </p>
+            </div>
             <ProfileCardGrid
               cards={showcase}
               emptyLabel="Nenhuma carta na vitrine."
@@ -233,9 +249,14 @@ export function UserProfilePage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
-              Anunciando
-            </h2>
+            <div className="space-y-1">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
+                Anunciando
+              </h2>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Cartas disponíveis para troca.
+              </p>
+            </div>
             <ProfileCardGrid
               cards={offering.map((l) => ({
                 id: l.cardId,
@@ -248,9 +269,14 @@ export function UserProfilePage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
-              Procurando
-            </h2>
+            <div className="space-y-1">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
+                Procurando
+              </h2>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Cartas que este treinador busca.
+              </p>
+            </div>
             <ProfileCardGrid
               cards={wanted.map((l) => ({
                 id: l.cardId,

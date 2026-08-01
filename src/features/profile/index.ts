@@ -13,3 +13,4 @@ export {
   HandleTakenError,
   HandleInvalidError,
 } from "./handleService";
+export { ensurePublicShowcaseSynced } from "./showcaseMirror";

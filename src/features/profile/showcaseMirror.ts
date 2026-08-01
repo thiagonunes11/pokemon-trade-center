@@ -7,6 +7,7 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firestore";
+import { useCollectionStore } from "@/store/useCollectionStore";
 
 export type ShowcaseMirrorCard = {
   id: string;
@@ -21,6 +22,13 @@ function showcaseCardRef(uid: string, cardId: string) {
 
 function showcaseColRef(uid: string) {
   return collection(getFirestoreDb(), "publicShowcases", uid, "cards");
+}
+
+function sanitizeImageUrl(url: string | null): string | null {
+  if (url == null) return null;
+  if (typeof url !== "string") return null;
+  if (!url.startsWith("https://") || url.length > 500) return null;
+  return url;
 }
 
 /** Espelha (ou remove) uma carta na vitrine pública. */
@@ -39,7 +47,7 @@ export async function syncPublicShowcaseCard(
     {
       id: card.id,
       name: card.name,
-      imageUrl: card.imageUrl,
+      imageUrl: sanitizeImageUrl(card.imageUrl),
       setId: card.setId,
       updatedAt: serverTimestamp(),
     },
@@ -69,6 +77,25 @@ export async function backfillPublicShowcase(
       .filter((id) => !nextIds.has(id))
       .map((id) => deletePublicShowcaseCard(uid, id)),
   ]);
+}
+
+/**
+ * Sincroniza a vitrine pública com as cartas ★ do store local.
+ * Seguro chamar várias vezes (ex.: ao abrir Coleção / próprio perfil).
+ */
+export async function ensurePublicShowcaseSynced(uid: string): Promise<void> {
+  const showcase = useCollectionStore
+    .getState()
+    .cards.filter(
+      (c) => (c.ownerId ?? null) === uid && Boolean(c.inShowcase),
+    )
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      imageUrl: c.imageUrl,
+      setId: c.setId,
+    }));
+  await backfillPublicShowcase(uid, showcase);
 }
 
 export async function fetchPublicShowcaseCards(

@@ -248,11 +248,19 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly(['id', 'name', 'imageUrl', 'setId', 'updatedAt']) &&
         request.resource.data.id == cardId &&
         request.resource.data.id is string &&
+        request.resource.data.id.size() >= 1 &&
+        request.resource.data.id.size() <= 30 &&
         request.resource.data.name is string &&
+        request.resource.data.name.size() >= 1 &&
+        request.resource.data.name.size() <= 200 &&
         request.resource.data.setId is string &&
+        request.resource.data.setId.size() >= 1 &&
+        request.resource.data.setId.size() <= 20 &&
         request.resource.data.updatedAt is timestamp &&
         (!('imageUrl' in request.resource.data) || request.resource.data.imageUrl == null ||
-          (request.resource.data.imageUrl is string && request.resource.data.imageUrl.size() <= 500));
+          (request.resource.data.imageUrl is string &&
+           request.resource.data.imageUrl.size() <= 500 &&
+           request.resource.data.imageUrl.matches('^https://.*')));
       allow delete: if isOwner(userId);
     }
 

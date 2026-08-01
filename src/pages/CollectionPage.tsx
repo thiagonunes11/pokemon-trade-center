@@ -2,12 +2,13 @@ import { ProgressFolio } from "@/components/ProgressFolio";
 import { CardItem } from "@/features/cards";
 import { toggleCardInShowcase } from "@/features/collection";
 import { ShareProfileButton } from "@/features/share";
+import { ensurePublicShowcaseSynced } from "@/features/profile";
 import { getCollectionById, COLLECTIONS } from "@/lib/collections";
 import { useCollections } from "@/features/sets";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 type DisplayMode = "all" | "bySet" | "showcase";
@@ -86,6 +87,14 @@ export function CollectionPage() {
     () => [...showcaseCards].sort((a, b) => a.name.localeCompare(b.name)),
     [showcaseCards],
   );
+
+  // Mantém o espelho público alinhado com as ★ locais
+  useEffect(() => {
+    if (!authUserId) return;
+    void ensurePublicShowcaseSynced(authUserId).catch((err) =>
+      console.warn("[Collection] showcase sync", err),
+    );
+  }, [authUserId, showcaseCards.length]);
 
   const cardsBySet = useMemo(() => {
     const groups = cards.reduce<Record<string, typeof cards>>((acc, card) => {
