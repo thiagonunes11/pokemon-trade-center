@@ -4,11 +4,17 @@ import { toggleCardInShowcase } from "@/features/collection";
 import { ShareProfileButton } from "@/features/share";
 import { ensurePublicShowcaseSynced } from "@/features/profile";
 import { getCollectionById, COLLECTIONS } from "@/lib/collections";
+import {
+  cardLocalId,
+  compareBySetAndNumber,
+  normalizeSearch,
+  setSortIndex,
+} from "@/lib/cardOrder";
 import { useCollections } from "@/features/sets";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 type DisplayMode = "all" | "bySet" | "showcase";
@@ -55,6 +61,9 @@ export function CollectionPage() {
   const authUserId = useAuthStore((s) => s.userId);
   const allCards = useCollectionStore((s) => s.cards);
   const [displayMode, setDisplayMode] = useState<DisplayMode>("all");
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const needle = normalizeSearch(deferredSearch);
   const queries = useCollections();
   useScrollMemory();
 
@@ -73,19 +82,29 @@ export function CollectionPage() {
     [allCards, authUserId],
   );
 
+  const filteredCards = useMemo(() => {
+    if (needle.length < 2) return cards;
+    return cards.filter((c) => normalizeSearch(c.name).includes(needle));
+  }, [cards, needle]);
+
   const showcaseCards = useMemo(
-    () => cards.filter((c) => Boolean(c.inShowcase)),
-    [cards],
+    () => filteredCards.filter((c) => Boolean(c.inShowcase)),
+    [filteredCards],
   );
 
   const sortedCards = useMemo(
-    () => [...cards].sort((a, b) => a.name.localeCompare(b.name)),
-    [cards],
+    () => [...filteredCards].sort(compareBySetAndNumber),
+    [filteredCards],
   );
 
   const sortedShowcase = useMemo(
-    () => [...showcaseCards].sort((a, b) => a.name.localeCompare(b.name)),
+    () => [...showcaseCards].sort(compareBySetAndNumber),
     [showcaseCards],
+  );
+
+  const showcaseCount = useMemo(
+    () => cards.filter((c) => Boolean(c.inShowcase)).length,
+    [cards],
   );
 
   // Mantém o espelho público alinhado com as ★ locais
@@ -94,15 +113,25 @@ export function CollectionPage() {
     void ensurePublicShowcaseSynced(authUserId).catch((err) =>
       console.warn("[Collection] showcase sync", err),
     );
-  }, [authUserId, showcaseCards.length]);
+  }, [authUserId, showcaseCount]);
 
   const cardsBySet = useMemo(() => {
-    const groups = cards.reduce<Record<string, typeof cards>>((acc, card) => {
-      (acc[card.setId] ??= []).push(card);
-      return acc;
-    }, {});
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [cards]);
+    const groups = filteredCards.reduce<Record<string, typeof filteredCards>>(
+      (acc, card) => {
+        (acc[card.setId] ??= []).push(card);
+        return acc;
+      },
+      {},
+    );
+    return Object.entries(groups)
+      .sort(([a], [b]) => setSortIndex(a) - setSortIndex(b))
+      .map(([setId, setCards]) => [
+        setId,
+        [...setCards].sort(compareBySetAndNumber),
+      ] as const);
+  }, [filteredCards]);
+
+  const isSearching = needle.length >= 2;
 
   return (
     <div className="relative space-y-5 pb-24">
@@ -114,36 +143,65 @@ export function CollectionPage() {
           <p className="text-sm text-[var(--color-text-secondary)]">
             {cards.length === 0
               ? "Nenhuma carta ainda — adicione pelo catálogo"
-              : `${cards.length} carta${cards.length === 1 ? "" : "s"} · ${showcaseCards.length} na vitrine`}
+              : `${cards.length} carta${cards.length === 1 ? "" : "s"} · ${showcaseCount} na vitrine`}
           </p>
         </div>
 
         {cards.length > 0 ? (
-          <div
-            className="flex rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
-            role="tablist"
-            aria-label="Organizar coleção"
-          >
-            {displayOptions.map((opt) => {
-              const active = displayMode === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setDisplayMode(opt.key)}
-                  className={`min-h-11 flex-1 rounded-lg px-1 text-xs font-semibold transition sm:text-sm ${
-                    active
-                      ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
-                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
+          <>
+            <div className="space-y-1">
+              <label className="sr-only" htmlFor="collection-card-search">
+                Buscar na coleção
+              </label>
+              <input
+                id="collection-card-search"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar na coleção (ex.: Pikachu)"
+                autoComplete="off"
+                spellCheck={false}
+                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3 text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]"
+              />
+              {isSearching ? (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  {filteredCards.length === 0
+                    ? "Nenhuma carta encontrada."
+                    : `${filteredCards.length} ocorrência${filteredCards.length === 1 ? "" : "s"}`}
+                </p>
+              ) : search.trim().length > 0 ? (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Digite pelo menos 2 letras para buscar.
+                </p>
+              ) : null}
+            </div>
+
+            <div
+              className="flex rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
+              role="tablist"
+              aria-label="Organizar coleção"
+            >
+              {displayOptions.map((opt) => {
+                const active = displayMode === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setDisplayMode(opt.key)}
+                    className={`min-h-11 flex-1 rounded-lg px-1 text-xs font-semibold transition sm:text-sm ${
+                      active
+                        ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
+                        : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
         ) : null}
       </header>
 
@@ -151,25 +209,35 @@ export function CollectionPage() {
         <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-8 text-center text-[var(--color-text-muted)]">
           Sua coleção está vazia neste navegador.
         </p>
+      ) : isSearching && filteredCards.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-8 text-center text-[var(--color-text-muted)]">
+          Nenhuma carta com esse nome na sua coleção.
+        </p>
       ) : displayMode === "showcase" ? (
         <div className="space-y-4">
           <ShareProfileButton />
           {sortedShowcase.length === 0 ? (
             <div className="space-y-3 rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center">
               <p className="text-[var(--color-text-secondary)]">
-                Nenhuma carta na vitrine ainda.
+                {isSearching
+                  ? "Nenhuma carta da vitrine corresponde à busca."
+                  : "Nenhuma carta na vitrine ainda."}
               </p>
-              <p className="text-sm text-[var(--color-text-muted)]">
-                Toque na estrela ★ nas cartas da coleção para montar o que quer
-                mostrar.
-              </p>
-              <button
-                type="button"
-                onClick={() => setDisplayMode("all")}
-                className="text-sm font-semibold text-[var(--color-accent)] hover:underline"
-              >
-                Ir para Todas
-              </button>
+              {!isSearching ? (
+                <>
+                  <p className="text-sm text-[var(--color-text-muted)]">
+                    Toque na estrela ★ nas cartas da coleção para montar o que
+                    quer mostrar.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setDisplayMode("all")}
+                    className="text-sm font-semibold text-[var(--color-accent)] hover:underline"
+                  >
+                    Ir para Todas
+                  </button>
+                </>
+              ) : null}
             </div>
           ) : (
             <div className={cardGridClass}>
@@ -182,7 +250,7 @@ export function CollectionPage() {
                   <CardItem
                     id={card.id}
                     name={card.name}
-                    localId={card.id.split("-").pop() ?? ""}
+                    localId={cardLocalId(card.id, card.setId)}
                     image={card.imageUrl}
                     compact
                     onPress={(id) => navigate(`/card/${id}`)}
@@ -203,7 +271,7 @@ export function CollectionPage() {
               <CardItem
                 id={card.id}
                 name={card.name}
-                localId={card.id.split("-").pop() ?? ""}
+                localId={cardLocalId(card.id, card.setId)}
                 image={card.imageUrl}
                 compact
                 onPress={(id) => navigate(`/card/${id}`)}
@@ -216,9 +284,6 @@ export function CollectionPage() {
           {cardsBySet.map(([setId, setCards]) => {
             const total = totalsBySet[setId];
             const setName = getCollectionById(setId)?.name ?? setId;
-            const sorted = [...setCards].sort((a, b) =>
-              a.name.localeCompare(b.name),
-            );
             const setLoading = COLLECTIONS.some((c, i) => {
               if (c.id !== setId) return false;
               return queries[i]?.isLoading ?? true;
@@ -246,7 +311,7 @@ export function CollectionPage() {
                   />
 
                   <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {sorted.map((card) => (
+                    {setCards.map((card) => (
                       <div
                         key={card.id}
                         className="relative w-[46%] min-w-[148px] max-w-[180px] shrink-0 sm:w-[30%] sm:max-w-[160px]"
@@ -258,7 +323,7 @@ export function CollectionPage() {
                         <CardItem
                           id={card.id}
                           name={card.name}
-                          localId={card.id.split("-").pop() ?? ""}
+                          localId={cardLocalId(card.id, card.setId)}
                           image={card.imageUrl}
                           compact
                           onPress={(id) => navigate(`/card/${id}`)}

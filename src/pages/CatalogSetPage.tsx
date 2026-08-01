@@ -3,13 +3,16 @@ import {
   addCardToCollection,
   removeCardFromCollection,
 } from "@/features/collection";
+import { addCardToWanted } from "@/features/trades";
 import { BackButton } from "@/components/BackButton";
 import { ProgressFolio } from "@/components/ProgressFolio";
 import { getCollectionById, isSupportedSetId } from "@/lib/collections";
+import { compareByLocalId } from "@/lib/cardOrder";
 import { useOwnedSetCount } from "@/hooks/useOwnedSetCount";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTradeStore } from "@/store/useTradeStore";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMemo, useState } from "react";
 
@@ -49,9 +52,11 @@ export function CatalogSetPage() {
   const owned = useOwnedSetCount(valid ? setId : null);
   const userId = useAuthStore((s) => s.userId);
   const cards = useCollectionStore((s) => s.cards);
+  const wanted = useTradeStore((s) => s.wanted);
   const [filter, setFilter] = useState<SetFilter>("all");
   const [markMode, setMarkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [wantedHint, setWantedHint] = useState<string | null>(null);
 
   useScrollMemory(valid && !isLoading && !error);
 
@@ -63,15 +68,33 @@ export function CatalogSetPage() {
     return ids;
   }, [cards, userId]);
 
-  const gridCards = useMemo(
-    () =>
+  const wantedIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const c of wanted) {
+      if ((c.ownerId ?? null) === (userId ?? null)) ids.add(c.id);
+    }
+    return ids;
+  }, [wanted, userId]);
+
+  const gridCards = useMemo(() => {
+    const mapped =
       setData?.cards?.map((c) => ({
         id: c.id,
         name: c.name,
         localId: String(c.localId),
         image: c.image ?? null,
-      })) ?? [],
-    [setData?.cards],
+      })) ?? [];
+    return mapped.sort(compareByLocalId);
+  }, [setData?.cards]);
+
+  const missingCards = useMemo(
+    () => gridCards.filter((c) => !ownedIds.has(c.id)),
+    [gridCards, ownedIds],
+  );
+
+  const missingNotWanted = useMemo(
+    () => missingCards.filter((c) => !wantedIds.has(c.id)),
+    [missingCards, wantedIds],
   );
 
   const filteredCards = useMemo(() => {
@@ -93,11 +116,25 @@ export function CatalogSetPage() {
     return n;
   }, [selectedIds, ownedIds]);
   const selectedMissingCount = selectedCount - selectedOwnedCount;
+  const selectedMissingNotWanted = useMemo(() => {
+    let n = 0;
+    for (const id of selectedIds) {
+      if (!ownedIds.has(id) && !wantedIds.has(id)) n += 1;
+    }
+    return n;
+  }, [selectedIds, ownedIds, wantedIds]);
 
   const missingCount = Math.max(
     (setData?.cardCount?.total ?? gridCards.length) - owned,
     0,
   );
+
+  const toWantedInput = (card: (typeof gridCards)[number]) => ({
+    id: card.id,
+    name: card.name,
+    imageUrl: card.image ? `${card.image}/high.webp` : null,
+    setId,
+  });
 
   const exitMarkMode = () => {
     setMarkMode(false);
@@ -131,6 +168,37 @@ export function CatalogSetPage() {
     for (const id of selectedIds) {
       if (ownedIds.has(id)) removeCardFromCollection(id);
     }
+    setSelectedIds(new Set());
+  };
+
+  const addCardsToWanted = (cardsToAdd: typeof gridCards) => {
+    let added = 0;
+    for (const card of cardsToAdd) {
+      if (wantedIds.has(card.id)) continue;
+      addCardToWanted(toWantedInput(card));
+      added += 1;
+    }
+    if (added === 0) {
+      setWantedHint("Essas cartas já estão em Procurando.");
+    } else {
+      setWantedHint(
+        added === 1
+          ? "1 carta adicionada à Procurando."
+          : `${added} cartas adicionadas à Procurando.`,
+      );
+    }
+  };
+
+  const addMissingToWanted = () => {
+    addCardsToWanted(missingNotWanted);
+  };
+
+  const addSelectedToWanted = () => {
+    const cardsToAdd = gridCards.filter(
+      (c) =>
+        selectedIds.has(c.id) && !ownedIds.has(c.id) && !wantedIds.has(c.id),
+    );
+    addCardsToWanted(cardsToAdd);
     setSelectedIds(new Set());
   };
 
@@ -194,6 +262,27 @@ export function CatalogSetPage() {
             total={total > 0 ? total : undefined}
             isLoading={isLoading}
           />
+          {!isLoading && !error && missingNotWanted.length > 0 && !markMode ? (
+            <button
+              type="button"
+              onClick={addMissingToWanted}
+              className="w-full min-h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 text-sm font-bold text-[var(--color-text)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] sm:w-auto"
+            >
+              Procurar faltantes ({missingNotWanted.length})
+            </button>
+          ) : null}
+          {wantedHint ? (
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              {wantedHint}{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/trades?tab=wanted")}
+                className="font-semibold text-[var(--color-accent)] hover:underline"
+              >
+                Ver Procurando
+              </button>
+            </p>
+          ) : null}
         </div>
       </header>
 
@@ -296,6 +385,17 @@ export function CatalogSetPage() {
               >
                 Adicionar selecionadas
                 {selectedMissingCount > 0 ? ` (${selectedMissingCount})` : ""}
+              </button>
+              <button
+                type="button"
+                disabled={selectedMissingNotWanted === 0}
+                onClick={addSelectedToWanted}
+                className="min-h-11 flex-1 rounded-xl border border-[var(--color-accent)] px-4 text-sm font-bold text-[var(--color-accent)] disabled:opacity-40 sm:flex-none"
+              >
+                À Procurando
+                {selectedMissingNotWanted > 0
+                  ? ` (${selectedMissingNotWanted})`
+                  : ""}
               </button>
               <button
                 type="button"

@@ -1,19 +1,12 @@
 import { CardGrid } from "@/features/cards";
 import { CollectionPickerCard, useCollections } from "@/features/sets";
 import { COLLECTIONS } from "@/lib/collections";
+import { compareBySetAndNumber, normalizeSearch } from "@/lib/cardOrder";
 import { useOwnedCountsBySet } from "@/hooks/useOwnedSetCount";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-function normalizeSearch(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .trim();
-}
 
 type SearchHit = {
   id: string;
@@ -70,11 +63,7 @@ export function CatalogPage() {
       }
     }
 
-    hits.sort((a, b) => {
-      const byName = a.name.localeCompare(b.name, "pt-BR");
-      if (byName !== 0) return byName;
-      return a.setId.localeCompare(b.setId);
-    });
+    hits.sort(compareBySetAndNumber);
     return hits;
   }, [needle, setPayloads]);
 

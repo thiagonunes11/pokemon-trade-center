@@ -10,10 +10,16 @@ import {
   removeCardFromWanted,
 } from "@/features/trades";
 import { COLLECTIONS, getCollectionById } from "@/lib/collections";
+import {
+  cardLocalId,
+  compareByLocalId,
+  compareBySetAndNumber,
+} from "@/lib/cardOrder";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useTradeStore } from "@/store/useTradeStore";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 type TradeTab =
   | "offering"
@@ -21,6 +27,16 @@ type TradeTab =
   | "explore"
   | "chats"
   | "community";
+
+function isTradeTab(value: string | null): value is TradeTab {
+  return (
+    value === "offering" ||
+    value === "wanted" ||
+    value === "explore" ||
+    value === "chats" ||
+    value === "community"
+  );
+}
 
 const TAB_DESCRIPTIONS: Record<TradeTab, string> = {
   explore:
@@ -109,8 +125,20 @@ function TradeSectionTabs({
 
 export function TradesPage() {
   const userId = useAuthStore((s) => s.userId);
-  const [tab, setTab] = useState<TradeTab>("explore");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [tab, setTab] = useState<TradeTab>(() =>
+    isTradeTab(tabParam) ? tabParam : "explore",
+  );
   const [picker, setPicker] = useState<PickerMode>(null);
+
+  const selectTab = (next: TradeTab) => {
+    setTab(next);
+    setSearchParams(
+      next === "explore" ? {} : { tab: next },
+      { replace: true },
+    );
+  };
 
   const offering = useTradeStore((s) => s.offering);
   const wanted = useTradeStore((s) => s.wanted);
@@ -120,7 +148,7 @@ export function TradesPage() {
     () =>
       offering
         .filter((c) => (c.ownerId ?? null) === (userId ?? null))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+        .sort(compareBySetAndNumber),
     [offering, userId],
   );
 
@@ -128,7 +156,7 @@ export function TradesPage() {
     () =>
       wanted
         .filter((c) => (c.ownerId ?? null) === (userId ?? null))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+        .sort(compareBySetAndNumber),
     [wanted, userId],
   );
 
@@ -136,7 +164,7 @@ export function TradesPage() {
     () =>
       collectionCards
         .filter((c) => (c.ownerId ?? null) === (userId ?? null))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+        .sort(compareBySetAndNumber),
     [collectionCards, userId],
   );
 
@@ -156,7 +184,7 @@ export function TradesPage() {
 
       <TradeSectionTabs
         tab={tab}
-        onChange={setTab}
+        onChange={selectTab}
         offeringCount={myOffering.length}
         wantedCount={myWanted.length}
       />
@@ -208,7 +236,7 @@ export function TradesPage() {
                   <CardItem
                     id={card.id}
                     name={card.name}
-                    localId={card.id.split("-").pop() ?? ""}
+                    localId={cardLocalId(card.id, card.setId)}
                     image={card.imageUrl}
                     compact
                     onPress={() => {}}
@@ -283,6 +311,11 @@ function TradePickerModal({
     mode.kind === "wanted" && mode.step === "cards" ? mode.setId : "";
   const { data: setData, isLoading } = useSetCards(wantedSetId);
 
+  const wantedSetCards = useMemo(
+    () => [...(setData?.cards ?? [])].sort(compareByLocalId),
+    [setData?.cards],
+  );
+
   const title =
     mode.kind === "offering"
       ? "Escolher da coleção"
@@ -336,7 +369,7 @@ function TradePickerModal({
                     <CardItem
                       id={card.id}
                       name={card.name}
-                      localId={card.id.split("-").pop() ?? ""}
+                      localId={cardLocalId(card.id, card.setId)}
                       image={card.imageUrl}
                       compact
                       onPress={() => {
@@ -380,7 +413,7 @@ function TradePickerModal({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {(setData?.cards ?? []).map((card) => {
+            {wantedSetCards.map((card) => {
               const already = wantedIds.has(card.id);
               const image = card.image ?? null;
               return (
