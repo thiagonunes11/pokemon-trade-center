@@ -51,21 +51,24 @@ async function upsertInboxItem(input: {
   threadId: string;
   peerId: string;
   participantIds: string[];
-  lastMessagePreview: string | null;
-  lastSenderId: string | null;
+  lastMessagePreview?: string | null;
+  lastSenderId?: string | null;
+  /** Se false, não envia preview/null (evita apagar preview existente no merge). */
+  touchPreview?: boolean;
 }): Promise<void> {
-  await setDoc(
-    inboxRef(input.inboxUid, input.threadId),
-    {
-      threadId: input.threadId,
-      peerId: input.peerId,
-      participantIds: input.participantIds,
-      lastMessagePreview: input.lastMessagePreview,
-      lastSenderId: input.lastSenderId,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  const payload: Record<string, unknown> = {
+    threadId: input.threadId,
+    peerId: input.peerId,
+    participantIds: input.participantIds,
+    updatedAt: serverTimestamp(),
+  };
+  if (input.touchPreview) {
+    payload.lastMessagePreview = input.lastMessagePreview ?? null;
+    payload.lastSenderId = input.lastSenderId ?? null;
+  }
+  await setDoc(inboxRef(input.inboxUid, input.threadId), payload, {
+    merge: true,
+  });
 }
 
 export async function ensureThread(
@@ -75,9 +78,10 @@ export async function ensureThread(
   const id = threadIdFor(myUid, peerUid);
   const participantIds = [myUid, peerUid].sort();
   const db = getFirestoreDb();
+  const threadRef = doc(db, "threads", id);
 
   await setDoc(
-    doc(db, "threads", id),
+    threadRef,
     {
       participantIds,
       updatedAt: serverTimestamp(),
@@ -85,22 +89,43 @@ export async function ensureThread(
     { merge: true },
   );
 
+  const threadSnap = await getDoc(threadRef);
+  const threadData = threadSnap.data();
+  const existingPreview =
+    typeof threadData?.lastMessagePreview === "string"
+      ? threadData.lastMessagePreview
+      : null;
+  const existingSender =
+    typeof threadData?.lastSenderId === "string"
+      ? threadData.lastSenderId
+      : null;
+
   await Promise.all([
     upsertInboxItem({
       inboxUid: myUid,
       threadId: id,
       peerId: peerUid,
       participantIds,
-      lastMessagePreview: null,
-      lastSenderId: null,
+      ...(existingPreview
+        ? {
+            touchPreview: true,
+            lastMessagePreview: existingPreview,
+            lastSenderId: existingSender,
+          }
+        : { touchPreview: false }),
     }),
     upsertInboxItem({
       inboxUid: peerUid,
       threadId: id,
       peerId: myUid,
       participantIds,
-      lastMessagePreview: null,
-      lastSenderId: null,
+      ...(existingPreview
+        ? {
+            touchPreview: true,
+            lastMessagePreview: existingPreview,
+            lastSenderId: existingSender,
+          }
+        : { touchPreview: false }),
     }),
   ]);
 
@@ -152,6 +177,7 @@ export async function sendTextMessage(
       threadId,
       peerId,
       participantIds,
+      touchPreview: true,
       lastMessagePreview: preview,
       lastSenderId: senderId,
     }),
@@ -160,6 +186,7 @@ export async function sendTextMessage(
       threadId,
       peerId: senderId,
       participantIds,
+      touchPreview: true,
       lastMessagePreview: preview,
       lastSenderId: senderId,
     }),
@@ -247,6 +274,32 @@ export async function getThread(threadId: string): Promise<ChatThread | null> {
         : null,
     lastSenderId:
       typeof data.lastSenderId === "string" ? data.lastSenderId : null,
+  };
+}
+
+/** Restaura preview na inbox a partir do doc da thread (mensagens antigas). */
+export async function syncInboxPreviewFromThread(
+  myUid: string,
+  threadId: string,
+): Promise<ChatThread | null> {
+  const thread = await getThread(threadId);
+  if (!thread?.lastMessagePreview) return thread;
+  const peerId = thread.participantIds.find((id) => id !== myUid);
+  if (!peerId || thread.participantIds.length !== 2) return thread;
+
+  await upsertInboxItem({
+    inboxUid: myUid,
+    threadId,
+    peerId,
+    participantIds: thread.participantIds,
+    touchPreview: true,
+    lastMessagePreview: thread.lastMessagePreview,
+    lastSenderId: thread.lastSenderId,
+  });
+
+  return {
+    ...thread,
+    peerId,
   };
 }
 

@@ -1,6 +1,7 @@
 import {
   getPublicProfile,
   subscribeToMyThreads,
+  syncInboxPreviewFromThread,
   type ChatThread,
 } from "@/features/trades/threadsService";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -47,6 +48,26 @@ export function ConversationsList() {
         ).then((entries) => {
           setNames((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
         });
+
+        // Repara preview apagado por ensureThread antigo
+        for (const item of list) {
+          if (item.lastMessagePreview) continue;
+          void syncInboxPreviewFromThread(userId, item.id).then((fixed) => {
+            if (!fixed?.lastMessagePreview) return;
+            setThreads((prev) =>
+              prev.map((t) =>
+                t.id === item.id
+                  ? {
+                      ...t,
+                      lastMessagePreview: fixed.lastMessagePreview,
+                      lastSenderId: fixed.lastSenderId,
+                      peerId: fixed.peerId ?? t.peerId,
+                    }
+                  : t,
+              ),
+            );
+          });
+        }
       },
       (err) => {
         console.warn("[Conversas]", err);
