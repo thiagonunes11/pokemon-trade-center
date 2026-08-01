@@ -211,9 +211,9 @@ export function ExploreBoard() {
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+              className="flex items-center gap-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3.5"
             >
-              <div className="w-[5.5rem] shrink-0 sm:w-24">
+              <div className="w-24 shrink-0 sm:w-28">
                 <CardItem
                   id={item.cardId}
                   name={item.name}
@@ -223,11 +223,11 @@ export function ExploreBoard() {
                   onPress={() => navigate(`/card/${item.cardId}`)}
                 />
               </div>
-              <div className="min-w-0 flex-1 py-0.5">
-                <p className="line-clamp-2 text-sm font-bold leading-snug text-[var(--color-text)]">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <p className="line-clamp-2 text-base font-bold leading-snug text-[var(--color-text)] sm:text-lg">
                   {item.name}
                 </p>
-                <p className="mt-1 truncate text-sm text-[var(--color-text-secondary)]">
+                <p className="truncate text-sm font-medium text-[var(--color-text-secondary)] sm:text-base">
                   {item.displayName}
                   <span className="text-[var(--color-text-muted)]">
                     {kind === "offering" ? " · anunciando" : " · procurando"}
@@ -238,7 +238,7 @@ export function ExploreBoard() {
                 type="button"
                 disabled={startingChat === item.ownerId}
                 onClick={() => void startChat(item.ownerId, item.displayName)}
-                className="min-h-10 shrink-0 rounded-lg bg-[var(--color-accent)] px-3 text-xs font-bold text-[var(--color-on-accent)] disabled:opacity-50 sm:min-h-11 sm:px-4 sm:text-sm"
+                className="min-h-11 shrink-0 rounded-xl bg-[var(--color-accent)] px-3.5 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-50 sm:min-h-12 sm:px-4 sm:text-base"
               >
                 {startingChat === item.ownerId ? "…" : "Conversar"}
               </button>
