@@ -1,4 +1,8 @@
 import { CardGrid, useSetCards } from "@/features/cards";
+import {
+  addCardToCollection,
+  removeCardFromCollection,
+} from "@/features/collection";
 import { BackButton } from "@/components/BackButton";
 import { ProgressFolio } from "@/components/ProgressFolio";
 import { getCollectionById, isSupportedSetId } from "@/lib/collections";
@@ -46,6 +50,8 @@ export function CatalogSetPage() {
   const userId = useAuthStore((s) => s.userId);
   const cards = useCollectionStore((s) => s.cards);
   const [filter, setFilter] = useState<SetFilter>("all");
+  const [markMode, setMarkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
 
   useScrollMemory(valid && !isLoading && !error);
 
@@ -78,10 +84,55 @@ export function CatalogSetPage() {
     return gridCards;
   }, [filter, gridCards, ownedIds]);
 
+  const selectedCount = selectedIds.size;
+  const selectedOwnedCount = useMemo(() => {
+    let n = 0;
+    for (const id of selectedIds) {
+      if (ownedIds.has(id)) n += 1;
+    }
+    return n;
+  }, [selectedIds, ownedIds]);
+  const selectedMissingCount = selectedCount - selectedOwnedCount;
+
   const missingCount = Math.max(
     (setData?.cardCount?.total ?? gridCards.length) - owned,
     0,
   );
+
+  const exitMarkMode = () => {
+    setMarkMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelected = (cardId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardId)) next.delete(cardId);
+      else next.add(cardId);
+      return next;
+    });
+  };
+
+  const addSelected = () => {
+    for (const id of selectedIds) {
+      const card = gridCards.find((c) => c.id === id);
+      if (!card || ownedIds.has(id)) continue;
+      addCardToCollection({
+        id: card.id,
+        name: card.name,
+        imageUrl: card.image ? `${card.image}/high.webp` : null,
+        setId,
+      });
+    }
+    setSelectedIds(new Set());
+  };
+
+  const removeSelected = () => {
+    for (const id of selectedIds) {
+      if (ownedIds.has(id)) removeCardFromCollection(id);
+    }
+    setSelectedIds(new Set());
+  };
 
   if (!valid) {
     return (
@@ -97,22 +148,41 @@ export function CatalogSetPage() {
   const setName = collection?.name ?? setId;
 
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${markMode ? "pb-28" : ""}`}>
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <BackButton to="/catalog">Coleções</BackButton>
-          <button
-            type="button"
-            onClick={() => void refetch()}
-            disabled={isFetching}
-            aria-label={isFetching ? "Atualizando" : "Atualizar cartas"}
-            title="Atualizar"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-50"
-          >
-            <IconRefresh
-              className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`}
-            />
-          </button>
+          <div className="flex items-center gap-2">
+            {!isLoading && !error && gridCards.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (markMode) exitMarkMode();
+                  else setMarkMode(true);
+                }}
+                aria-pressed={markMode}
+                className={`inline-flex min-h-11 items-center justify-center rounded-xl border px-3 text-sm font-bold transition ${
+                  markMode
+                    ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)]"
+                    : "border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                }`}
+              >
+                {markMode ? "Concluir" : "Marcar"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+              aria-label={isFetching ? "Atualizando" : "Atualizar cartas"}
+              title="Atualizar"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-50"
+            >
+              <IconRefresh
+                className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -196,9 +266,56 @@ export function CatalogSetPage() {
         <CardGrid
           cards={filteredCards}
           ownedIds={ownedIds}
+          selectedIds={selectedIds}
           binderMode
-          onCardPress={(id) => navigate(`/card/${id}`)}
+          markMode={markMode}
+          onCardPress={(id) => {
+            if (markMode) {
+              toggleSelected(id);
+              return;
+            }
+            navigate(`/card/${id}`);
+          }}
         />
+      ) : null}
+
+      {markMode ? (
+        <div className="fixed inset-x-0 bottom-[4.5rem] z-30 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-4 py-3 backdrop-blur-md md:bottom-0 md:left-60">
+          <div className="mx-auto flex max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              {selectedCount === 0
+                ? "Toque nas cartas para selecionar."
+                : `${selectedCount} selecionada${selectedCount === 1 ? "" : "s"}`}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={selectedMissingCount === 0}
+                onClick={addSelected}
+                className="min-h-11 flex-1 rounded-xl bg-[var(--color-accent)] px-4 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-40 sm:flex-none"
+              >
+                Adicionar selecionadas
+                {selectedMissingCount > 0 ? ` (${selectedMissingCount})` : ""}
+              </button>
+              <button
+                type="button"
+                disabled={selectedOwnedCount === 0}
+                onClick={removeSelected}
+                className="min-h-11 flex-1 rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)] disabled:opacity-40 sm:flex-none"
+              >
+                Remover seleção
+                {selectedOwnedCount > 0 ? ` (${selectedOwnedCount})` : ""}
+              </button>
+              <button
+                type="button"
+                onClick={exitMarkMode}
+                className="min-h-11 rounded-xl border border-[var(--color-border)] px-4 text-sm font-semibold text-[var(--color-text-secondary)]"
+              >
+                Concluir
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

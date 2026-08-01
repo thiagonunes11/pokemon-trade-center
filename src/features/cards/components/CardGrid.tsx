@@ -19,7 +19,9 @@ type GridCard = {
 interface CardGridProps {
   cards: GridCard[];
   ownedIds?: Set<string>;
+  selectedIds?: Set<string>;
   binderMode?: boolean;
+  markMode?: boolean;
   onCardPress: (id: string) => void;
 }
 
@@ -58,7 +60,9 @@ function readColumns() {
 export function CardGrid({
   cards,
   ownedIds,
+  selectedIds,
   binderMode = false,
+  markMode = false,
   onCardPress,
 }: CardGridProps) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -130,7 +134,9 @@ export function CardGrid({
                   rarity={card.rarity}
                   imageQuality="low"
                   isInCollection={ownedIds?.has(card.id)}
+                  isSelected={selectedIds?.has(card.id)}
                   binderMode={binderMode}
+                  markMode={markMode}
                   onPress={onCardPress}
                 />
               ))}

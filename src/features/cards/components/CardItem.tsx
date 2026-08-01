@@ -10,6 +10,9 @@ interface CardItemProps {
   imageQuality?: ImageQuality;
   isInCollection?: boolean;
   binderMode?: boolean;
+  /** Modo marcar: carta está na seleção atual. */
+  markMode?: boolean;
+  isSelected?: boolean;
   compact?: boolean;
   onPress: (id: string) => void;
 }
@@ -40,17 +43,23 @@ export function CardItem({
   imageQuality = "low",
   isInCollection = false,
   binderMode = false,
+  markMode = false,
+  isSelected = false,
   compact = false,
   onPress,
 }: CardItemProps) {
   const imageUrl = resolveImageUrl(image, imageQuality);
   const missing = binderMode && !isInCollection;
 
-  const frameClass = binderMode
-    ? "ring-1 ring-[var(--color-border)]"
-    : isInCollection
-      ? "ring-2 ring-[var(--color-success)]"
-      : "ring-1 ring-[var(--color-border)]";
+  const frameClass = markMode
+    ? isSelected
+      ? "ring-2 ring-[var(--color-accent)]"
+      : "ring-1 ring-dashed ring-[var(--color-border)]"
+    : binderMode
+      ? "ring-1 ring-[var(--color-border)]"
+      : isInCollection
+        ? "ring-2 ring-[var(--color-success)]"
+        : "ring-1 ring-[var(--color-border)]";
 
   return (
     <button
@@ -78,6 +87,18 @@ export function CardItem({
             Sem imagem
           </div>
         )}
+        {markMode ? (
+          <span
+            className={`absolute top-1.5 left-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shadow-sm ${
+              isSelected
+                ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
+                : "bg-black/50 text-white/90"
+            }`}
+            aria-hidden
+          >
+            {isSelected ? "✓" : ""}
+          </span>
+        ) : null}
         <span
           className={`absolute right-1.5 bottom-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold backdrop-blur-sm ${
             missing
