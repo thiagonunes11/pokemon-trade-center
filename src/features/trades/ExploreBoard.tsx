@@ -211,9 +211,9 @@ export function ExploreBoard() {
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex gap-3 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
             >
-              <div className="w-20 shrink-0">
+              <div className="w-[6.5rem] shrink-0 sm:w-28">
                 <CardItem
                   id={item.cardId}
                   name={item.name}
@@ -223,21 +223,21 @@ export function ExploreBoard() {
                   onPress={() => navigate(`/card/${item.cardId}`)}
                 />
               </div>
-              <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
-                <div>
-                  <p className="truncate text-base font-bold text-[var(--color-text)]">
-                    {item.name}
-                  </p>
-                  <p className="truncate text-sm font-medium text-[var(--color-text-secondary)]">
-                    {item.displayName}
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="line-clamp-2 text-sm font-bold leading-snug text-[var(--color-text)] sm:text-base">
+                  {item.name}
+                </p>
+                <p className="truncate text-xs font-medium text-[var(--color-text-secondary)] sm:text-sm">
+                  {item.displayName}
+                  <span className="text-[var(--color-text-muted)]">
                     {kind === "offering" ? " · anunciando" : " · procurando"}
-                  </p>
-                </div>
+                  </span>
+                </p>
                 <button
                   type="button"
                   disabled={startingChat === item.ownerId}
                   onClick={() => void startChat(item.ownerId, item.displayName)}
-                  className="min-h-11 rounded-xl bg-[var(--color-accent)] px-3 text-sm font-extrabold text-[var(--color-on-accent)] disabled:opacity-50"
+                  className="mt-1.5 inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-3.5 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-50"
                 >
                   {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
                 </button>
