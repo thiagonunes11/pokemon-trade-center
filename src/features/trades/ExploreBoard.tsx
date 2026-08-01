@@ -228,22 +228,28 @@ export function ExploreBoard() {
                   <p className="line-clamp-2 text-3xl font-bold leading-tight text-[var(--color-text)] sm:text-4xl">
                     {item.name}
                   </p>
-                  <p className="truncate text-lg font-bold text-[var(--color-text)] sm:text-xl">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/u/${item.ownerId}`)}
+                    className="truncate text-left text-lg font-bold text-[var(--color-accent)] underline-offset-2 hover:underline sm:text-xl"
+                  >
                     {item.displayName}
-                  </p>
+                  </button>
                   <p className="text-base font-medium text-[var(--color-text-muted)]">
                     {kind === "offering" ? "Anunciando" : "Procurando"}
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                disabled={startingChat === item.ownerId}
-                onClick={() => void startChat(item.ownerId, item.displayName)}
-                className="mt-4 min-h-12 w-full rounded-xl bg-[var(--color-accent)] text-base font-bold text-[var(--color-on-accent)] disabled:opacity-50 sm:min-h-14 sm:text-lg"
-              >
-                {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
-              </button>
+              {kind === "offering" ? (
+                <button
+                  type="button"
+                  disabled={startingChat === item.ownerId}
+                  onClick={() => void startChat(item.ownerId, item.displayName)}
+                  className="mt-4 min-h-12 w-full rounded-xl bg-[var(--color-accent)] text-base font-bold text-[var(--color-on-accent)] disabled:opacity-50 sm:min-h-14 sm:text-lg"
+                >
+                  {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
+                </button>
+              ) : null}
             </li>
           ))}
         </ul>

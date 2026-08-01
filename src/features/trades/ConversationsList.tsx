@@ -115,18 +115,30 @@ export function ConversationsList() {
         const name = names[peerId] ?? "Treinador";
         const preview = thread.lastMessagePreview ?? "Sem mensagens ainda";
         return (
-          <li key={thread.id}>
-            <Link
-              to={`/trades/chat/${thread.id}`}
-              className="flex min-h-16 flex-col justify-center gap-1 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3 transition hover:border-[var(--color-accent)]"
-            >
-              <span className="font-[family-name:var(--font-display)] text-base font-bold text-[var(--color-text)]">
-                {name}
-              </span>
-              <span className="truncate text-sm font-medium text-[var(--color-text-secondary)]">
+          <li
+            key={thread.id}
+            className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3"
+          >
+            <div className="flex min-h-16 flex-col justify-center gap-1">
+              {peerId !== "—" ? (
+                <Link
+                  to={`/u/${peerId}`}
+                  className="font-[family-name:var(--font-display)] text-base font-bold text-[var(--color-accent)] underline-offset-2 hover:underline"
+                >
+                  {name}
+                </Link>
+              ) : (
+                <span className="font-[family-name:var(--font-display)] text-base font-bold text-[var(--color-text)]">
+                  {name}
+                </span>
+              )}
+              <Link
+                to={`/trades/chat/${thread.id}`}
+                className="truncate text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+              >
                 {preview}
-              </span>
-            </Link>
+              </Link>
+            </div>
           </li>
         );
       })}

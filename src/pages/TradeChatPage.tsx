@@ -8,13 +8,14 @@ import {
 } from "@/features/trades/threadsService";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 export function TradeChatPage() {
   const { threadId } = useParams<{ threadId: string }>();
   const userId = useAuthStore((s) => s.userId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peerName, setPeerName] = useState("Treinador");
+  const [peerId, setPeerId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,9 +26,10 @@ export function TradeChatPage() {
     let cancelled = false;
     void getThread(threadId).then((thread) => {
       if (cancelled || !thread) return;
-      const peerId = thread.participantIds.find((id) => id !== userId);
-      if (!peerId) return;
-      void getPublicProfile(peerId).then((p) => {
+      const other = thread.participantIds.find((id) => id !== userId);
+      if (!other) return;
+      setPeerId(other);
+      void getPublicProfile(other).then((p) => {
         if (!cancelled && p) setPeerName(p.displayName);
       });
     });
@@ -82,7 +84,16 @@ export function TradeChatPage() {
         <div className="flex items-center gap-3">
           <BackButton to="/trades">Trocas</BackButton>
           <h1 className="min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-xl font-extrabold text-[var(--color-text)]">
-            {peerName}
+            {peerId ? (
+              <Link
+                to={`/u/${peerId}`}
+                className="text-[var(--color-accent)] underline-offset-2 hover:underline"
+              >
+                {peerName}
+              </Link>
+            ) : (
+              peerName
+            )}
           </h1>
         </div>
         <p className="text-sm text-[var(--color-text-secondary)]">

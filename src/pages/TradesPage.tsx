@@ -22,6 +22,19 @@ type TradeTab =
   | "chats"
   | "community";
 
+const TAB_DESCRIPTIONS: Record<TradeTab, string> = {
+  explore:
+    "Veja anúncios e procuras de outras pessoas e inicie uma conversa no app.",
+  offering:
+    "Liste cartas da sua coleção que você quer trocar. Elas aparecem no mural público.",
+  wanted:
+    "Liste cartas que você busca. Assim fica mais fácil cruzar com o que outros anunciam.",
+  chats:
+    "Acompanhe as conversas de troca abertas com outros colecionadores.",
+  community:
+    "Entre no grupo de WhatsApp da sua cidade para combinar trocas presenciais.",
+};
+
 type PickerMode =
   | null
   | { kind: "offering" }
@@ -137,8 +150,7 @@ export function TradesPage() {
           Trocas
         </h1>
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Monte suas listas, explore anúncios, converse no app e entre no grupo
-          WhatsApp da sua cidade.
+          {TAB_DESCRIPTIONS[tab]}
         </p>
       </header>
 

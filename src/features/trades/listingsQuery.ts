@@ -64,6 +64,13 @@ function parseListing(
   };
 }
 
+/** Expõe o parser para queries de perfil / outros feeds. */
+export function parseListingDoc(
+  snap: QueryDocumentSnapshot<DocumentData>,
+): PublicListing | null {
+  return parseListing(snap);
+}
+
 export type ListingsPage = {
   items: PublicListing[];
   lastDoc: QueryDocumentSnapshot<DocumentData> | null;

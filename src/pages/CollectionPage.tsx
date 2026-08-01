@@ -1,7 +1,7 @@
 import { ProgressFolio } from "@/components/ProgressFolio";
 import { CardItem } from "@/features/cards";
 import { toggleCardInShowcase } from "@/features/collection";
-import { ShareShowcaseButton } from "@/features/share";
+import { ShareProfileButton } from "@/features/share";
 import { getCollectionById, COLLECTIONS } from "@/lib/collections";
 import { useCollections } from "@/features/sets";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
@@ -52,7 +52,6 @@ function ShowcasePin({
 export function CollectionPage() {
   const navigate = useNavigate();
   const authUserId = useAuthStore((s) => s.userId);
-  const username = useAuthStore((s) => s.username);
   const allCards = useCollectionStore((s) => s.cards);
   const [displayMode, setDisplayMode] = useState<DisplayMode>("all");
   const queries = useCollections();
@@ -95,16 +94,6 @@ export function CollectionPage() {
     }, {});
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [cards]);
-
-  const shareCards = useMemo(
-    () =>
-      sortedShowcase.map((c) => ({
-        id: c.id,
-        name: c.name,
-        image: c.imageUrl,
-      })),
-    [sortedShowcase],
-  );
 
   return (
     <div className="relative space-y-5 pb-24">
@@ -155,6 +144,7 @@ export function CollectionPage() {
         </p>
       ) : displayMode === "showcase" ? (
         <div className="space-y-4">
+          <ShareProfileButton />
           {sortedShowcase.length === 0 ? (
             <div className="space-y-3 rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center">
               <p className="text-[var(--color-text-secondary)]">
@@ -173,30 +163,24 @@ export function CollectionPage() {
               </button>
             </div>
           ) : (
-            <>
-              <ShareShowcaseButton
-                cards={shareCards}
-                ownerLabel={username}
-              />
-              <div className={cardGridClass}>
-                {sortedShowcase.map((card) => (
-                  <div key={card.id} className="relative">
-                    <ShowcasePin
-                      active
-                      onToggle={() => toggleCardInShowcase(card.id)}
-                    />
-                    <CardItem
-                      id={card.id}
-                      name={card.name}
-                      localId={card.id.split("-").pop() ?? ""}
-                      image={card.imageUrl}
-                      compact
-                      onPress={(id) => navigate(`/card/${id}`)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </>
+            <div className={cardGridClass}>
+              {sortedShowcase.map((card) => (
+                <div key={card.id} className="relative">
+                  <ShowcasePin
+                    active
+                    onToggle={() => toggleCardInShowcase(card.id)}
+                  />
+                  <CardItem
+                    id={card.id}
+                    name={card.name}
+                    localId={card.id.split("-").pop() ?? ""}
+                    image={card.imageUrl}
+                    compact
+                    onPress={(id) => navigate(`/card/${id}`)}
+                  />
+                </div>
+              ))}
+            </div>
           )}
         </div>
       ) : displayMode === "all" ? (

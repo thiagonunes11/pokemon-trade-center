@@ -14,7 +14,6 @@
     "@tanstack/react-virtual": "^3.14.9",
     "@tcgdex/sdk": "^2.9.0",
     "firebase": "^12.13.0",
-    "html-to-image": "^1.11.13",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-router-dom": "^7.9.0",

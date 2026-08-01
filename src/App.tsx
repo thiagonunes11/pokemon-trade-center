@@ -8,6 +8,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { TradeChatPage } from "@/pages/TradeChatPage";
 import { TradesPage } from "@/pages/TradesPage";
+import { UserProfilePage } from "@/pages/UserProfilePage";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 export function App() {
@@ -22,6 +23,7 @@ export function App() {
           <Route path="/collection" element={<CollectionPage />} />
           <Route path="/trades" element={<TradesPage />} />
           <Route path="/trades/chat/:threadId" element={<TradeChatPage />} />
+          <Route path="/u/:uid" element={<UserProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/card/:id" element={<CardDetailPage />} />
         </Route>

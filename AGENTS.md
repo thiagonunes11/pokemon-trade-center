@@ -21,7 +21,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 1. Escolher expansão (série Megaevolução, `me01`–`me05`)
 2. Navegar catálogo com binder (possuídas vs faltantes) e progresso
 3. Detalhe da carta + adicionar/remover da coleção; pin na vitrine
-4. Compartilhar vitrine curada (PNG); link público (futuro)
+4. Compartilhar perfil (`/u/:uid`: vitrine + anúncios/procuras)
 5. Listas Anunciando / Procurando → mural público + chat 1:1 + grupo WhatsApp da cidade
 
 **Auth:** Firebase Auth + `users/{uid}` no Firestore.  
@@ -41,7 +41,6 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | Virtualização | `@tanstack/react-virtual` (CardGrid) |
 | Estado | Zustand |
 | Backend | Firebase Auth + Firestore (Spark) |
-| Export vitrine | `html-to-image` (PNG da vitrine curada) |
 | Env | `VITE_FIREBASE_*` (`.env` gitignored) |
 
 ---
@@ -63,7 +62,8 @@ src/
     sets/               ← CollectionPickerCard, useCollections
     collection/         ← firestoreSync, CollectionSync, add/remove/showcase sync
     trades/             ← TradeSync, listings, threads, Explore/Community panels
-    share/              ← ShareShowcaseBinder / PNG (html-to-image)
+    share/              ← ShareProfileButton (copiar link /u/:uid)
+    profile/            ← perfil público (vitrine + listings)
   components/           ← EnergyIcon, UserAvatar, ProgressFolio
   hooks/useOwnedSetCount.ts
   lib/                  ← firebase, firestore, tcgdex, collections, safeStorage, query*, formatCollectionProgress
@@ -89,6 +89,7 @@ firebase.json
 | `/collection` | Minha coleção (Todas / Por coleção / Vitrine) |
 | `/trades` | Explorar / Anunciando / Procurando / Conversas / Comunidade |
 | `/trades/chat/:threadId` | Chat texto 1:1 |
+| `/u/:uid` | Perfil público: vitrine + Anunciando + Procurando |
 | `/settings` | Conta, tema, sobre |
 | `/card/:id` | Detalhe |
 
@@ -123,7 +124,7 @@ Sync (`src/features/collection/`):
 
 **Não** usar selector de função solta do store para contagem — preferir hooks em `useOwnedSetCount.ts`.
 
-Vitrine: `CollectionCard.inShowcase` + `setCardInShowcase` / `toggleCardInShowcase`. Campo permitido nas rules.
+Vitrine: `CollectionCard.inShowcase` + `setCardInShowcase` / `toggleCardInShowcase`. Rules: dono lê tudo; outros só `inShowcase == true` (query com filtro). Perfil `/u/:uid` em `features/profile/*` + `UserProfilePage`. Conversar no mural só em **Anúncios** (`offering`).
 
 ---
 
@@ -153,7 +154,7 @@ Contrato: `Firebase UID → useAuthStore.userId → CollectionCard.ownerId`.
 
 Env obrigatório: `VITE_FIREBASE_API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `STORAGE_BUCKET`, `MESSAGING_SENDER_ID`, `APP_ID` (app **Web** no Console). Authorized domains: `localhost` + produção.
 
-Auth: `getAuth` (persistência browser). Perfil: `userProfileService` → `users/{uid}`. Coleção: `features/collection/*`. Trocas: `features/trades/*`. Regras: `firestore.rules` (**deploy obrigatório** para `inShowcase` + paths `trades/`).
+Auth: `getAuth` (persistência browser). Perfil privado: `userProfileService` → `users/{uid}`. Perfil público: `publicProfiles/{uid}` + UI `/u/:uid`. Coleção: `features/collection/*`. Trocas: `features/trades/*`. Regras: `firestore.rules` (**deploy obrigatório** para vitrine pública + paths `trades/` / `listings/`).
 
 ### Roadmap Firebase restante
 
@@ -203,9 +204,10 @@ firebase deploy --only firestore:rules
 | Catálogo | `pages/CatalogPage.tsx`, `CatalogSetPage.tsx`, `features/sets/*` |
 | Detalhe | `pages/CardDetailPage.tsx` |
 | Coleção / vitrine | `pages/CollectionPage.tsx`, `useCollectionStore.ts`, `features/collection/*` |
+| Perfil público | `pages/UserProfilePage.tsx`, `features/profile/*` |
 | Trocas | `pages/TradesPage.tsx`, `TradeChatPage.tsx`, `useTradeStore.ts`, `features/trades/*` |
-| Compartilhar | `features/share/*` (vitrine PNG) |
+| Compartilhar | `features/share/*` (copiar link `/u/:uid`) |
 | Tema | `theme/*`, `index.css`, `SettingsPage.tsx` |
 | Shell / guard | `layouts/AppLayout.tsx`, `AuthGuard.tsx` |
 
-_Última revisão: 2026-08-01 — mural de anúncios, chat 1:1 e comunidades WhatsApp._
+_Última revisão: 2026-08-01 — perfil `/u/:uid` (vitrine + listas) e Conversar só em anúncios._

@@ -5,11 +5,12 @@ rules_version = '2';
 // ===============================================================
 // users/{uid} — perfil privado (e-mail)
 // publicProfiles/{uid} — displayName + cityId (auth read)
-// collections/{uid}/cards/{cardId}
+// collections/{uid}/cards/{cardId} — dono lê tudo; outros só inShowcase
 // trades/{uid}/offering|wanted/{cardId}
 // listings/{uid_kind_cardId} — mural público
 // threads/{threadId}/messages/{messageId}
 // communities/{cityId} — links WhatsApp (read-only no cliente)
+// Perfil público UI: /u/:uid (vitrine + offering + wanted)
 // ===============================================================
 
 service cloud.firestore {
@@ -213,7 +214,9 @@ service cloud.firestore {
     }
 
     match /collections/{userId}/cards/{cardId} {
-      allow read: if isOwner(userId);
+      // Dono lê tudo; outros só cartas da vitrine (query com inShowcase == true).
+      allow read: if isOwner(userId) ||
+        (isAuthenticated() && resource.data.inShowcase == true);
       allow create: if isOwner(userId) &&
         isValidCard() &&
         request.resource.data.id == cardId;
