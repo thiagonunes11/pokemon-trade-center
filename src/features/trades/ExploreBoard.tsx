@@ -213,7 +213,7 @@ export function ExploreBoard() {
               key={item.id}
               className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
             >
-              <div className="w-[6.5rem] shrink-0 sm:w-28">
+              <div className="w-[5.5rem] shrink-0 sm:w-24">
                 <CardItem
                   id={item.cardId}
                   name={item.name}
@@ -223,25 +223,25 @@ export function ExploreBoard() {
                   onPress={() => navigate(`/card/${item.cardId}`)}
                 />
               </div>
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="line-clamp-2 text-sm font-bold leading-snug text-[var(--color-text)] sm:text-base">
+              <div className="min-w-0 flex-1 py-0.5">
+                <p className="line-clamp-2 text-sm font-bold leading-snug text-[var(--color-text)]">
                   {item.name}
                 </p>
-                <p className="truncate text-xs font-medium text-[var(--color-text-secondary)] sm:text-sm">
+                <p className="mt-1 truncate text-sm text-[var(--color-text-secondary)]">
                   {item.displayName}
                   <span className="text-[var(--color-text-muted)]">
                     {kind === "offering" ? " · anunciando" : " · procurando"}
                   </span>
                 </p>
-                <button
-                  type="button"
-                  disabled={startingChat === item.ownerId}
-                  onClick={() => void startChat(item.ownerId, item.displayName)}
-                  className="mt-1.5 inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-3.5 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-50"
-                >
-                  {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
-                </button>
               </div>
+              <button
+                type="button"
+                disabled={startingChat === item.ownerId}
+                onClick={() => void startChat(item.ownerId, item.displayName)}
+                className="min-h-10 shrink-0 rounded-lg bg-[var(--color-accent)] px-3 text-xs font-bold text-[var(--color-on-accent)] disabled:opacity-50 sm:min-h-11 sm:px-4 sm:text-sm"
+              >
+                {startingChat === item.ownerId ? "…" : "Conversar"}
+              </button>
             </li>
           ))}
         </ul>
