@@ -207,40 +207,42 @@ export function ExploreBoard() {
             : "Nenhum anúncio de outros usuários por enquanto. Os seus não aparecem aqui — só os de outras pessoas."}
         </p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3.5"
+              className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4"
             >
-              <div className="w-24 shrink-0 sm:w-28">
-                <CardItem
-                  id={item.cardId}
-                  name={item.name}
-                  localId={item.cardId.split("-").pop() ?? ""}
-                  image={item.imageUrl}
-                  compact
-                  onPress={() => navigate(`/card/${item.cardId}`)}
-                />
-              </div>
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <p className="line-clamp-2 text-base font-bold leading-snug text-[var(--color-text)] sm:text-lg">
-                  {item.name}
-                </p>
-                <p className="truncate text-sm font-medium text-[var(--color-text-secondary)] sm:text-base">
-                  {item.displayName}
-                  <span className="text-[var(--color-text-muted)]">
-                    {kind === "offering" ? " · anunciando" : " · procurando"}
-                  </span>
-                </p>
+              <div className="flex gap-4">
+                <div className="w-28 shrink-0 sm:w-32">
+                  <CardItem
+                    id={item.cardId}
+                    name={item.name}
+                    localId={item.cardId.split("-").pop() ?? ""}
+                    image={item.imageUrl}
+                    compact
+                    onPress={() => navigate(`/card/${item.cardId}`)}
+                  />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+                  <p className="line-clamp-2 text-xl font-bold leading-tight text-[var(--color-text)] sm:text-2xl">
+                    {item.name}
+                  </p>
+                  <p className="truncate text-base font-semibold text-[var(--color-text-secondary)] sm:text-lg">
+                    {item.displayName}
+                  </p>
+                  <p className="text-base font-medium text-[var(--color-text-muted)]">
+                    {kind === "offering" ? "Anunciando" : "Procurando"}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 disabled={startingChat === item.ownerId}
                 onClick={() => void startChat(item.ownerId, item.displayName)}
-                className="min-h-11 shrink-0 rounded-xl bg-[var(--color-accent)] px-3.5 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-50 sm:min-h-12 sm:px-4 sm:text-base"
+                className="mt-4 min-h-12 w-full rounded-xl bg-[var(--color-accent)] text-base font-bold text-[var(--color-on-accent)] disabled:opacity-50 sm:min-h-14 sm:text-lg"
               >
-                {startingChat === item.ownerId ? "…" : "Conversar"}
+                {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
               </button>
             </li>
           ))}
