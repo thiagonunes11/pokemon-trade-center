@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Pokemon Trade Center">
-  <rect width="64" height="64" rx="14" fill="#11141C"/>
-  <!-- Back card -->
-  <rect x="14" y="12" width="26" height="36" rx="4" fill="#1E2330" stroke="#FFCB05" stroke-width="2.5" transform="rotate(-12 27 30)"/>
-  <!-- Front card -->
-  <rect x="24" y="16" width="26" height="36" rx="4" fill="#151822" stroke="#FFCB05" stroke-width="2.5" transform="rotate(10 37 34)"/>
-  <!-- Swap arrows -->
-  <path d="M22 48h20" stroke="#FFCB05" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M38 44l4 4-4 4" fill="none" stroke="#FFCB05" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M26 52l-4-4 4-4" fill="none" stroke="#FFCB05" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Base branca (parte de baixo) -->
+  <circle cx="32" cy="32" r="28" fill="#F5F5F5"/>
+  <!-- Meia de cima vermelha -->
+  <path d="M4 32A28 28 0 0 1 60 32Z" fill="#EE1515"/>
+  <!-- Contorno -->
+  <circle cx="32" cy="32" r="28" fill="none" stroke="#1A1A1A" stroke-width="4"/>
+  <!-- Faixa -->
+  <rect x="4" y="29" width="56" height="6" fill="#1A1A1A"/>
+  <!-- Botão -->
+  <circle cx="32" cy="32" r="9" fill="#1A1A1A"/>
+  <circle cx="32" cy="32" r="5.5" fill="#F5F5F5"/>
+  <circle cx="32" cy="32" r="2.5" fill="#1A1A1A"/>
 </svg>
