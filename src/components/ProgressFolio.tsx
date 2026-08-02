@@ -1,7 +1,9 @@
+import { motion } from "motion/react";
 import {
   formatFolioCounts,
   formatMissingLabel,
 } from "@/lib/formatCollectionProgress";
+import { progressTransition } from "@/lib/motion";
 
 interface ProgressFolioProps {
   owned: number;
@@ -28,6 +30,7 @@ export function ProgressFolio({
     total > 0 ? Math.min(100, Math.round((owned / total) * 100)) : 0;
   const missing = formatMissingLabel(owned, total);
   const counts = formatFolioCounts(owned, total);
+  const widthPct = Math.max(pct, pct > 0 ? 2 : 0);
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -55,9 +58,11 @@ export function ProgressFolio({
         aria-valuemax={100}
         aria-label={`Progresso da coleção: ${pct}%`}
       >
-        <div
-          className="ui-progress-fill h-full rounded-full transition-[width] duration-500 ease-out"
-          style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }}
+        <motion.div
+          className="ui-progress-fill h-full rounded-full"
+          initial={false}
+          animate={{ width: `${widthPct}%` }}
+          transition={progressTransition}
         />
       </div>
     </div>

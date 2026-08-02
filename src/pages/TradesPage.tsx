@@ -15,11 +15,13 @@ import {
   compareByLocalId,
   compareBySetAndNumber,
 } from "@/lib/cardOrder";
+import { tabSpring } from "@/lib/motion";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useTradeStore } from "@/store/useTradeStore";
+import { motion } from "motion/react";
 import { useEffect, useId, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -89,24 +91,33 @@ function TradeSectionTabs({
         role="tab"
         aria-selected={active}
         onClick={() => onChange(opt.key)}
-        className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition sm:text-sm ${
+        className={`relative inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition sm:text-sm ${
           active
-            ? "bg-[var(--color-accent)] text-[var(--color-on-accent)] shadow-[0_8px_22px_-12px_color-mix(in_srgb,var(--color-accent)_75%,transparent)]"
+            ? "text-[var(--color-on-accent)]"
             : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
         }`}
       >
-        {opt.label}
-        {opt.count != null ? (
-          <span
-            className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-              active
-                ? "bg-black/10 text-[var(--color-on-accent)]"
-                : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"
-            }`}
-          >
-            {opt.count}
-          </span>
+        {active ? (
+          <motion.span
+            layoutId="trades-section-tab"
+            className="absolute inset-0 z-0 rounded-lg bg-[var(--color-accent)] shadow-[0_8px_22px_-12px_color-mix(in_srgb,var(--color-accent)_75%,transparent)]"
+            transition={tabSpring}
+          />
         ) : null}
+        <span className="relative z-[1] inline-flex items-center gap-1.5">
+          {opt.label}
+          {opt.count != null ? (
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                active
+                  ? "bg-black/10 text-[var(--color-on-accent)]"
+                  : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"
+              }`}
+            >
+              {opt.count}
+            </span>
+          ) : null}
+        </span>
       </button>
     );
   };

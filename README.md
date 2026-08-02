@@ -26,7 +26,7 @@ App **web** para montar sua vitrine de Pokémon TCG, acompanhar expansões, anun
 | Camada | Tecnologia |
 |--------|------------|
 | Build | Vite |
-| UI | React 19 + Tailwind CSS |
+| UI | React 19 + Tailwind CSS + Motion |
 | Rotas | React Router |
 | Dados cartas | `@tcgdex/sdk` (locale `pt`) |
 | Cache | TanStack React Query |

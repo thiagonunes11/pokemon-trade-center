@@ -1,6 +1,7 @@
 import { ProgressFolio } from "@/components/ProgressFolio";
 import { EmptyState } from "@/components/EmptyState";
 import { IconStar } from "@/components/IconStar";
+import { SegmentTabs } from "@/components/SegmentTabs";
 import { CardItem } from "@/features/cards";
 import { toggleCardInShowcase } from "@/features/collection";
 import { ShareProfileButton } from "@/features/share";
@@ -185,32 +186,13 @@ export function CollectionPage() {
               ) : null}
             </div>
 
-            <div
-              className="ui-segment"
-              role="tablist"
+            <SegmentTabs
+              layoutId="collection-display-tab"
               aria-label="Organizar coleção"
-            >
-              {displayOptions.map((opt) => {
-                const active = displayMode === opt.key;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    data-active={active}
-                    onClick={() => setDisplayMode(opt.key)}
-                    className={`ui-segment-item px-1 text-xs sm:text-sm ${
-                      active
-                        ? "text-[var(--color-text)]"
-                        : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+              value={displayMode}
+              onChange={setDisplayMode}
+              options={displayOptions}
+            />
           </>
         ) : null}
       </header>

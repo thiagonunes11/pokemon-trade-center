@@ -26,9 +26,9 @@ O gerador sugeriu verde/ouro + Inter. **Não aplicar** — o produto já tem mar
 | Success / Error | `--color-success` / `--color-error` |
 | Fonts | Outfit (UI) + DM Mono (IDs) — ver `src/index.css` |
 
-**Estilo do app:** Glassmorphism leve + sheen/spotlight + tilt 3D na carta (React Bits / 21st), não 3D WebGL pesado.
+**Estilo do app:** Glassmorphism leve + sheen/spotlight + tilt 3D na carta (React Bits / 21st), não 3D WebGL pesado. Micro-interações de UI com **Motion** (`motion/react`): dialogs, pills de tab, progresso — **nunca** no `CardGrid` virtualizado. `MotionConfig reducedMotion="user"`.
 
-**Stack:** Vite + React 19 + Tailwind 4 + React Router 7.
+**Stack:** Vite + React 19 + Tailwind 4 + React Router 7 + Motion.
 
 ---
 
