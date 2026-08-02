@@ -219,7 +219,7 @@ export function UserProfilePage() {
               <button
                 type="button"
                 onClick={() => void copyLink()}
-                className="mt-2 min-h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-semibold text-[var(--color-text)]"
+                className="mt-2 min-h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-accent)]"
               >
                 {copied ? "Link copiado" : "Copiar link do perfil"}
               </button>

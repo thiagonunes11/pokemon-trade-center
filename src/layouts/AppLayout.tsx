@@ -1,3 +1,7 @@
+import { BrandMark } from "@/components/BrandMark";
+import { UserAvatar } from "@/components/UserAvatar";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useCollectionStore } from "@/store/useCollectionStore";
 import { NavLink, Outlet } from "react-router-dom";
 
 function IconCatalog({ className }: { className?: string }) {
@@ -84,7 +88,7 @@ const navItems = [
 ];
 
 function navClass({ isActive }: { isActive: boolean }) {
-  return `flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+  return `group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
     isActive
       ? "bg-[var(--color-accent)] text-[var(--color-on-accent)] shadow-[0_8px_24px_-10px_color-mix(in_srgb,var(--color-accent)_70%,transparent)]"
       : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
@@ -92,66 +96,90 @@ function navClass({ isActive }: { isActive: boolean }) {
 }
 
 export function AppLayout() {
+  const userId = useAuthStore((s) => s.userId);
+  const username = useAuthStore((s) => s.username);
+  const email = useAuthStore((s) => s.email);
+  const collectionCards = useCollectionStore((s) => s.cards);
+  const ownedCount = collectionCards.filter(
+    (card) => (card.ownerId ?? null) === (userId ?? null),
+  ).length;
+
   return (
     <div className="flex min-h-full flex-col md:flex-row">
       <a href="#main-content" className="ui-skip-link">
         Pular para o conteúdo
       </a>
-      <aside className="ui-glass hidden w-60 shrink-0 border-r border-[var(--color-border)] p-4 md:flex md:flex-col">
-        <div className="mb-8 px-1">
-          <p className="font-[family-name:var(--font-display)] text-lg font-extrabold leading-tight text-[var(--color-text)]">
-            Pokemon{" "}
-            <span className="text-[var(--color-accent)] drop-shadow-[0_0_18px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]">
-              Trade
-            </span>{" "}
-            Center
-          </p>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            Vitrine · coleção · trocas
-          </p>
+      <aside className="ui-glass sticky top-0 hidden h-dvh w-60 shrink-0 overflow-hidden border-r border-[var(--color-border)] p-4 md:flex md:flex-col">
+        <div className="pointer-events-none absolute -top-16 -left-16 h-40 w-40 rounded-full bg-[var(--color-accent)] opacity-10 blur-3xl" aria-hidden />
+        <div className="relative mb-8 flex items-center gap-3 px-1">
+          <BrandMark className="h-10 w-10 shrink-0 drop-shadow-[0_10px_18px_rgba(238,21,21,0.22)]" />
+          <div className="min-w-0">
+            <p className="font-[family-name:var(--font-display)] text-base font-extrabold leading-tight text-[var(--color-text)]">
+              Pokemon <span className="text-[var(--color-accent)]">Trade</span>
+            </p>
+            <p className="text-[11px] font-medium tracking-wide text-[var(--color-text-muted)] uppercase">
+              Central do treinador
+            </p>
+          </div>
         </div>
-        <nav className="flex flex-col gap-1">
+        <p className="mb-2 px-3 font-[family-name:var(--font-mono)] text-[10px] font-medium tracking-[0.14em] text-[var(--color-text-muted)] uppercase">
+          Navegação
+        </p>
+        <nav className="relative flex flex-col gap-1" aria-label="Navegação principal">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} className={navClass}>
-              <item.Icon className="h-4 w-4 shrink-0" />
+              <item.Icon className="h-5 w-5 shrink-0 transition-transform group-hover:scale-105" />
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </NavLink>
           ))}
         </nav>
+
+        {userId ? (
+          <NavLink
+            to="/settings"
+            className="ui-glass-strong relative mt-auto flex items-center gap-3 overflow-hidden rounded-2xl p-3 transition hover:border-[color-mix(in_srgb,var(--color-accent)_40%,var(--color-border))]"
+            aria-label="Abrir ajustes da conta"
+          >
+            <UserAvatar userId={userId} name={username} size={40} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-[var(--color-text)]">
+                {username || "Treinador"}
+              </p>
+              <p className="truncate text-[11px] text-[var(--color-text-muted)]">
+                {ownedCount} carta{ownedCount === 1 ? "" : "s"} · {email}
+              </p>
+            </div>
+            <span className="text-[var(--color-text-muted)]" aria-hidden>›</span>
+          </NavLink>
+        ) : null}
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-[4.5rem] md:pb-0">
         <main
           id="main-content"
           tabIndex={-1}
-          className="ui-page mx-auto w-full max-w-6xl flex-1 px-4 py-6 outline-none sm:px-6"
+          className="ui-page mx-auto w-full max-w-6xl flex-1 px-4 py-5 outline-none sm:px-6 sm:py-7"
         >
           <Outlet />
         </main>
       </div>
 
-      <nav className="ui-glass fixed inset-x-0 bottom-0 z-40 flex border-t border-[var(--color-border)] pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="ui-glass fixed inset-x-0 bottom-0 z-40 flex border-t border-[var(--color-border)] px-1 pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Navegação principal">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition ${
+              `relative my-1 flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold transition ${
                 isActive
-                  ? "text-[var(--color-accent)]"
-                  : "text-[var(--color-text-muted)]"
+                  ? "bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[color-mix(in_srgb,var(--color-accent)_82%,var(--color-text))]"
+                  : "text-[var(--color-text-muted)] active:bg-[var(--color-bg-elevated)]"
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive ? (
-                  <span
-                    className="absolute top-1 h-1 w-6 rounded-full bg-[var(--color-accent)] shadow-[0_0_12px_var(--color-accent)]"
-                    aria-hidden
-                  />
-                ) : null}
-                <item.Icon className="h-5 w-5" />
+                <item.Icon className={`h-5 w-5 ${isActive ? "drop-shadow-[0_0_8px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]" : ""}`} />
                 {item.label}
               </>
             )}

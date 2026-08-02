@@ -1,4 +1,5 @@
 import { ProgressFolio } from "@/components/ProgressFolio";
+import { EmptyState } from "@/components/EmptyState";
 import { IconStar } from "@/components/IconStar";
 import { CardItem } from "@/features/cards";
 import { toggleCardInShowcase } from "@/features/collection";
@@ -136,14 +137,14 @@ export function CollectionPage() {
 
   return (
     <div className="relative space-y-5 pb-24">
-      <header className="space-y-3">
+      <header className="space-y-4">
         <div className="space-y-1">
-          <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-tight text-[var(--color-text)]">
+          <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-tight text-[var(--color-text)] sm:text-4xl">
             Minha coleção
           </h1>
           <p className="text-sm text-[var(--color-text-secondary)]">
             {cards.length === 0
-              ? "Nenhuma carta ainda — adicione pelo catálogo"
+              ? "Seu binder está vazio."
               : `${cards.length} carta${cards.length === 1 ? "" : "s"} · ${showcaseCount} na vitrine`}
           </p>
         </div>
@@ -215,13 +216,25 @@ export function CollectionPage() {
       </header>
 
       {cards.length === 0 ? (
-        <p className="ui-empty text-sm">
-          Sua coleção está vazia neste navegador.
-        </p>
+        <EmptyState
+          title="Seu binder está vazio"
+          description="Abra uma expansão no catálogo e toque nas cartas que você já tem."
+          action={
+            <button type="button" className="ui-btn-accent min-h-11 px-4 text-sm" onClick={() => navigate("/catalog")}>
+              Explorar catálogo
+            </button>
+          }
+        />
       ) : isSearching && filteredCards.length === 0 ? (
-        <p className="ui-empty text-sm">
-          Nenhuma carta com esse nome na sua coleção.
-        </p>
+        <EmptyState
+          title="Nenhuma carta encontrada"
+          description="Tente buscar por outro nome ou limpe a pesquisa."
+          action={
+            <button type="button" className="ui-tool-btn" onClick={() => setSearch("")}>
+              Limpar busca
+            </button>
+          }
+        />
       ) : displayMode === "showcase" ? (
         <div className="space-y-4">
           <ShareProfileButton />

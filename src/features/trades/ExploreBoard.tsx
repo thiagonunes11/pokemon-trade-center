@@ -1,4 +1,5 @@
 import { CardItem } from "@/features/cards";
+import { EmptyState } from "@/components/EmptyState";
 import {
   fetchListingsForCardIds,
   fetchListingsPage,
@@ -149,29 +150,28 @@ export function ExploreBoard() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="ui-segment" role="tablist" aria-label="Tipo de publicação">
         {(
           [
-            { key: "offering" as const, label: "Anúncios" },
-            { key: "wanted" as const, label: "Procuras" },
+            { key: "offering" as const, label: "Disponíveis" },
+            { key: "wanted" as const, label: "Buscas" },
           ] as const
         ).map((opt) => (
           <button
             key={opt.key}
             type="button"
+            role="tab"
+            aria-selected={kind === opt.key}
+            data-active={kind === opt.key}
             onClick={() => setKind(opt.key)}
-            className={`min-h-11 flex-1 rounded-xl text-sm font-bold ${
-              kind === opt.key
-                ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                : "border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)]"
-            }`}
+            className="ui-segment-item px-3"
           >
             {opt.label}
           </button>
         ))}
       </div>
 
-      <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-bg-card)] px-3">
+      <label className="ui-glass flex min-h-12 cursor-pointer items-center gap-3 rounded-xl px-3 transition hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))]">
         <input
           type="checkbox"
           checked={onlyMine}
@@ -184,37 +184,51 @@ export function ExploreBoard() {
       </label>
 
       {chatError ? (
-        <p className="text-sm text-[var(--color-error)]">{chatError}</p>
+        <p role="alert" className="rounded-xl border border-[var(--color-error)]/30 bg-[color-mix(in_srgb,var(--color-error)_10%,transparent)] px-3 py-2.5 text-sm text-[var(--color-error)]">{chatError}</p>
       ) : null}
 
       {loading ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Carregando mural…</p>
+        <div className="space-y-3" role="status" aria-label="Carregando mural">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div key={index} className="ui-glass flex gap-4 rounded-2xl p-4">
+              <div className="ui-skeleton aspect-[0.72] w-24 shrink-0" />
+              <div className="flex flex-1 flex-col justify-center gap-3">
+                <div className="ui-skeleton h-5 w-3/4" />
+                <div className="ui-skeleton h-4 w-1/2" />
+                <div className="ui-skeleton h-11 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : error ? (
         <div className="space-y-3 rounded-2xl border border-[var(--color-error)]/40 bg-[var(--color-bg-card)] p-4">
-          <p className="text-sm text-[var(--color-error)]">{error}</p>
+          <p role="alert" className="text-sm text-[var(--color-error)]">{error}</p>
           <button
             type="button"
             onClick={() => void load()}
-            className="min-h-10 rounded-xl border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text)]"
+            className="min-h-11 rounded-xl border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text)]"
           >
             Tentar de novo
           </button>
         </div>
       ) : items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-text-muted)]">
-          {onlyMine
-            ? "Nenhum anúncio cruza com suas listas ainda."
-            : "Nenhum anúncio de outros usuários por enquanto. Os seus não aparecem aqui — só os de outras pessoas."}
-        </p>
+        <EmptyState
+          title={onlyMine ? "Nenhum cruzamento por enquanto" : "O mural está começando"}
+          description={
+            onlyMine
+              ? "Quando alguém anunciar uma carta que você procura, ela aparecerá aqui."
+              : "As publicações de outros treinadores aparecerão aqui. Suas cartas ficam em Minhas ofertas."
+          }
+        />
       ) : (
-        <ul className="space-y-4">
+        <ul className="grid gap-4 lg:grid-cols-2">
           {items.map((item) => (
             <li
               key={item.id}
-              className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4"
+              className="ui-glass ui-card-lift overflow-hidden rounded-2xl p-4"
             >
               <div className="flex gap-4">
-                <div className="w-28 shrink-0 sm:w-32">
+                <div className="w-24 shrink-0 sm:w-28">
                   <CardItem
                     id={item.cardId}
                     name={item.name}
@@ -224,20 +238,20 @@ export function ExploreBoard() {
                     onPress={() => navigate(`/card/${item.cardId}`)}
                   />
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
-                  <p className="line-clamp-2 text-3xl font-bold leading-tight text-[var(--color-text)] sm:text-4xl">
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+                  <span className="w-fit rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[var(--color-text-muted)] uppercase">
+                    {kind === "offering" ? "Disponível" : "Procura"}
+                  </span>
+                  <p className="line-clamp-2 text-xl font-bold leading-tight text-[var(--color-text)] sm:text-2xl">
                     {item.name}
                   </p>
                   <button
                     type="button"
                     onClick={() => navigate(`/u/${item.ownerId}`)}
-                    className="truncate text-left text-lg font-bold text-[var(--color-accent)] underline-offset-2 hover:underline sm:text-xl"
+                    className="min-h-11 truncate text-left text-sm font-bold text-[color-mix(in_srgb,var(--color-accent)_82%,var(--color-text))] underline-offset-2 hover:underline"
                   >
                     {item.displayName}
                   </button>
-                  <p className="text-base font-medium text-[var(--color-text-muted)]">
-                    {kind === "offering" ? "Anunciando" : "Procurando"}
-                  </p>
                 </div>
               </div>
               {kind === "offering" ? (
@@ -245,7 +259,7 @@ export function ExploreBoard() {
                   type="button"
                   disabled={startingChat === item.ownerId}
                   onClick={() => void startChat(item.ownerId, item.displayName)}
-                  className="mt-4 min-h-12 w-full rounded-xl bg-[var(--color-accent)] text-base font-bold text-[var(--color-on-accent)] disabled:opacity-50 sm:min-h-14 sm:text-lg"
+                  className="ui-btn-accent mt-4 min-h-12 w-full text-sm disabled:opacity-50"
                 >
                   {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
                 </button>

@@ -361,7 +361,7 @@ export function SettingsPage() {
             {!editingName ? (
               <button
                 type="button"
-                className="ui-tool-btn !min-h-9 !px-3 text-xs"
+                className="ui-tool-btn !px-3 text-xs"
                 onClick={() => {
                   setNameDraft(username ?? "");
                   setEditingName(true);
@@ -483,7 +483,7 @@ export function SettingsPage() {
             {!editingHandle ? (
               <button
                 type="button"
-                className="ui-tool-btn !min-h-9 !px-3 text-xs"
+                className="ui-tool-btn !px-3 text-xs"
                 onClick={() => {
                   setHandleDraft(handle ?? "");
                   setEditingHandle(true);

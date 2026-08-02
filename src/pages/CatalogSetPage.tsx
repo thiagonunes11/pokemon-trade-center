@@ -313,7 +313,8 @@ export function CatalogSetPage() {
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="ui-page-header space-y-4">
+          <p className="ui-eyebrow">Binder da expansão</p>
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-tight text-[var(--color-text)] sm:text-3xl">
             {setName}
           </h1>
@@ -364,7 +365,7 @@ export function CatalogSetPage() {
 
       {!isLoading && !error && gridCards.length > 0 ? (
         <div
-          className="ui-segment"
+          className="ui-segment sticky top-3 z-20 shadow-[0_14px_30px_-24px_rgba(0,0,0,0.5)]"
           role="tablist"
           aria-label="Filtrar cartas"
         >
@@ -407,15 +408,26 @@ export function CatalogSetPage() {
       ) : null}
 
       {isLoading && (
-        <p className="text-[var(--color-text-secondary)]">
-          Carregando cartas…
-        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" role="status" aria-label="Carregando cartas">
+          {Array.from({ length: 10 }, (_, index) => (
+            <div key={index} className="space-y-2">
+              <div className="ui-skeleton aspect-[0.72]" />
+              <div className="ui-skeleton h-4 w-4/5" />
+            </div>
+          ))}
+        </div>
       )}
 
       {error && (
-        <p className="text-[var(--color-error)]">
-          Não foi possível carregar este set. Tente atualizar.
-        </p>
+        <div className="ui-empty space-y-4" role="alert">
+          <div>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Não foi possível carregar este set</h2>
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">Verifique sua conexão e tente novamente.</p>
+          </div>
+          <button type="button" className="ui-tool-btn" onClick={() => void refetch()}>
+            Tentar novamente
+          </button>
+        </div>
       )}
 
       {!isLoading && !error && filteredCards.length === 0 ? (

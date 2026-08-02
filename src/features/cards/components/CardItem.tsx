@@ -67,7 +67,8 @@ export function CardItem({
     <button
       type="button"
       onClick={() => onPress(id)}
-      className={`group w-full text-left transition duration-200 hover:-translate-y-1 ${compact ? "" : "space-y-2"}`}
+      aria-pressed={markMode ? isSelected : undefined}
+      className={`group w-full rounded-xl text-left transition duration-200 hover:-translate-y-1 active:translate-y-0 ${compact ? "" : "space-y-2"}`}
     >
       <div
         className={`ui-sheen relative overflow-hidden rounded-xl bg-[var(--color-bg-card)] shadow-[0_10px_28px_-18px_rgba(0,0,0,0.55)] transition duration-200 group-hover:shadow-[0_16px_36px_-14px_color-mix(in_srgb,var(--color-accent)_30%,transparent)] ${frameClass} ${
@@ -98,7 +99,11 @@ export function CardItem({
             }`}
             aria-hidden
           >
-            {isSelected ? "✓" : ""}
+            {isSelected ? (
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m5 12 4 4L19 6" />
+              </svg>
+            ) : null}
           </span>
         ) : null}
         <span

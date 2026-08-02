@@ -16,11 +16,12 @@ import {
   compareBySetAndNumber,
 } from "@/lib/cardOrder";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useTradeStore } from "@/store/useTradeStore";
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useId, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 type TradeTab =
   | "offering"
@@ -43,9 +44,9 @@ const TAB_DESCRIPTIONS: Record<TradeTab, string> = {
   explore:
     "Veja anúncios e procuras de outras pessoas e inicie uma conversa no app.",
   offering:
-    "Liste cartas da sua coleção que você quer trocar. Elas aparecem no mural público.",
+    "Gerencie as cartas da sua coleção que estão disponíveis para troca.",
   wanted:
-    "Liste cartas que você busca. Assim fica mais fácil cruzar com o que outros anunciam.",
+    "Gerencie as cartas que você procura e cruze com ofertas da comunidade.",
   chats:
     "Acompanhe as conversas de troca abertas com outros colecionadores.",
   community:
@@ -69,12 +70,10 @@ function TradeSectionTabs({
   offeringCount: number;
   wantedCount: number;
 }) {
-  const primary = [
+  const options = [
     { key: "explore" as const, label: "Explorar" },
-    { key: "offering" as const, label: "Anunciando", count: offeringCount },
-    { key: "wanted" as const, label: "Procurando", count: wantedCount },
-  ];
-  const secondary = [
+    { key: "offering" as const, label: "Minhas ofertas", count: offeringCount },
+    { key: "wanted" as const, label: "Minha busca", count: wantedCount },
     { key: "chats" as const, label: "Conversas" },
     { key: "community" as const, label: "Comunidade" },
   ];
@@ -90,19 +89,19 @@ function TradeSectionTabs({
         role="tab"
         aria-selected={active}
         onClick={() => onChange(opt.key)}
-        className={`min-h-11 rounded-lg px-2 text-sm font-bold ${
+        className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition sm:text-sm ${
           active
-            ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
+            ? "bg-[var(--color-accent)] text-[var(--color-on-accent)] shadow-[0_8px_22px_-12px_color-mix(in_srgb,var(--color-accent)_75%,transparent)]"
             : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
         }`}
       >
         {opt.label}
         {opt.count != null ? (
           <span
-            className={`ml-1 tabular-nums ${
+            className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
               active
-                ? "text-[var(--color-on-accent)]/80"
-                : "text-[var(--color-text-muted)]"
+                ? "bg-black/10 text-[var(--color-on-accent)]"
+                : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"
             }`}
           >
             {opt.count}
@@ -114,17 +113,17 @@ function TradeSectionTabs({
 
   return (
     <div
-      className="space-y-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
+      className="ui-glass flex gap-1 overflow-x-auto rounded-2xl p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       role="tablist"
       aria-label="Seções de trocas"
     >
-      <div className="grid grid-cols-3 gap-1">{primary.map(renderBtn)}</div>
-      <div className="grid grid-cols-2 gap-1">{secondary.map(renderBtn)}</div>
+      {options.map(renderBtn)}
     </div>
   );
 }
 
 export function TradesPage() {
+  const navigate = useNavigate();
   const userId = useAuthStore((s) => s.userId);
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -175,11 +174,11 @@ export function TradesPage() {
 
   return (
     <div className="space-y-5 pb-8">
-      <header className="space-y-2">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold text-[var(--color-text)]">
+      <header className="space-y-1">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-tight text-[var(--color-text)] sm:text-4xl">
           Trocas
         </h1>
-        <p className="text-sm text-[var(--color-text-secondary)]">
+        <p className="max-w-2xl text-sm text-[var(--color-text-secondary)] sm:text-base">
           {TAB_DESCRIPTIONS[tab]}
         </p>
       </header>
@@ -224,11 +223,14 @@ export function TradesPage() {
           ) : null}
 
           {list.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-text-muted)]">
-              {tab === "offering"
-                ? "Nenhuma carta anunciada. Adicione cartas que você tem e quer trocar."
-                : "Nenhuma carta na lista de procura. Adicione o que você busca."}
-            </p>
+            <EmptyState
+              title={tab === "offering" ? "Nenhuma carta anunciada" : "Sua busca está vazia"}
+              description={
+                tab === "offering"
+                  ? "Adicione cartas da sua coleção que você aceita trocar."
+                  : "Adicione cartas do catálogo para cruzar com anúncios de outros treinadores."
+              }
+            />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {list.map((card) => (
@@ -241,9 +243,11 @@ export function TradesPage() {
                         ? removeCardFromOffering(card.id)
                         : removeCardFromWanted(card.id)
                     }
-                    className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-sm font-bold text-white"
+                    className="absolute top-2 right-2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/65 text-white shadow-md backdrop-blur-sm transition hover:bg-[var(--color-error)]"
                   >
-                    ×
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden>
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
                   </button>
                   <CardItem
                     id={card.id}
@@ -251,7 +255,7 @@ export function TradesPage() {
                     localId={cardLocalId(card.id, card.setId)}
                     image={card.imageUrl}
                     compact
-                    onPress={() => {}}
+                    onPress={(id) => navigate(`/card/${id}`)}
                   />
                 </div>
               ))}
@@ -338,6 +342,7 @@ function TradePickerModal({
   onSelectSet: (setId: string) => void;
   onBackToSets: () => void;
 }) {
+  const titleId = useId();
   const wantedSetId =
     mode.kind === "wanted" && mode.step === "cards" ? mode.setId : "";
   const { data: setData, isLoading } = useSetCards(wantedSetId);
@@ -354,9 +359,22 @@ function TradePickerModal({
         ? "Escolher expansão"
         : (getCollectionById(mode.setId)?.name ?? mode.setId);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--color-bg)]">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] px-4 py-3">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--color-bg)]" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div className="ui-glass-strong flex items-center justify-between gap-3 border-x-0 border-t-0 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           {mode.kind === "wanted" && mode.step === "cards" ? (
             <button
@@ -367,14 +385,15 @@ function TradePickerModal({
               ← Sets
             </button>
           ) : null}
-          <h2 className="truncate font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
+          <h2 id={titleId} className="truncate font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
             {title}
           </h2>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm font-semibold text-[var(--color-text)]"
+          autoFocus
+          className="ui-tool-btn"
         >
           Fechar
         </button>

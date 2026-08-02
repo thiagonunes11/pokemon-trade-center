@@ -1,4 +1,5 @@
 import { getAuthErrorMessage } from "@/features/auth";
+import { BrandMark } from "@/components/BrandMark";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useState, type FormEvent } from "react";
@@ -13,32 +14,6 @@ type AuthMode = "login" | "register" | "forgot";
  * - 21st.dev Login Form (fundo atmosférico)
  * Adaptado ao tema Pokémon Trade Center (sem deps novas).
  */
-
-function PokeballMark({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 64 64"
-      role="img"
-      aria-label="Pokébola"
-    >
-      <circle cx="32" cy="32" r="28" fill="#F5F5F5" />
-      <path d="M4 32A28 28 0 0 1 60 32Z" fill="#EE1515" />
-      <circle
-        cx="32"
-        cy="32"
-        r="28"
-        fill="none"
-        stroke="#1A1A1A"
-        strokeWidth="4"
-      />
-      <rect x="4" y="29" width="56" height="6" fill="#1A1A1A" />
-      <circle cx="32" cy="32" r="9" fill="#1A1A1A" />
-      <circle cx="32" cy="32" r="5.5" fill="#F5F5F5" />
-      <circle cx="32" cy="32" r="2.5" fill="#1A1A1A" />
-    </svg>
-  );
-}
 
 function IconEye({ open }: { open: boolean }) {
   if (open) {
@@ -229,7 +204,7 @@ export function LoginPage() {
             </div>
 
             <div className="relative flex flex-col items-start gap-6">
-              <PokeballMark className="h-28 w-28 drop-shadow-[0_20px_40px_rgba(238,21,21,0.35)]" />
+              <BrandMark className="h-28 w-28 drop-shadow-[0_20px_40px_rgba(238,21,21,0.35)]" />
               <ul className="space-y-2 text-sm text-[var(--color-text-secondary)]">
                 <li className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
@@ -250,7 +225,7 @@ export function LoginPage() {
           {/* Formulário */}
           <section className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
             <div className="mb-6 flex items-center gap-3 lg:hidden">
-              <PokeballMark className="h-10 w-10" />
+              <BrandMark className="h-10 w-10" />
               <div>
                 <p className="font-[family-name:var(--font-display)] text-lg font-extrabold text-[var(--color-text)]">
                   Pokemon{" "}
@@ -370,7 +345,7 @@ export function LoginPage() {
                         showPassword ? "Ocultar senha" : "Mostrar senha"
                       }
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute top-1/2 right-2.5 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
+                      className="absolute top-1/2 right-1 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
                     >
                       <IconEye open={showPassword} />
                     </button>
@@ -382,7 +357,7 @@ export function LoginPage() {
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+                    className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] hover:underline"
                     onClick={() => setMode("forgot")}
                   >
                     Esqueci a senha

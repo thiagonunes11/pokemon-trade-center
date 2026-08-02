@@ -1,4 +1,5 @@
 import { CardGrid } from "@/features/cards";
+import { EmptyState } from "@/components/EmptyState";
 import { CollectionPickerCard, useCollections } from "@/features/sets";
 import { COLLECTIONS } from "@/lib/collections";
 import { compareBySetAndNumber, normalizeSearch } from "@/lib/cardOrder";
@@ -72,7 +73,7 @@ function FilterChip({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition ${
+      className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition ${
         active
           ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)] shadow-[0_8px_20px_-10px_color-mix(in_srgb,var(--color-accent)_70%,transparent)]"
           : "border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-text)]"
@@ -223,20 +224,17 @@ export function CatalogPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <p className="font-[family-name:var(--font-mono)] text-[11px] font-medium tracking-[0.14em] text-[var(--color-accent)] uppercase">
-          Megaevolução
-        </p>
+      <header className="space-y-1">
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-tight text-[var(--color-text)] sm:text-4xl">
-          Coleções
+          Catálogo
         </h1>
-        <p className="max-w-xl text-[var(--color-text-secondary)]">
-          Escolha uma expansão, complete sua vitrine e compartilhe o progresso.
+        <p className="max-w-xl text-sm text-[var(--color-text-secondary)] sm:text-base">
+          Série Megaevolução · {ownedIds.size} carta{ownedIds.size === 1 ? "" : "s"} na sua coleção
         </p>
       </header>
 
       {/* Barra de controle — Expandable/glow search (21st) + chips */}
-      <div className="ui-glass space-y-3 rounded-2xl p-3 sm:p-4">
+      <div className="ui-glass-strong sticky top-3 z-20 space-y-3 rounded-2xl p-3 sm:p-4">
         <div className="relative">
           <label className="sr-only" htmlFor="catalog-card-search">
             Buscar carta pelo nome
@@ -351,18 +349,51 @@ export function CatalogPage() {
       </div>
 
       {isSearching ? (
-        setsReady && searchHits.length > 0 ? (
+        !setsReady ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" aria-label="Carregando resultados">
+            {Array.from({ length: 10 }, (_, index) => (
+              <div key={index} className="space-y-2">
+                <div className="ui-skeleton aspect-[0.72]" />
+                <div className="ui-skeleton h-4 w-4/5" />
+              </div>
+            ))}
+          </div>
+        ) : searchHits.length > 0 ? (
           <CardGrid
             cards={searchHits}
             ownedIds={ownedIds}
             binderMode
             onCardPress={(id) => navigate(`/card/${id}`)}
           />
-        ) : null
+        ) : (
+          <EmptyState
+            title="Nenhuma carta encontrada"
+            description="Tente outro nome ou remova um dos filtros aplicados."
+            action={
+              <button
+                type="button"
+                className="ui-tool-btn"
+                onClick={() => {
+                  setSearch("");
+                  setOwnershipFilter("all");
+                  setSetFilter("all");
+                }}
+              >
+                Limpar filtros
+              </button>
+            }
+          />
+        )
       ) : visibleSets.length === 0 ? (
-        <p className="ui-empty text-sm">
-          Nenhuma expansão neste filtro.
-        </p>
+        <EmptyState
+          title="Nenhuma expansão neste filtro"
+          description="Escolha outra etapa de progresso para voltar a explorar."
+          action={
+            <button type="button" className="ui-tool-btn" onClick={() => setProgressFilter("all")}>
+              Ver todas
+            </button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
           {visibleSets.map((s) => (
