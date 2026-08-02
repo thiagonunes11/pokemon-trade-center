@@ -15,7 +15,9 @@ export {
   addCardToWanted,
   removeCardFromOffering,
   removeCardFromWanted,
+  updateOfferingTermsAndSync,
 } from "./tradeActions";
+export { OfferingTermsPanel } from "./OfferingTermsPanel";
 export { TradeSync } from "./TradeSync";
 export { ExploreBoard } from "./ExploreBoard";
 export { ConversationsList } from "./ConversationsList";
