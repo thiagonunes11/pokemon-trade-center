@@ -1,4 +1,10 @@
 export {
+  hasValidOfferingTerms,
+  normalizeOfferingTerms,
+  type OfferingTerms,
+  type WantCardRef,
+} from "./offeringTerms";
+export {
   pullAndMergeTrades,
   scheduleDeleteTradeCard,
   scheduleUpsertTradeCard,

@@ -1,3 +1,8 @@
+import {
+  normalizeOfferingTerms,
+  type OfferingTerms,
+  type WantCardRef,
+} from "@/features/trades/offeringTerms";
 import { safeStorage } from "@/lib/safeStorage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -11,6 +16,8 @@ export interface TradeListCard {
   imageUrl: string | null;
   setId: string;
   ownerId?: string | null;
+  priceBRL?: number | null;
+  wantCards?: WantCardRef[];
   updatedAt: Date;
 }
 
@@ -23,6 +30,7 @@ interface TradeState {
   removeWanted: (cardId: string) => void;
   hasOffering: (cardId: string) => boolean;
   hasWanted: (cardId: string) => boolean;
+  updateOfferingTerms: (cardId: string, terms: OfferingTerms) => void;
   replaceList: (
     ownerId: string,
     kind: TradeListKind,
@@ -39,6 +47,18 @@ function normalizeUpdatedAt(value: unknown): Date {
   return new Date();
 }
 
+function normalizeOfferingCard(card: TradeListCard): TradeListCard {
+  const terms = normalizeOfferingTerms({
+    priceBRL: card.priceBRL,
+    wantCards: card.wantCards,
+  });
+  return {
+    ...card,
+    ...terms,
+    updatedAt: normalizeUpdatedAt(card.updatedAt),
+  };
+}
+
 function withOwner(
   card: Omit<TradeListCard, "updatedAt" | "ownerId">,
   ownerId: string | null,
@@ -48,6 +68,13 @@ function withOwner(
     ownerId,
     updatedAt: new Date(),
   };
+}
+
+function withOfferingOwner(
+  card: Omit<TradeListCard, "updatedAt" | "ownerId">,
+  ownerId: string | null,
+): TradeListCard {
+  return normalizeOfferingCard(withOwner(card, ownerId));
 }
 
 export const useTradeStore = create<TradeState>()(
@@ -60,7 +87,7 @@ export const useTradeStore = create<TradeState>()(
         const ownerId = useAuthStore.getState().userId ?? null;
         if (get().hasOffering(card.id)) return;
         set((s) => ({
-          offering: [...s.offering, withOwner(card, ownerId)],
+          offering: [...s.offering, withOfferingOwner(card, ownerId)],
         }));
       },
 
@@ -106,17 +133,36 @@ export const useTradeStore = create<TradeState>()(
         );
       },
 
+      updateOfferingTerms: (cardId, terms) => {
+        const ownerId = useAuthStore.getState().userId ?? null;
+        set((s) => ({
+          offering: s.offering.map((c) =>
+            c.id === cardId && (c.ownerId ?? null) === ownerId
+              ? {
+                  ...c,
+                  priceBRL: terms.priceBRL,
+                  wantCards: terms.wantCards,
+                  updatedAt: new Date(),
+                }
+              : c,
+          ),
+        }));
+      },
+
       replaceList: (ownerId, kind, cards) => {
         set((state) => {
           const key = kind === "offering" ? "offering" : "wanted";
           const others = state[key].filter(
             (c) => (c.ownerId ?? null) !== ownerId,
           );
-          const normalized = cards.map((c) => ({
-            ...c,
-            ownerId,
-            updatedAt: normalizeUpdatedAt(c.updatedAt),
-          }));
+          const normalized = cards.map((c) => {
+            const base: TradeListCard = {
+              ...c,
+              ownerId,
+              updatedAt: normalizeUpdatedAt(c.updatedAt),
+            };
+            return kind === "offering" ? normalizeOfferingCard(base) : base;
+          });
           return { [key]: [...others, ...normalized] };
         });
       },
@@ -124,6 +170,10 @@ export const useTradeStore = create<TradeState>()(
     {
       name: "pokemon-trade-lists-storage",
       storage: createJSONStorage(() => safeStorage),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        state.offering = state.offering.map(normalizeOfferingCard);
+      },
     },
   ),
 );
