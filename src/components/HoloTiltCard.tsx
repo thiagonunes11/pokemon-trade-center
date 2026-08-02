@@ -21,6 +21,8 @@ type HoloTiltCardProps = {
   gyroSensitivity?: number;
 };
 
+const SCROLL_CANCEL_PX = 10;
+
 const clamp = (v: number, min = 0, max = 100) =>
   Math.min(Math.max(v, min), max);
 
@@ -40,8 +42,9 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * Carta 3D: tilt Aceternity + metal holográfico Profile Card.
- * Mouse (hover/arrasto), giroscópio no mobile. Toque não captura o scroll.
+ * Carta 3D: tilt + metal holográfico.
+ * Mouse: hover/arrasto. Toque: tilt sem capture (scroll vertical cancela).
+ * Giroscópio opcional após permissão.
  */
 export function HoloTiltCard({
   src,
@@ -58,6 +61,8 @@ export function HoloTiltCard({
   const imageLayerRef = useRef<HTMLDivElement>(null);
   const pointerIdRef = useRef<number | null>(null);
   const touchingRef = useRef(false);
+  const touchOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const scrollCanceledRef = useRef(false);
   const [active, setActive] = useState(false);
   const [gyroOn, setGyroOn] = useState(false);
 
@@ -92,7 +97,6 @@ export function HoloTiltCard({
       );
       scene.style.setProperty("--pointer-from-top", `${percentY / 100}`);
       scene.style.setProperty("--pointer-from-left", `${percentX / 100}`);
-      // Glare Hover: faixa metálica acompanha o ponteiro
       scene.style.setProperty("--glare-pos-x", `${percentX}%`);
       scene.style.setProperty("--glare-pos-y", `${percentY}%`);
 
@@ -142,7 +146,7 @@ export function HoloTiltCard({
         setGyroOn(true);
       }
     } catch {
-      /* permissão negada — toque ainda funciona */
+      /* permissão negada */
     }
   }, [enableGyro, reduced]);
 
@@ -151,21 +155,24 @@ export function HoloTiltCard({
       if (!canTilt) return;
 
       const isTouch = e.pointerType === "touch" || e.pointerType === "pen";
-      // Toque: não captura o ponteiro — senão o scroll da página trava.
-      // O efeito 3D no mobile fica a cargo do giroscópio após permissão.
-      if (isTouch) {
-        void requestGyroPermission();
-        return;
-      }
-
       touchingRef.current = true;
       pointerIdRef.current = e.pointerId;
+      scrollCanceledRef.current = false;
       setActive(true);
-      e.currentTarget.setPointerCapture(e.pointerId);
 
       const { left, top, width, height } =
         e.currentTarget.getBoundingClientRect();
       applyPointer(e.clientX - left, e.clientY - top, width, height);
+
+      if (isTouch) {
+        // Sem capture: o browser continua podendo fazer pan-y.
+        touchOriginRef.current = { x: e.clientX, y: e.clientY };
+        void requestGyroPermission();
+        return;
+      }
+
+      touchOriginRef.current = null;
+      e.currentTarget.setPointerCapture(e.pointerId);
     },
     [canTilt, applyPointer, requestGyroPermission],
   );
@@ -173,15 +180,45 @@ export function HoloTiltCard({
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!canTilt) return;
-      // Arrastar com o dedo não inclina — libera o scroll; mouse continua.
-      if (e.pointerType === "touch" || e.pointerType === "pen") return;
+      const isTouch = e.pointerType === "touch" || e.pointerType === "pen";
+
+      if (isTouch) {
+        if (pointerIdRef.current !== e.pointerId) return;
+        if (scrollCanceledRef.current) return;
+
+        const origin = touchOriginRef.current;
+        if (origin) {
+          const dx = e.clientX - origin.x;
+          const dy = e.clientY - origin.y;
+          // Scroll vertical: abandona o tilt e deixa a página rolar.
+          if (
+            Math.abs(dy) > SCROLL_CANCEL_PX &&
+            Math.abs(dy) > Math.abs(dx) * 1.15
+          ) {
+            scrollCanceledRef.current = true;
+            touchingRef.current = false;
+            pointerIdRef.current = null;
+            touchOriginRef.current = null;
+            if (!gyroOn) {
+              setActive(false);
+              resetTilt();
+            }
+            return;
+          }
+        }
+
+        const { left, top, width, height } =
+          e.currentTarget.getBoundingClientRect();
+        applyPointer(e.clientX - left, e.clientY - top, width, height);
+        return;
+      }
 
       const { left, top, width, height } =
         e.currentTarget.getBoundingClientRect();
       setActive(true);
       applyPointer(e.clientX - left, e.clientY - top, width, height);
     },
-    [canTilt, applyPointer],
+    [canTilt, applyPointer, gyroOn, resetTilt],
   );
 
   const handlePointerUp = useCallback(
@@ -190,13 +227,14 @@ export function HoloTiltCard({
         try {
           e.currentTarget.releasePointerCapture(e.pointerId);
         } catch {
-          /* já liberado */
+          /* já liberado / sem capture */
         }
         pointerIdRef.current = null;
       }
       touchingRef.current = false;
+      touchOriginRef.current = null;
+      scrollCanceledRef.current = false;
 
-      // Com giro ativo, mantém o metal “ligado”; senão reseta
       if (!gyroOn) {
         setActive(false);
         resetTilt();
@@ -237,7 +275,6 @@ export function HoloTiltCard({
       const { width, height } = tilt.getBoundingClientRect();
       const centerX = width / 2;
       const centerY = height / 2;
-      // beta: frente/trás (−180..180), gamma: esquerda/direita (−90..90)
       const px = clamp(
         centerX + event.gamma * gyroSensitivity * 4,
         0,

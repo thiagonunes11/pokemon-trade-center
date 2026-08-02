@@ -164,7 +164,11 @@ export function AppLayout() {
         </main>
       </div>
 
-      <nav className="ui-glass fixed inset-x-0 bottom-0 z-40 flex border-t border-[var(--color-border)] px-1 pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Navegação principal">
+      <nav
+        data-app-bottom-nav
+        className="ui-glass fixed inset-x-0 bottom-0 z-40 flex border-t border-[var(--color-border)] px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
+        aria-label="Navegação principal"
+      >
         {navItems.map((item) => (
           <NavLink
             key={item.to}

@@ -1,5 +1,6 @@
 /**
  * Carta 3D — tilt Aceternity/21st + brilho metálico Profile Card (React Bits)
+ * Intensidade média: visível sem cobrir a arte.
  */
 
 .tcg-3d-scene {
@@ -10,25 +11,25 @@
   --pointer-from-left: 0.5;
   --background-x: 50%;
   --background-y: 50%;
-  --card-opacity: 0.35;
+  --card-opacity: 0.5;
   --behind-glow-color: color-mix(
     in srgb,
-    var(--color-accent) 35%,
-    rgba(125, 190, 255, 0.35)
+    var(--color-accent) 45%,
+    rgba(125, 190, 255, 0.45)
   );
-  --behind-glow-size: 42%;
-  --sunpillar-1: hsl(2, 70%, 78%);
-  --sunpillar-2: hsl(53, 70%, 76%);
-  --sunpillar-3: hsl(93, 65%, 76%);
-  --sunpillar-4: hsl(176, 65%, 80%);
-  --sunpillar-5: hsl(228, 65%, 78%);
-  --sunpillar-6: hsl(283, 65%, 78%);
+  --behind-glow-size: 46%;
+  --sunpillar-1: hsl(2, 90%, 74%);
+  --sunpillar-2: hsl(53, 90%, 72%);
+  --sunpillar-3: hsl(93, 85%, 72%);
+  --sunpillar-4: hsl(176, 85%, 76%);
+  --sunpillar-5: hsl(228, 85%, 75%);
+  --sunpillar-6: hsl(283, 85%, 74%);
   --card-radius: 14px;
 
   position: relative;
   perspective: 1000px;
   transform-style: preserve-3d;
-  /* pan-y: scroll vertical no mobile; tilt por arrasto só no mouse (JS). */
+  /* pan-y: scroll vertical; tilt no toque sem setPointerCapture. */
   touch-action: pan-y;
 }
 
@@ -42,8 +43,8 @@
     var(--behind-glow-color) 0%,
     transparent var(--behind-glow-size)
   );
-  filter: blur(48px) saturate(1.05);
-  opacity: calc(0.28 + 0.22 * var(--card-opacity));
+  filter: blur(48px) saturate(1.1);
+  opacity: calc(0.4 + 0.3 * var(--card-opacity));
   transition: opacity 200ms ease;
 }
 
@@ -73,15 +74,15 @@
 }
 
 .tcg-3d-scene.is-active {
-  --card-opacity: 0.72;
+  --card-opacity: 0.88;
 }
 
 .tcg-3d-scene.is-active .tcg-3d-body {
   box-shadow:
-    rgba(0, 0, 0, 0.55) calc((var(--pointer-from-left) * 10px) - 5px)
-      calc((var(--pointer-from-top) * 18px) - 8px) 30px -5px,
-    0 0 0 1px color-mix(in srgb, var(--color-accent) 18%, var(--color-border)),
-    0 0 28px -10px color-mix(in srgb, var(--color-accent) 22%, transparent);
+    rgba(0, 0, 0, 0.6) calc((var(--pointer-from-left) * 11px) - 5px)
+      calc((var(--pointer-from-top) * 20px) - 9px) 32px -4px,
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 24%, var(--color-border)),
+    0 0 34px -8px color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
 .tcg-3d-body > * {
@@ -107,16 +108,16 @@
   -webkit-user-drag: none;
 }
 
-/* Brilho metálico holográfico (Profile Card) — intensidade contida */
+/* Brilho metálico holográfico */
 .tcg-3d-metal {
   --space: 5%;
   --angle: -45deg;
   z-index: 3;
   transform: translate3d(0, 0, 1px);
   overflow: hidden;
-  mix-blend-mode: soft-light;
-  filter: brightness(0.85) contrast(1.15) saturate(0.35) opacity(0.32);
-  animation: tcg-holo-bg 22s linear infinite;
+  mix-blend-mode: color-dodge;
+  filter: brightness(0.78) contrast(1.3) saturate(0.42) opacity(0.52);
+  animation: tcg-holo-bg 18s linear infinite;
   background-image:
     repeating-linear-gradient(
       0deg,
@@ -166,7 +167,7 @@
 }
 
 .tcg-3d-scene.is-active .tcg-3d-metal {
-  filter: brightness(0.9) contrast(1.2) saturate(0.45) opacity(0.48);
+  filter: brightness(0.92) contrast(1.4) saturate(0.58) opacity(0.72);
   animation-play-state: paused;
 }
 
@@ -197,11 +198,11 @@
   background-position:
     var(--pointer-x) var(--pointer-y),
     center;
-  background-blend-mode: soft-light;
-  filter: brightness(calc(1.15 - var(--pointer-from-center) * 0.25))
-    contrast(calc(1.05 + var(--pointer-from-center) * 0.35))
-    saturate(calc(0.35 + var(--pointer-from-center) * 0.25));
-  mix-blend-mode: soft-light;
+  background-blend-mode: color-dodge;
+  filter: brightness(calc(1.45 - var(--pointer-from-center) * 0.35))
+    contrast(calc(1.25 + var(--pointer-from-center) * 0.55))
+    saturate(calc(0.45 + var(--pointer-from-center) * 0.35));
+  mix-blend-mode: luminosity;
 }
 
 .tcg-3d-metal::after {
@@ -239,8 +240,8 @@
     200% 300%,
     700% 700%,
     100% 100%;
-  mix-blend-mode: soft-light;
-  filter: brightness(0.85) contrast(1.15);
+  mix-blend-mode: difference;
+  filter: brightness(0.8) contrast(1.35);
 }
 
 .tcg-3d-glare {
@@ -252,23 +253,22 @@
     hsl(248, 25%, 80%) 12%,
     hsla(207, 40%, 30%, 0.8) 90%
   );
-  mix-blend-mode: soft-light;
-  filter: brightness(0.9) contrast(1.05);
-  opacity: calc(0.12 + 0.28 * var(--card-opacity));
+  mix-blend-mode: overlay;
+  filter: brightness(0.85) contrast(1.15);
+  opacity: calc(0.22 + 0.4 * var(--card-opacity));
   transition: opacity 200ms ease;
 }
 
-/* Faixa metálica tipo React Bits Glare Hover — segue o ponteiro */
 .tcg-3d-glare-sweep {
   z-index: 5;
   overflow: hidden;
-  opacity: calc(0.12 + 0.28 * var(--card-opacity));
+  opacity: calc(0.22 + 0.4 * var(--card-opacity));
   transition: opacity 200ms ease;
   background: linear-gradient(
     var(--gh-angle, -45deg),
-    hsla(0, 0%, 0%, 0) 44%,
-    rgba(255, 255, 255, 0.28) 50%,
-    hsla(0, 0%, 0%, 0) 56%
+    hsla(0, 0%, 0%, 0) 43%,
+    rgba(255, 255, 255, 0.42) 50%,
+    hsla(0, 0%, 0%, 0) 57%
   );
   background-size: 220% 220%;
   background-repeat: no-repeat;
@@ -278,7 +278,7 @@
 }
 
 .tcg-3d-scene.is-active .tcg-3d-glare-sweep {
-  mix-blend-mode: soft-light;
+  mix-blend-mode: overlay;
 }
 
 @keyframes tcg-holo-bg {
@@ -310,10 +310,10 @@
 
   .tcg-3d-metal {
     animation: none !important;
-    opacity: 0.18;
+    opacity: 0.22;
   }
 
   .tcg-3d-behind {
-    opacity: 0.12;
+    opacity: 0.16;
   }
 }

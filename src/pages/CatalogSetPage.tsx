@@ -15,7 +15,8 @@ import { useCollectionStore } from "@/store/useCollectionStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTradeStore } from "@/store/useTradeStore";
 import { useNavigate, useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 type SetFilter = "all" | "owned" | "missing";
 
@@ -67,6 +68,14 @@ export function CatalogSetPage() {
   } | null>(null);
 
   useScrollMemory(valid && !isLoading && !error);
+
+  useEffect(() => {
+    if (!markMode) return;
+    document.body.dataset.markMode = "true";
+    return () => {
+      delete document.body.dataset.markMode;
+    };
+  }, [markMode]);
 
   const ownedIds = useMemo(() => {
     const ids = new Set<string>();
@@ -471,59 +480,66 @@ export function CatalogSetPage() {
         />
       ) : null}
 
-      {markMode ? (
-        <div
-          role="toolbar"
-          aria-label="Ações das cartas selecionadas"
-          className="ui-glass-strong fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-50 border-t border-[var(--color-border)] px-4 py-3 md:bottom-0 md:left-60"
-        >
-          <div className="mx-auto flex max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              {selectedCount === 0
-                ? "Toque nas cartas para selecionar."
-                : `${selectedCount} selecionada${selectedCount === 1 ? "" : "s"}`}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={selectedMissingCount === 0}
-                onClick={addSelected}
-                className="ui-btn-accent min-h-11 flex-1 px-4 text-sm disabled:opacity-40 sm:flex-none"
-              >
-                Adicionar selecionadas
-                {selectedMissingCount > 0 ? ` (${selectedMissingCount})` : ""}
-              </button>
-              <button
-                type="button"
-                disabled={selectedMissingNotWanted === 0}
-                onClick={addSelectedToWanted}
-                className="ui-tool-btn min-h-11 flex-1 border-[var(--color-accent)] text-[var(--color-accent)] disabled:opacity-40 sm:flex-none"
-              >
-                Adicionar à busca
-                {selectedMissingNotWanted > 0
-                  ? ` (${selectedMissingNotWanted})`
-                  : ""}
-              </button>
-              <button
-                type="button"
-                disabled={selectedOwnedCount === 0}
-                onClick={removeSelected}
-                className="min-h-11 flex-1 rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)] disabled:opacity-40 sm:flex-none"
-              >
-                Remover seleção
-                {selectedOwnedCount > 0 ? ` (${selectedOwnedCount})` : ""}
-              </button>
-              <button
-                type="button"
-                onClick={exitMarkMode}
-                className="ui-tool-btn min-h-11"
-              >
-                Concluir
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {markMode
+        ? createPortal(
+            <div
+              role="toolbar"
+              aria-label="Ações das cartas selecionadas"
+              className="ui-glass-strong fixed inset-x-0 bottom-0 z-[55] border-t border-[var(--color-border)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] md:left-60"
+            >
+              <div className="mx-auto flex max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  {selectedCount === 0
+                    ? "Toque nas cartas para selecionar."
+                    : `${selectedCount} selecionada${selectedCount === 1 ? "" : "s"}`}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={selectedMissingCount === 0}
+                    onClick={addSelected}
+                    className="ui-btn-accent min-h-11 flex-1 px-4 text-sm disabled:opacity-40 sm:flex-none"
+                  >
+                    Adicionar à coleção
+                    {selectedMissingCount > 0
+                      ? ` (${selectedMissingCount})`
+                      : ""}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={selectedMissingNotWanted === 0}
+                    onClick={addSelectedToWanted}
+                    className="ui-tool-btn min-h-11 flex-1 border-[var(--color-accent)] text-[var(--color-accent)] disabled:opacity-40 sm:flex-none"
+                  >
+                    Adicionar à busca
+                    {selectedMissingNotWanted > 0
+                      ? ` (${selectedMissingNotWanted})`
+                      : ""}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={selectedOwnedCount === 0}
+                    onClick={removeSelected}
+                    className="min-h-11 flex-1 rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)] disabled:opacity-40 sm:flex-none"
+                  >
+                    Remover
+                    {selectedOwnedCount > 0
+                      ? ` (${selectedOwnedCount})`
+                      : ""}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exitMarkMode}
+                    className="ui-tool-btn min-h-11"
+                  >
+                    Concluir
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       <ConfirmDialog
         open={Boolean(confirm)}

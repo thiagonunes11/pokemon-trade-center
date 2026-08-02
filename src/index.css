@@ -190,11 +190,9 @@ summary:focus:not(:focus-visible) {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -242,6 +240,13 @@ summary:focus:not(:focus-visible) {
 
 .ui-page {
   animation: fadeIn 0.35s ease-out both;
+}
+
+/* Modo marcar: esconde bottom nav para a toolbar de ações ocupar o rodapé */
+@media (max-width: 767px) {
+  body[data-mark-mode] [data-app-bottom-nav] {
+    display: none;
+  }
 }
 
 .ui-glass {
