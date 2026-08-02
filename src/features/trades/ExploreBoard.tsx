@@ -1,5 +1,6 @@
 import { CardItem } from "@/features/cards";
 import { EmptyState } from "@/components/EmptyState";
+import { hasValidOfferingTerms } from "@/features/trades/offeringTerms";
 import {
   fetchListingsForCardIds,
   fetchListingsPage,
@@ -19,6 +20,41 @@ import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import type { TradeListKind } from "@/store/useTradeStore";
 
 type ExploreKind = TradeListKind;
+
+function isVisibleListing(listing: PublicListing, kind: ExploreKind): boolean {
+  if (kind !== "offering") return true;
+  return hasValidOfferingTerms({
+    priceBRL: listing.priceBRL,
+    wantCards: listing.wantCards,
+  });
+}
+
+function OfferingTermsSummary({ listing }: { listing: PublicListing }) {
+  const wantedNames = listing.wantCards
+    .slice(0, 2)
+    .map((w) => w.name)
+    .join(", ");
+  const extraWanted = Math.max(listing.wantCards.length - 2, 0);
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {listing.priceBRL ? (
+        <span className="rounded-full bg-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] px-2 py-1 text-xs font-bold text-[var(--color-text)]">
+          R$ {listing.priceBRL.toFixed(2).replace(".", ",")}
+        </span>
+      ) : null}
+      {listing.wantCards.length ? (
+        <span
+          title={listing.wantCards.map((w) => w.name).join(", ")}
+          className="line-clamp-2 rounded-lg border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)]"
+        >
+          Troca por: {wantedNames}
+          {extraWanted ? ` +${extraWanted}` : ""}
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 function exploreErrorMessage(err: unknown): string {
   const code =
@@ -75,12 +111,20 @@ export function ExploreBoard() {
       if (onlyMine) {
         const ids = kind === "offering" ? myWantedIds : myOfferingIds;
         const list = await fetchListingsForCardIds(kind, ids);
-        setItems(list.filter((l) => l.ownerId !== userId));
+        setItems(
+          list.filter(
+            (l) => l.ownerId !== userId && isVisibleListing(l, kind),
+          ),
+        );
         setCursor(null);
         setHasMore(false);
       } else {
         const page = await fetchListingsPage(kind, null);
-        setItems(page.items.filter((l) => l.ownerId !== userId));
+        setItems(
+          page.items.filter(
+            (l) => l.ownerId !== userId && isVisibleListing(l, kind),
+          ),
+        );
         setCursor(page.lastDoc);
         setHasMore(page.hasMore);
       }
@@ -105,7 +149,10 @@ export function ExploreBoard() {
       setItems((prev) => {
         const ids = new Set(prev.map((p) => p.id));
         const next = page.items.filter(
-          (l) => l.ownerId !== userId && !ids.has(l.id),
+          (l) =>
+            l.ownerId !== userId &&
+            !ids.has(l.id) &&
+            isVisibleListing(l, kind),
         );
         return [...prev, ...next];
       });
@@ -255,14 +302,19 @@ export function ExploreBoard() {
                 </div>
               </div>
               {kind === "offering" ? (
-                <button
-                  type="button"
-                  disabled={startingChat === item.ownerId}
-                  onClick={() => void startChat(item.ownerId, item.displayName)}
-                  className="ui-btn-accent mt-4 min-h-12 w-full text-sm disabled:opacity-50"
-                >
-                  {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
-                </button>
+                <>
+                  <div className="ui-glass mt-3 rounded-xl p-2.5">
+                    <OfferingTermsSummary listing={item} />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={startingChat === item.ownerId}
+                    onClick={() => void startChat(item.ownerId, item.displayName)}
+                    className="ui-btn-accent mt-3 min-h-12 w-full text-sm disabled:opacity-50"
+                  >
+                    {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
+                  </button>
+                </>
               ) : null}
             </li>
           ))}
