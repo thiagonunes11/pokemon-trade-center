@@ -29,3 +29,7 @@ google-services.json
 GoogleService-Info.plist
 .vercel
 .env*
+
+# python
+__pycache__/
+*.py[cod]
