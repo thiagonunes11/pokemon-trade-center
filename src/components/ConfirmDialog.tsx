@@ -1,4 +1,7 @@
 import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { dialogPanelTransition, overlayTransition } from "@/lib/motion";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -62,59 +65,74 @@ export function ConfirmDialog({
     };
   }, [open, onCancel]);
 
-  if (!open) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
-      role="presentation"
-      onClick={onCancel}
-    >
-      <div
-        ref={panelRef}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={message ? descId : undefined}
-        className="ui-glass-strong ui-dialog-panel w-full max-w-sm rounded-2xl p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2
-          id={titleId}
-          className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]"
+  /** Portal no body: evita stacking context de `.ui-page` (nav z-40 por cima). */
+  return createPortal(
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          key="confirm-overlay"
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center"
+          role="presentation"
+          onClick={onCancel}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={overlayTransition}
         >
-          {title}
-        </h2>
-        {message ? (
-          <p
-            id={descId}
-            className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]"
+          <motion.div
+            ref={panelRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            aria-describedby={message ? descId : undefined}
+            className="ui-glass-strong w-full max-w-sm rounded-2xl p-5"
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            transition={dialogPanelTransition}
           >
-            {message}
-          </p>
-        ) : null}
-        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="min-h-11 rounded-xl border border-[var(--color-border)] px-4 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-bg-elevated)]"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            ref={confirmRef}
-            type="button"
-            onClick={onConfirm}
-            className={
-              danger
-                ? "min-h-11 rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)] transition hover:bg-[color-mix(in_srgb,var(--color-error)_12%,transparent)]"
-                : "ui-btn-accent min-h-11 px-4 text-sm"
-            }
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+            <h2
+              id={titleId}
+              className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]"
+            >
+              {title}
+            </h2>
+            {message ? (
+              <p
+                id={descId}
+                className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]"
+              >
+                {message}
+              </p>
+            ) : null}
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="min-h-11 rounded-xl border border-[var(--color-border)] px-4 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-bg-elevated)]"
+              >
+                {cancelLabel}
+              </button>
+              <button
+                ref={confirmRef}
+                type="button"
+                onClick={onConfirm}
+                className={
+                  danger
+                    ? "min-h-11 rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)] transition hover:bg-[color-mix(in_srgb,var(--color-error)_12%,transparent)]"
+                    : "ui-btn-accent min-h-11 px-4 text-sm"
+                }
+              >
+                {confirmLabel}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>,
+    document.body,
   );
 }

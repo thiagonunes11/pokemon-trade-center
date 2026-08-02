@@ -34,7 +34,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | Camada | Tecnologia |
 |--------|------------|
 | Build | Vite 7 |
-| UI | React 19 + Tailwind CSS 4 |
+| UI | React 19 + Tailwind CSS 4 + Motion (`motion/react`) |
 | Rotas | React Router 7 |
 | API cartas | `@tcgdex/sdk` (`pt`) |
 | Cache | TanStack Query + `safeStorage` / localStorage |
@@ -42,7 +42,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | Estado | Zustand |
 | Backend | Firebase Auth + Firestore (Spark) |
 | Env | `VITE_FIREBASE_*` (`.env` gitignored) |
-| UI/UX | Skill `.cursor/skills/ui-ux-pro-max` · regras em `design-system/pokemon-trade-center/MASTER.md` |
+| UI/UX | Skill `.cursor/skills/ui-ux-pro-max` · regras em `design-system/pokemon-trade-center/MASTER.md` · Motion para dialogs/tabs/progresso (não no CardGrid) |
 
 ---
 
@@ -65,7 +65,7 @@ src/
     trades/             ← TradeSync, listings, threads, Explore/Community panels
     share/              ← ShareProfileButton (copiar link /u/:uid)
     profile/            ← perfil público, avatarService (presets), avatarPresets
-  components/           ← EnergyIcon, UserAvatar, ProgressFolio
+  components/           ← EnergyIcon, UserAvatar, ProgressFolio, SegmentTabs, ConfirmDialog
   hooks/useOwnedSetCount.ts
   lib/                  ← firebase (Auth/Firestore), tcgdex, …
   store/                ← useAuthStore, useCollectionStore, useTradeStore
@@ -214,5 +214,6 @@ firebase deploy --only firestore:rules
 | Compartilhar | `features/share/*` (copiar link `/u/:slug`) |
 | Tema | `theme/*`, `index.css`, `SettingsPage.tsx` |
 | Shell / guard | `layouts/AppLayout.tsx`, `AuthGuard.tsx` |
+| Motion (UI) | `lib/motion.ts`, `SegmentTabs.tsx`, `ConfirmDialog`, `ProgressFolio`, `MotionConfig` em `main.tsx` |
 
-_Última revisão: 2026-08-01 — avatar presets Pokémon (Spark, sem Storage)._
+_Última revisão: 2026-08-02 — Motion para dialogs/tabs/progresso (fora do CardGrid)._

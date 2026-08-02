@@ -1,5 +1,6 @@
 import { getAuthErrorMessage } from "@/features/auth";
 import { BrandMark } from "@/components/BrandMark";
+import { SegmentTabs } from "@/components/SegmentTabs";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useState, type FormEvent } from "react";
@@ -12,7 +13,7 @@ type AuthMode = "login" | "register" | "forgot";
  * - 21st.dev Sign In Split Screen
  * - 21st.dev Premium Auth (glass + tabs)
  * - 21st.dev Login Form (fundo atmosférico)
- * Adaptado ao tema Pokémon Trade Center (sem deps novas).
+ * Adaptado ao tema Pokémon Trade Center.
  */
 
 function IconEye({ open }: { open: boolean }) {
@@ -239,36 +240,17 @@ export function LoginPage() {
             </div>
 
             {mode !== "forgot" ? (
-              <div className="ui-segment mb-6" role="tablist" aria-label="Modo">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === "login"}
-                  data-active={mode === "login"}
-                  onClick={() => setMode("login")}
-                  className={`ui-segment-item ${
-                    mode === "login"
-                      ? "text-[var(--color-text)]"
-                      : "text-[var(--color-text-secondary)]"
-                  }`}
-                >
-                  Entrar
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === "register"}
-                  data-active={mode === "register"}
-                  onClick={() => setMode("register")}
-                  className={`ui-segment-item ${
-                    mode === "register"
-                      ? "text-[var(--color-text)]"
-                      : "text-[var(--color-text-secondary)]"
-                  }`}
-                >
-                  Criar conta
-                </button>
-              </div>
+              <SegmentTabs
+                layoutId="login-auth-tab"
+                aria-label="Modo"
+                className="mb-6"
+                value={mode === "register" ? "register" : "login"}
+                onChange={(next) => setMode(next)}
+                options={[
+                  { key: "login", label: "Entrar" },
+                  { key: "register", label: "Criar conta" },
+                ]}
+              />
             ) : null}
 
             <div className="space-y-1">
