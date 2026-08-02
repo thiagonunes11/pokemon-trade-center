@@ -313,8 +313,7 @@ export function CatalogSetPage() {
           </div>
         </div>
 
-        <div className="ui-page-header space-y-4">
-          <p className="ui-eyebrow">Binder da expansão</p>
+        <div className="space-y-4">
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-tight text-[var(--color-text)] sm:text-3xl">
             {setName}
           </h1>

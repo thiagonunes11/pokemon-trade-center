@@ -261,42 +261,6 @@ summary:focus:not(:focus-visible) {
     0 18px 50px -24px rgba(0, 0, 0, 0.45);
 }
 
-.ui-page-header {
-  position: relative;
-  overflow: hidden;
-  border-radius: 1.25rem;
-  padding: 1.25rem;
-  background:
-    linear-gradient(
-      125deg,
-      color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-card)),
-      color-mix(in srgb, var(--color-bg-card) 88%, transparent) 55%
-    );
-  border: 1px solid color-mix(in srgb, var(--color-accent) 24%, var(--color-border));
-  box-shadow: 0 20px 50px -38px color-mix(in srgb, var(--color-accent) 70%, transparent);
-}
-
-.ui-page-header::after {
-  content: "";
-  position: absolute;
-  top: -3rem;
-  right: -2.5rem;
-  width: 10rem;
-  height: 10rem;
-  border: 1.5rem solid color-mix(in srgb, var(--color-accent) 8%, transparent);
-  border-radius: 999px;
-  pointer-events: none;
-}
-
-.ui-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-accent) 82%, var(--color-text));
-}
-
 .ui-skeleton {
   border-radius: 0.75rem;
   background: linear-gradient(
@@ -528,11 +492,6 @@ summary:focus:not(:focus-visible) {
   background: var(--color-bg-elevated);
 }
 
-@media (min-width: 640px) {
-  .ui-page-header {
-    padding: 1.5rem;
-  }
-}
 
 .ui-tool-btn[aria-pressed="true"],
 .ui-tool-btn[data-active="true"] {
