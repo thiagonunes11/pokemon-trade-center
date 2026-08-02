@@ -10,6 +10,10 @@ import {
 import { useCard, useSetCards } from "@/features/cards";
 import { compareByLocalId } from "@/lib/cardOrder";
 import { getCollectionById } from "@/lib/collections";
+import {
+  ligaPokemonSearchUrl,
+  mypCardsSearchUrl,
+} from "@/lib/externalCardLinks";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useEffect, useMemo, useState } from "react";
@@ -298,6 +302,25 @@ export function CardDetailPage() {
                 {inShowcase ? "Na vitrine" : "Adicionar à vitrine"}
               </button>
             ) : null}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={ligaPokemonSearchUrl(card.name)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ui-tool-btn"
+            >
+              Liga Pokémon
+            </a>
+            <a
+              href={mypCardsSearchUrl(card.name)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ui-tool-btn"
+            >
+              MYP Cards
+            </a>
           </div>
 
           {wantedClearHint ? (
