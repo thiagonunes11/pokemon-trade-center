@@ -12,7 +12,7 @@ import { compareByLocalId } from "@/lib/cardOrder";
 import { getCollectionById } from "@/lib/collections";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 /**
@@ -82,18 +82,25 @@ export function CardDetailPage() {
         Boolean(c.inShowcase),
     ),
   );
+  const [wantedClearHint, setWantedClearHint] = useState(false);
+
+  useEffect(() => {
+    setWantedClearHint(false);
+  }, [id]);
 
   const handleToggle = () => {
     if (!card) return;
     if (isInCollection) {
       removeCardFromCollection(id);
+      setWantedClearHint(false);
     } else {
-      addCardToCollection({
+      const { removedFromWanted } = addCardToCollection({
         id,
         name: card.name,
         imageUrl: card.image ? `${card.image}/high.webp` : null,
         setId: card.set?.id ?? id.split("-")[0],
       });
+      setWantedClearHint(removedFromWanted);
     }
   };
 
@@ -292,6 +299,18 @@ export function CardDetailPage() {
               </button>
             ) : null}
           </div>
+
+          {wantedClearHint ? (
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Removida da lista de procura.{" "}
+              <Link
+                to="/trades?tab=wanted"
+                className="font-semibold text-[var(--color-accent)] hover:underline"
+              >
+                Ver busca
+              </Link>
+            </p>
+          ) : null}
 
           {attacks.length > 0 && (
             <section className="space-y-3">
