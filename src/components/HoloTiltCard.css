@@ -1,0 +1,295 @@
+/**
+ * Carta 3D — tilt Aceternity/21st + brilho metálico Profile Card (React Bits)
+ */
+
+.tcg-3d-scene {
+  --pointer-x: 50%;
+  --pointer-y: 50%;
+  --pointer-from-center: 0;
+  --pointer-from-top: 0.5;
+  --pointer-from-left: 0.5;
+  --background-x: 50%;
+  --background-y: 50%;
+  --card-opacity: 0.45;
+  --behind-glow-color: color-mix(
+    in srgb,
+    var(--color-accent) 55%,
+    rgba(125, 190, 255, 0.55)
+  );
+  --behind-glow-size: 48%;
+  --sunpillar-1: hsl(2, 100%, 73%);
+  --sunpillar-2: hsl(53, 100%, 69%);
+  --sunpillar-3: hsl(93, 100%, 69%);
+  --sunpillar-4: hsl(176, 100%, 76%);
+  --sunpillar-5: hsl(228, 100%, 74%);
+  --sunpillar-6: hsl(283, 100%, 73%);
+  --card-radius: 14px;
+
+  position: relative;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  touch-action: none;
+}
+
+.tcg-3d-behind {
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--pointer-x) var(--pointer-y),
+    var(--behind-glow-color) 0%,
+    transparent var(--behind-glow-size)
+  );
+  filter: blur(48px) saturate(1.15);
+  opacity: calc(0.55 + 0.35 * var(--card-opacity));
+  transition: opacity 200ms ease;
+}
+
+.tcg-3d-tilt {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 160ms linear;
+  will-change: transform;
+}
+
+.tcg-3d-body {
+  position: relative;
+  display: grid;
+  aspect-ratio: 0.72;
+  width: 100%;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  transform-style: preserve-3d;
+  background: var(--color-bg-elevated);
+  box-shadow:
+    rgba(0, 0, 0, 0.55) calc((var(--pointer-from-left) * 10px) - 5px)
+      calc((var(--pointer-from-top) * 18px) - 8px) 28px -6px,
+    0 0 0 1px color-mix(in srgb, var(--color-border) 75%, transparent);
+  transition: box-shadow 200ms ease;
+}
+
+.tcg-3d-scene.is-active {
+  --card-opacity: 1;
+}
+
+.tcg-3d-scene.is-active .tcg-3d-body {
+  box-shadow:
+    rgba(0, 0, 0, 0.65) calc((var(--pointer-from-left) * 12px) - 6px)
+      calc((var(--pointer-from-top) * 22px) - 10px) 36px -4px,
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 28%, var(--color-border)),
+    0 0 40px -8px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+.tcg-3d-body > * {
+  grid-area: 1 / -1;
+  border-radius: var(--card-radius);
+  pointer-events: none;
+}
+
+.tcg-3d-layer {
+  position: relative;
+  z-index: 1;
+  transform-style: preserve-3d;
+  transition: transform 160ms linear;
+}
+
+.tcg-3d-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--card-radius);
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Brilho metálico holográfico (Profile Card) */
+.tcg-3d-metal {
+  --space: 5%;
+  --angle: -45deg;
+  z-index: 3;
+  transform: translate3d(0, 0, 1px);
+  overflow: hidden;
+  mix-blend-mode: color-dodge;
+  filter: brightness(0.66) contrast(1.33) saturate(0.33) opacity(0.5);
+  animation: tcg-holo-bg 18s linear infinite;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      var(--sunpillar-1) calc(var(--space) * 1),
+      var(--sunpillar-2) calc(var(--space) * 2),
+      var(--sunpillar-3) calc(var(--space) * 3),
+      var(--sunpillar-4) calc(var(--space) * 4),
+      var(--sunpillar-5) calc(var(--space) * 5),
+      var(--sunpillar-6) calc(var(--space) * 6),
+      var(--sunpillar-1) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%,
+      hsl(180, 10%, 60%) 3.8%,
+      hsl(180, 29%, 66%) 4.5%,
+      hsl(180, 10%, 60%) 5.2%,
+      #0e152e 10%,
+      #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--pointer-x) var(--pointer-y),
+      hsla(0, 0%, 0%, 0.1) 12%,
+      hsla(0, 0%, 0%, 0.15) 20%,
+      hsla(0, 0%, 0%, 0.25) 120%
+    );
+  background-position:
+    0 var(--background-y),
+    var(--background-x) var(--background-y),
+    center;
+  background-blend-mode: color, hard-light;
+  background-size:
+    500% 500%,
+    300% 300%,
+    200% 200%;
+  background-repeat: repeat;
+}
+
+.tcg-3d-metal::before,
+.tcg-3d-metal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  border-radius: inherit;
+}
+
+.tcg-3d-scene.is-active .tcg-3d-metal {
+  filter: brightness(0.85) contrast(1.5) saturate(0.55) opacity(0.78);
+  animation-play-state: paused;
+}
+
+.tcg-3d-scene.is-active .tcg-3d-metal::before,
+.tcg-3d-scene.is-active .tcg-3d-metal::after {
+  opacity: 1;
+}
+
+.tcg-3d-metal::before {
+  background-image:
+    linear-gradient(
+      45deg,
+      var(--sunpillar-4),
+      var(--sunpillar-5),
+      var(--sunpillar-6),
+      var(--sunpillar-1),
+      var(--sunpillar-2),
+      var(--sunpillar-3)
+    ),
+    radial-gradient(
+      circle at var(--pointer-x) var(--pointer-y),
+      hsl(0, 0%, 70%) 0%,
+      hsla(0, 0%, 30%, 0.2) 90%
+    );
+  background-size:
+    250% 250%,
+    100% 100%;
+  background-position:
+    var(--pointer-x) var(--pointer-y),
+    center;
+  background-blend-mode: color-dodge;
+  filter: brightness(calc(2 - var(--pointer-from-center)))
+    contrast(calc(var(--pointer-from-center) + 2))
+    saturate(calc(0.5 + var(--pointer-from-center)));
+  mix-blend-mode: luminosity;
+}
+
+.tcg-3d-metal::after {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      var(--sunpillar-1) calc(var(--space) * 1),
+      var(--sunpillar-2) calc(var(--space) * 2),
+      var(--sunpillar-3) calc(var(--space) * 3),
+      var(--sunpillar-4) calc(var(--space) * 4),
+      var(--sunpillar-5) calc(var(--space) * 5),
+      var(--sunpillar-6) calc(var(--space) * 6),
+      var(--sunpillar-1) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%,
+      hsl(180, 10%, 60%) 3.8%,
+      hsl(180, 29%, 66%) 4.5%,
+      hsl(180, 10%, 60%) 5.2%,
+      #0e152e 10%,
+      #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--pointer-x) var(--pointer-y),
+      hsla(0, 0%, 0%, 0.1) 12%,
+      hsla(0, 0%, 0%, 0.15) 20%,
+      hsla(0, 0%, 0%, 0.25) 120%
+    );
+  background-position:
+    0 var(--background-y),
+    calc(var(--background-x) * 0.4) calc(var(--background-y) * 0.5),
+    center;
+  background-size:
+    200% 300%,
+    700% 700%,
+    100% 100%;
+  mix-blend-mode: difference;
+  filter: brightness(0.8) contrast(1.5);
+}
+
+.tcg-3d-glare {
+  z-index: 4;
+  transform: translate3d(0, 0, 1.1px);
+  overflow: hidden;
+  background-image: radial-gradient(
+    farthest-corner circle at var(--pointer-x) var(--pointer-y),
+    hsl(248, 25%, 80%) 12%,
+    hsla(207, 40%, 30%, 0.8) 90%
+  );
+  mix-blend-mode: overlay;
+  filter: brightness(0.8) contrast(1.2);
+  opacity: calc(0.28 + 0.55 * var(--card-opacity));
+  transition: opacity 200ms ease;
+}
+
+@keyframes tcg-holo-bg {
+  0% {
+    background-position:
+      0 var(--background-y),
+      0 0,
+      center;
+  }
+
+  100% {
+    background-position:
+      0 var(--background-y),
+      90% 90%,
+      center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcg-3d-scene {
+    touch-action: auto;
+  }
+
+  .tcg-3d-tilt,
+  .tcg-3d-layer {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .tcg-3d-metal {
+    animation: none !important;
+    opacity: 0.25;
+  }
+
+  .tcg-3d-behind {
+    opacity: 0.2;
+  }
+}
