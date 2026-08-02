@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { dialogPanelTransition, overlayTransition } from "@/lib/motion";
 
@@ -64,12 +65,15 @@ export function ConfirmDialog({
     };
   }, [open, onCancel]);
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  /** Portal no body: evita stacking context de `.ui-page` (nav z-40 por cima). */
+  return createPortal(
     <AnimatePresence>
       {open ? (
         <motion.div
           key="confirm-overlay"
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center"
           role="presentation"
           onClick={onCancel}
           initial={{ opacity: 0 }}
@@ -128,6 +132,7 @@ export function ConfirmDialog({
           </motion.div>
         </motion.div>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
