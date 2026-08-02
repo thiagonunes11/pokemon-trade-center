@@ -92,6 +92,9 @@ export function HoloTiltCard({
       );
       scene.style.setProperty("--pointer-from-top", `${percentY / 100}`);
       scene.style.setProperty("--pointer-from-left", `${percentX / 100}`);
+      // Glare Hover: faixa metálica acompanha o ponteiro
+      scene.style.setProperty("--glare-pos-x", `${percentX}%`);
+      scene.style.setProperty("--glare-pos-y", `${percentY}%`);
 
       if (canTilt) {
         const rotateY = (px - width / 2) / tiltFactor;
@@ -119,6 +122,8 @@ export function HoloTiltCard({
       scene.style.setProperty("--pointer-from-center", "0");
       scene.style.setProperty("--pointer-from-top", "0.5");
       scene.style.setProperty("--pointer-from-left", "0.5");
+      scene.style.setProperty("--glare-pos-x", "0%");
+      scene.style.setProperty("--glare-pos-y", "0%");
     }
   }, []);
 
@@ -276,6 +281,7 @@ export function HoloTiltCard({
           </div>
           <div className="tcg-3d-metal" aria-hidden />
           <div className="tcg-3d-glare" aria-hidden />
+          <div className="tcg-3d-glare-sweep" aria-hidden />
         </div>
       </div>
     </div>

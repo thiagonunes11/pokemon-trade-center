@@ -10,7 +10,7 @@
   --pointer-from-left: 0.5;
   --background-x: 50%;
   --background-y: 50%;
-  --card-opacity: 0.45;
+  --card-opacity: 0.55;
   --behind-glow-color: color-mix(
     in srgb,
     var(--color-accent) 55%,
@@ -114,7 +114,7 @@
   transform: translate3d(0, 0, 1px);
   overflow: hidden;
   mix-blend-mode: color-dodge;
-  filter: brightness(0.66) contrast(1.33) saturate(0.33) opacity(0.5);
+  filter: brightness(0.72) contrast(1.4) saturate(0.45) opacity(0.62);
   animation: tcg-holo-bg 18s linear infinite;
   background-image:
     repeating-linear-gradient(
@@ -165,7 +165,7 @@
 }
 
 .tcg-3d-scene.is-active .tcg-3d-metal {
-  filter: brightness(0.85) contrast(1.5) saturate(0.55) opacity(0.78);
+  filter: brightness(0.95) contrast(1.55) saturate(0.7) opacity(0.9);
   animation-play-state: paused;
 }
 
@@ -255,6 +255,29 @@
   filter: brightness(0.8) contrast(1.2);
   opacity: calc(0.28 + 0.55 * var(--card-opacity));
   transition: opacity 200ms ease;
+}
+
+/* Faixa metálica tipo React Bits Glare Hover — segue o ponteiro */
+.tcg-3d-glare-sweep {
+  z-index: 5;
+  overflow: hidden;
+  opacity: calc(0.35 + 0.55 * var(--card-opacity));
+  transition: opacity 200ms ease;
+  background: linear-gradient(
+    var(--gh-angle, -45deg),
+    hsla(0, 0%, 0%, 0) 42%,
+    rgba(255, 255, 255, 0.55) 50%,
+    hsla(0, 0%, 0%, 0) 58%
+  );
+  background-size: 220% 220%;
+  background-repeat: no-repeat;
+  background-position: var(--glare-pos-x, 0%) var(--glare-pos-y, 0%);
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+.tcg-3d-scene.is-active .tcg-3d-glare-sweep {
+  mix-blend-mode: overlay;
 }
 
 @keyframes tcg-holo-bg {
