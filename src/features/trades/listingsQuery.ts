@@ -10,6 +10,10 @@ import {
   type QueryDocumentSnapshot,
   type Timestamp,
 } from "firebase/firestore";
+import {
+  normalizeOfferingTerms,
+  type WantCardRef,
+} from "@/features/trades/offeringTerms";
 import { getFirestoreDb } from "@/lib/firestore";
 import type { TradeListKind } from "@/store/useTradeStore";
 
@@ -22,6 +26,8 @@ export type PublicListing = {
   imageUrl: string | null;
   setId: string;
   displayName: string;
+  priceBRL: number | null;
+  wantCards: WantCardRef[];
   updatedAt: Date;
 };
 
@@ -47,6 +53,10 @@ function parseListing(
   if (raw && typeof raw.toDate === "function") {
     updatedAt = raw.toDate();
   }
+  const terms =
+    data.kind === "offering"
+      ? normalizeOfferingTerms(data)
+      : { priceBRL: null, wantCards: [] };
 
   return {
     id: snap.id,
@@ -60,6 +70,7 @@ function parseListing(
         : null,
     setId: data.setId,
     displayName: data.displayName,
+    ...terms,
     updatedAt,
   };
 }

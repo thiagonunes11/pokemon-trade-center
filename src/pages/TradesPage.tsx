@@ -272,7 +272,7 @@ export function TradesPage() {
           wantedIds={new Set(myWanted.map((c) => c.id))}
           onClose={() => setPicker(null)}
           onPickOffering={(card) => {
-            addCardToOffering(card);
+            addCardToOffering(card, { priceBRL: null, wantCards: [] });
           }}
           onPickWanted={(card) => {
             addCardToWanted(card);

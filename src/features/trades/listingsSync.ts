@@ -5,6 +5,11 @@ import {
   Timestamp,
   writeBatch,
 } from "firebase/firestore";
+import {
+  hasValidOfferingTerms,
+  normalizeOfferingTerms,
+  type OfferingTerms,
+} from "@/features/trades/offeringTerms";
 import { getFirestoreDb } from "@/lib/firestore";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { TradeListKind } from "@/store/useTradeStore";
@@ -14,6 +19,8 @@ export type ListingCardInput = {
   name: string;
   imageUrl: string | null;
   setId: string;
+  priceBRL?: OfferingTerms["priceBRL"];
+  wantCards?: OfferingTerms["wantCards"];
   updatedAt: Date;
 };
 
@@ -29,28 +36,49 @@ function listingRef(uid: string, kind: TradeListKind, cardId: string) {
   return doc(getFirestoreDb(), "listings", listingDocId(uid, kind, cardId));
 }
 
+function listingPayload(
+  uid: string,
+  kind: TradeListKind,
+  card: ListingCardInput,
+  displayName: string,
+) {
+  const terms =
+    kind === "offering"
+      ? normalizeOfferingTerms(card)
+      : { priceBRL: null, wantCards: [] };
+  return {
+    ownerId: uid,
+    kind,
+    cardId: card.id,
+    name: card.name,
+    imageUrl: card.imageUrl,
+    setId: card.setId,
+    displayName: displayName.trim() || "Treinador",
+    ...terms,
+    updatedAt: Timestamp.fromDate(
+      card.updatedAt instanceof Date
+        ? card.updatedAt
+        : new Date(card.updatedAt),
+    ),
+  };
+}
+
 export async function upsertListing(
   uid: string,
   kind: TradeListKind,
   card: ListingCardInput,
   displayName: string,
 ): Promise<void> {
+  if (
+    kind === "offering" &&
+    !hasValidOfferingTerms(normalizeOfferingTerms(card))
+  ) {
+    await deleteListing(uid, kind, card.id);
+    return;
+  }
   await setDoc(
     listingRef(uid, kind, card.id),
-    {
-      ownerId: uid,
-      kind,
-      cardId: card.id,
-      name: card.name,
-      imageUrl: card.imageUrl,
-      setId: card.setId,
-      displayName: displayName.trim() || "Treinador",
-      updatedAt: Timestamp.fromDate(
-        card.updatedAt instanceof Date
-          ? card.updatedAt
-          : new Date(card.updatedAt),
-      ),
-    },
+    listingPayload(uid, kind, card, displayName),
     { merge: true },
   );
 }
@@ -82,22 +110,17 @@ export async function backfillListingsFromStore(
     const chunk = all.slice(i, i + 400);
     const batch = writeBatch(db);
     for (const { kind, card } of chunk) {
+      const ref = listingRef(uid, kind, card.id);
+      if (
+        kind === "offering" &&
+        !hasValidOfferingTerms(normalizeOfferingTerms(card))
+      ) {
+        batch.delete(ref);
+        continue;
+      }
       batch.set(
-        listingRef(uid, kind, card.id),
-        {
-          ownerId: uid,
-          kind,
-          cardId: card.id,
-          name: card.name,
-          imageUrl: card.imageUrl,
-          setId: card.setId,
-          displayName,
-          updatedAt: Timestamp.fromDate(
-            card.updatedAt instanceof Date
-              ? card.updatedAt
-              : new Date(card.updatedAt),
-          ),
-        },
+        ref,
+        listingPayload(uid, kind, card, displayName),
         { merge: true },
       );
     }

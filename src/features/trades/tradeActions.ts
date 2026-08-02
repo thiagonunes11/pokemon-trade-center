@@ -2,6 +2,11 @@ import {
   scheduleDeleteTradeCard,
   scheduleUpsertTradeCard,
 } from "@/features/trades/firestoreSync";
+import {
+  hasValidOfferingTerms,
+  normalizeOfferingTerms,
+  type OfferingTerms,
+} from "@/features/trades/offeringTerms";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTradeStore } from "@/store/useTradeStore";
@@ -28,6 +33,12 @@ function scheduleSaved(kind: "offering" | "wanted", cardId: string) {
     name: saved.name,
     imageUrl: saved.imageUrl,
     setId: saved.setId,
+    ...(kind === "offering"
+      ? normalizeOfferingTerms({
+          priceBRL: saved.priceBRL,
+          wantCards: saved.wantCards,
+        })
+      : {}),
     updatedAt:
       saved.updatedAt instanceof Date
         ? saved.updatedAt
@@ -36,7 +47,12 @@ function scheduleSaved(kind: "offering" | "wanted", cardId: string) {
 }
 
 /** Anuncia carta da coleção para troca. */
-export function addCardToOffering(card: TradeCardInput) {
+export function addCardToOffering(card: TradeCardInput, terms: OfferingTerms) {
+  if (!hasValidOfferingTerms(terms)) {
+    console.warn("[Trades] Oferta exige preço ou cartas desejadas.");
+    return false;
+  }
+
   const uid = useAuthStore.getState().userId ?? null;
   const owned = useCollectionStore
     .getState()
@@ -45,12 +61,30 @@ export function addCardToOffering(card: TradeCardInput) {
     );
   if (!owned) {
     console.warn("[Trades] Só é possível anunciar cartas da coleção.");
-    return;
+    return false;
   }
 
   const before = useTradeStore.getState().hasOffering(card.id);
-  useTradeStore.getState().addOffering(card);
+  useTradeStore.getState().addOffering({
+    ...card,
+    ...normalizeOfferingTerms(terms),
+  });
   if (!before) scheduleSaved("offering", card.id);
+  return !before;
+}
+
+export function updateOfferingTermsAndSync(
+  cardId: string,
+  terms: OfferingTerms,
+) {
+  if (!hasValidOfferingTerms(terms)) return false;
+  if (!useTradeStore.getState().hasOffering(cardId)) return false;
+
+  useTradeStore
+    .getState()
+    .updateOfferingTerms(cardId, normalizeOfferingTerms(terms));
+  scheduleSaved("offering", cardId);
+  return true;
 }
 
 export function removeCardFromOffering(cardId: string) {
