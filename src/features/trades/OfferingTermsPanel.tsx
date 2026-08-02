@@ -57,6 +57,8 @@ export function OfferingTermsPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
+  const addCardRef = useRef<HTMLButtonElement>(null);
+  const pickerWasOpen = useRef(false);
   const [priceInput, setPriceInput] = useState("");
   const [wantCards, setWantCards] = useState<WantCardRef[]>([]);
   const [picker, setPicker] = useState<PickerStep>(null);
@@ -84,6 +86,25 @@ export function OfferingTermsPanel({
     setPicker(null);
     requestAnimationFrame(() => priceRef.current?.focus());
   }, [card?.id, initialTerms, open]);
+
+  useEffect(() => {
+    if (!open) {
+      pickerWasOpen.current = false;
+      return;
+    }
+    if (picker) {
+      requestAnimationFrame(() => {
+        const focusable = pickerRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        focusable?.[0]?.focus();
+      });
+      pickerWasOpen.current = true;
+    } else if (pickerWasOpen.current) {
+      requestAnimationFrame(() => addCardRef.current?.focus());
+      pickerWasOpen.current = false;
+    }
+  }, [open, picker]);
 
   useEffect(() => {
     if (!open) return;
@@ -138,6 +159,8 @@ export function OfferingTermsPanel({
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
+          aria-hidden={picker ? true : undefined}
+          inert={picker ? true : undefined}
           className="ui-glass-strong ui-dialog-panel max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl p-5 sm:max-w-lg sm:rounded-3xl"
           onClick={(event) => event.stopPropagation()}
         >
@@ -191,6 +214,7 @@ export function OfferingTermsPanel({
                   </p>
                 </div>
                 <button
+                  ref={addCardRef}
                   type="button"
                   onClick={() => setPicker({})}
                   disabled={wantCards.length >= 20}
