@@ -2,6 +2,7 @@ import { CardItem } from "@/features/cards";
 import { useSetCards } from "@/features/cards";
 import {
   hasValidOfferingTerms,
+  parsePriceBRL,
   type OfferingTerms,
   type WantCardRef,
 } from "@/features/trades/offeringTerms";
@@ -22,27 +23,17 @@ type OfferingTermsPanelProps = {
   card: OfferingCard | null;
   initialTerms?: OfferingTerms;
   onCancel: () => void;
-  onSave: (terms: OfferingTerms) => void;
+  onSave: (terms: OfferingTerms) => boolean;
 };
 
 type PickerStep = null | { setId?: string };
 
-function parsePriceBRL(value: string): number | null {
-  const normalized = value.trim().replace(/\s/g, "");
-  if (!normalized) return null;
-  const decimal = normalized.includes(",")
-    ? normalized.replace(/\./g, "").replace(",", ".")
-    : normalized;
-  const price = Number(decimal);
-  return Number.isFinite(price) && price > 0 ? price : null;
-}
-
-function toHighImage(image: string | null): string | null {
+function toLowImage(image: string | null): string | null {
   if (!image) return null;
   const lower = image.toLowerCase();
   return lower.endsWith(".webp") || lower.endsWith(".png")
     ? image
-    : `${image}/high.webp`;
+    : `${image}/low.webp`;
 }
 
 export function OfferingTermsPanel({
@@ -62,6 +53,7 @@ export function OfferingTermsPanel({
   const [priceInput, setPriceInput] = useState("");
   const [wantCards, setWantCards] = useState<WantCardRef[]>([]);
   const [picker, setPicker] = useState<PickerStep>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const pickerSetId = picker?.setId ?? "";
   const { data: setData, isLoading } = useSetCards(pickerSetId);
 
@@ -73,7 +65,8 @@ export function OfferingTermsPanel({
     () => ({ priceBRL: parsePriceBRL(priceInput), wantCards }),
     [priceInput, wantCards],
   );
-  const valid = hasValidOfferingTerms(terms);
+  const priceInputValid = !priceInput.trim() || terms.priceBRL != null;
+  const valid = priceInputValid && hasValidOfferingTerms(terms);
 
   useEffect(() => {
     if (!open) return;
@@ -84,6 +77,7 @@ export function OfferingTermsPanel({
     );
     setWantCards(initialTerms?.wantCards ?? []);
     setPicker(null);
+    setSaveError(null);
     requestAnimationFrame(() => priceRef.current?.focus());
   }, [card?.id, initialTerms, open]);
 
@@ -191,7 +185,11 @@ export function OfferingTermsPanel({
                 type="text"
                 inputMode="decimal"
                 value={priceInput}
-                onChange={(event) => setPriceInput(event.target.value)}
+                aria-invalid={!priceInputValid}
+                onChange={(event) => {
+                  setPriceInput(event.target.value);
+                  setSaveError(null);
+                }}
                 placeholder="Ex.: 50,00"
                 className="min-h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
               />
@@ -267,11 +265,25 @@ export function OfferingTermsPanel({
           </div>
 
           <p
-            className="mt-5 text-xs text-[var(--color-text-muted)]"
+            className={`mt-5 text-xs ${
+              priceInputValid
+                ? "text-[var(--color-text-muted)]"
+                : "text-[var(--color-error)]"
+            }`}
             role={!valid ? "status" : undefined}
           >
-            Informe um preço válido ou escolha ao menos uma carta.
+            {priceInputValid
+              ? "Informe um preço válido ou escolha ao menos uma carta."
+              : "Use um preço no formato brasileiro, como 1.234,56."}
           </p>
+          {saveError ? (
+            <p
+              role="alert"
+              className="mt-2 rounded-xl border border-[var(--color-error)]/30 bg-[color-mix(in_srgb,var(--color-error)_10%,transparent)] px-3 py-2.5 text-sm text-[var(--color-error)]"
+            >
+              {saveError}
+            </p>
+          ) : null}
           <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
@@ -283,7 +295,14 @@ export function OfferingTermsPanel({
             <button
               type="button"
               disabled={!valid}
-              onClick={() => onSave(terms)}
+              onClick={() => {
+                setSaveError(null);
+                if (!onSave(terms)) {
+                  setSaveError(
+                    "Não foi possível salvar a oferta. Verifique a carta e tente novamente.",
+                  );
+                }
+              }}
               className="ui-btn-accent min-h-11 px-5 text-sm disabled:cursor-not-allowed disabled:opacity-45"
             >
               {mode === "create" ? "Publicar" : "Salvar"}
@@ -377,7 +396,7 @@ export function OfferingTermsPanel({
                             {
                               id: pickerCard.id,
                               name: pickerCard.name,
-                              imageUrl: toHighImage(pickerCard.image ?? null),
+                              imageUrl: toLowImage(pickerCard.image ?? null),
                               setId: picker.setId!,
                             },
                           ]);

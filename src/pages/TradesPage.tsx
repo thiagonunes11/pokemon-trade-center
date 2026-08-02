@@ -8,6 +8,7 @@ import {
   addCardToWanted,
   hasValidOfferingTerms,
   OfferingTermsPanel,
+  OfferingTermsSummary,
   removeCardFromOffering,
   removeCardFromWanted,
   updateOfferingTermsAndSync,
@@ -271,11 +272,6 @@ export function TradesPage() {
                 };
                 const validTerms =
                   tab === "offering" && hasValidOfferingTerms(terms);
-                const wantedNames = terms.wantCards
-                  .slice(0, 2)
-                  .map((wantedCard) => wantedCard.name)
-                  .join(", ");
-                const extraWanted = Math.max(terms.wantCards.length - 2, 0);
 
                 return (
                   <div key={card.id} className="space-y-2">
@@ -306,29 +302,7 @@ export function TradesPage() {
 
                     {tab === "offering" ? (
                       <div className="ui-glass space-y-2 rounded-xl p-2.5">
-                        <div className="flex flex-wrap gap-1.5">
-                          {terms.priceBRL ? (
-                            <span className="rounded-full bg-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] px-2 py-1 text-xs font-bold text-[var(--color-text)]">
-                              R$ {terms.priceBRL.toFixed(2).replace(".", ",")}
-                            </span>
-                          ) : null}
-                          {terms.wantCards.length ? (
-                            <span
-                              title={terms.wantCards
-                                .map((wantedCard) => wantedCard.name)
-                                .join(", ")}
-                              className="line-clamp-2 rounded-lg border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)]"
-                            >
-                              Troca por: {wantedNames}
-                              {extraWanted ? ` +${extraWanted}` : ""}
-                            </span>
-                          ) : null}
-                          {!validTerms ? (
-                            <span className="rounded-full bg-[color-mix(in_srgb,var(--color-error)_14%,transparent)] px-2 py-1 text-xs font-bold text-[var(--color-error)]">
-                              Completar condições
-                            </span>
-                          ) : null}
-                        </div>
+                        <OfferingTermsSummary terms={terms} />
                         <button
                           type="button"
                           onClick={() =>
@@ -391,12 +365,13 @@ export function TradesPage() {
         initialTerms={termsPanel?.initialTerms}
         onCancel={() => setTermsPanel(null)}
         onSave={(terms) => {
-          if (!termsPanel) return;
+          if (!termsPanel) return false;
           const saved =
             termsPanel.mode === "create"
               ? addCardToOffering(termsPanel.card, terms)
               : updateOfferingTermsAndSync(termsPanel.card.id, terms);
           if (saved) setTermsPanel(null);
+          return saved;
         }}
       />
 

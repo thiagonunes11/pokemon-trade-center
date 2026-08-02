@@ -13,6 +13,7 @@ import {
 } from "@/features/profile";
 import type { PublicListing } from "@/features/trades/listingsQuery";
 import { hasValidOfferingTerms } from "@/features/trades/offeringTerms";
+import { OfferingTermsSummary } from "@/features/trades/OfferingTermsSummary";
 import { profilePathFor } from "@/lib/handle";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useMemo, useState } from "react";
@@ -55,33 +56,6 @@ function ProfileCardGrid({
 const cardGridClass =
   "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
 
-function OfferingTermsSummary({ listing }: { listing: PublicListing }) {
-  const wantedNames = listing.wantCards
-    .slice(0, 2)
-    .map((w) => w.name)
-    .join(", ");
-  const extraWanted = Math.max(listing.wantCards.length - 2, 0);
-
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {listing.priceBRL ? (
-        <span className="rounded-full bg-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] px-2 py-1 text-xs font-bold text-[var(--color-text)]">
-          R$ {listing.priceBRL.toFixed(2).replace(".", ",")}
-        </span>
-      ) : null}
-      {listing.wantCards.length ? (
-        <span
-          title={listing.wantCards.map((w) => w.name).join(", ")}
-          className="line-clamp-2 rounded-lg border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)]"
-        >
-          Troca por: {wantedNames}
-          {extraWanted ? ` +${extraWanted}` : ""}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
 function OfferingListGrid({
   listings,
   emptyLabel,
@@ -112,7 +86,12 @@ function OfferingListGrid({
             onPress={onPress}
           />
           <div className="ui-glass rounded-xl p-2.5">
-            <OfferingTermsSummary listing={listing} />
+            <OfferingTermsSummary
+              terms={{
+                priceBRL: listing.priceBRL,
+                wantCards: listing.wantCards,
+              }}
+            />
           </div>
         </div>
       ))}

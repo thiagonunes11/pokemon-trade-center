@@ -371,7 +371,7 @@ service cloud.firestore {
         isValidListing() &&
         listingId == request.auth.uid + '_' + request.resource.data.kind + '_' + request.resource.data.cardId;
       allow delete: if isAuthenticated() &&
-        (!exists(/databases/$(database)/documents/listings/$(listingId)) ||
+        (resource == null ||
           resource.data.ownerId == request.auth.uid);
     }
 

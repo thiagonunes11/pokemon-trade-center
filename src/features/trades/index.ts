@@ -18,6 +18,7 @@ export {
   updateOfferingTermsAndSync,
 } from "./tradeActions";
 export { OfferingTermsPanel } from "./OfferingTermsPanel";
+export { OfferingTermsSummary } from "./OfferingTermsSummary";
 export { TradeSync } from "./TradeSync";
 export { ExploreBoard } from "./ExploreBoard";
 export { ConversationsList } from "./ConversationsList";

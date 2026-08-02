@@ -1,6 +1,7 @@
 import { CardItem } from "@/features/cards";
 import { EmptyState } from "@/components/EmptyState";
 import { hasValidOfferingTerms } from "@/features/trades/offeringTerms";
+import { OfferingTermsSummary } from "@/features/trades/OfferingTermsSummary";
 import {
   fetchListingsForCardIds,
   fetchListingsPage,
@@ -27,33 +28,6 @@ function isVisibleListing(listing: PublicListing, kind: ExploreKind): boolean {
     priceBRL: listing.priceBRL,
     wantCards: listing.wantCards,
   });
-}
-
-function OfferingTermsSummary({ listing }: { listing: PublicListing }) {
-  const wantedNames = listing.wantCards
-    .slice(0, 2)
-    .map((w) => w.name)
-    .join(", ");
-  const extraWanted = Math.max(listing.wantCards.length - 2, 0);
-
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {listing.priceBRL ? (
-        <span className="rounded-full bg-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] px-2 py-1 text-xs font-bold text-[var(--color-text)]">
-          R$ {listing.priceBRL.toFixed(2).replace(".", ",")}
-        </span>
-      ) : null}
-      {listing.wantCards.length ? (
-        <span
-          title={listing.wantCards.map((w) => w.name).join(", ")}
-          className="line-clamp-2 rounded-lg border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)]"
-        >
-          Troca por: {wantedNames}
-          {extraWanted ? ` +${extraWanted}` : ""}
-        </span>
-      ) : null}
-    </div>
-  );
 }
 
 function exploreErrorMessage(err: unknown): string {
@@ -304,7 +278,12 @@ export function ExploreBoard() {
               {kind === "offering" ? (
                 <>
                   <div className="ui-glass mt-3 rounded-xl p-2.5">
-                    <OfferingTermsSummary listing={item} />
+                    <OfferingTermsSummary
+                      terms={{
+                        priceBRL: item.priceBRL,
+                        wantCards: item.wantCards,
+                      }}
+                    />
                   </div>
                   <button
                     type="button"
