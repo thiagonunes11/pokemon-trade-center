@@ -88,7 +88,19 @@ export async function deleteListing(
   kind: TradeListKind,
   cardId: string,
 ): Promise<void> {
-  await deleteDoc(listingRef(uid, kind, cardId));
+  try {
+    await deleteDoc(listingRef(uid, kind, cardId));
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "not-found"
+    ) {
+      return;
+    }
+    throw error;
+  }
 }
 
 /** Reescreve o mural público a partir das listas locais do usuário. */

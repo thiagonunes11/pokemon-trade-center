@@ -371,7 +371,8 @@ service cloud.firestore {
         isValidListing() &&
         listingId == request.auth.uid + '_' + request.resource.data.kind + '_' + request.resource.data.cardId;
       allow delete: if isAuthenticated() &&
-        resource.data.ownerId == request.auth.uid;
+        (!exists(/databases/$(database)/documents/listings/$(listingId)) ||
+          resource.data.ownerId == request.auth.uid);
     }
 
     function isValidUserThreadItem(inboxUserId) {
