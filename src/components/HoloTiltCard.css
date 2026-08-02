@@ -29,8 +29,6 @@
   position: relative;
   perspective: 1000px;
   transform-style: preserve-3d;
-  /* pan-y: scroll vertical; tilt no toque sem setPointerCapture. */
-  touch-action: pan-y;
 }
 
 .tcg-3d-behind {
@@ -53,8 +51,16 @@
   z-index: 1;
   width: 100%;
   transform-style: preserve-3d;
-  transition: transform 160ms linear;
+  transform: rotateX(0deg) rotateY(0deg);
+  transition: transform 220ms ease-out;
   will-change: transform;
+  /* pan-y até travar tilt no JS (aí setPointerCapture). */
+  touch-action: pan-y;
+}
+
+.tcg-3d-scene.is-active .tcg-3d-tilt {
+  /* Sem lag enquanto o ponteiro controla a inclinação. */
+  transition: none;
 }
 
 .tcg-3d-body {

@@ -296,7 +296,7 @@ export function CatalogSetPage() {
   const setName = collection?.name ?? setId;
 
   return (
-    <div className={`space-y-5 ${markMode ? "pb-28" : ""}`}>
+    <div className={`space-y-5 ${markMode ? "pb-40" : ""}`}>
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <BackButton to="/catalog">Coleções</BackButton>
@@ -487,18 +487,28 @@ export function CatalogSetPage() {
               aria-label="Ações das cartas selecionadas"
               className="ui-glass-strong fixed inset-x-0 bottom-0 z-[55] border-t border-[var(--color-border)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] md:left-60"
             >
-              <div className="mx-auto flex max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  {selectedCount === 0
-                    ? "Toque nas cartas para selecionar."
-                    : `${selectedCount} selecionada${selectedCount === 1 ? "" : "s"}`}
-                </p>
-                <div className="flex flex-wrap gap-2">
+              <div className="mx-auto flex w-full max-w-5xl flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="min-w-0 text-sm text-[var(--color-text-secondary)]">
+                    {selectedCount === 0
+                      ? "Toque nas cartas para selecionar."
+                      : `${selectedCount} selecionada${selectedCount === 1 ? "" : "s"}`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={exitMarkMode}
+                    className="ui-tool-btn min-h-10 shrink-0 px-3 text-sm"
+                  >
+                    Concluir
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     disabled={selectedMissingCount === 0}
                     onClick={addSelected}
-                    className="ui-btn-accent min-h-11 flex-1 px-4 text-sm disabled:opacity-40 sm:flex-none"
+                    className="ui-btn-accent col-span-2 min-h-12 w-full px-4 text-sm disabled:opacity-40"
                   >
                     Adicionar à coleção
                     {selectedMissingCount > 0
@@ -509,7 +519,7 @@ export function CatalogSetPage() {
                     type="button"
                     disabled={selectedMissingNotWanted === 0}
                     onClick={addSelectedToWanted}
-                    className="ui-tool-btn min-h-11 flex-1 border-[var(--color-accent)] text-[var(--color-accent)] disabled:opacity-40 sm:flex-none"
+                    className="ui-tool-btn min-h-12 w-full border-[var(--color-accent)] text-[var(--color-accent)] disabled:opacity-40"
                   >
                     Adicionar à busca
                     {selectedMissingNotWanted > 0
@@ -520,19 +530,12 @@ export function CatalogSetPage() {
                     type="button"
                     disabled={selectedOwnedCount === 0}
                     onClick={removeSelected}
-                    className="min-h-11 flex-1 rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)] disabled:opacity-40 sm:flex-none"
+                    className="min-h-12 w-full rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)] disabled:opacity-40"
                   >
                     Remover
                     {selectedOwnedCount > 0
                       ? ` (${selectedOwnedCount})`
                       : ""}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={exitMarkMode}
-                    className="ui-tool-btn min-h-11"
-                  >
-                    Concluir
                   </button>
                 </div>
               </div>

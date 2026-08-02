@@ -21,10 +21,15 @@ type HoloTiltCardProps = {
   gyroSensitivity?: number;
 };
 
-const SCROLL_CANCEL_PX = 10;
+/** Distância mínima para decidir se o gesto é scroll ou tilt. */
+const INTENT_PX = 12;
+const MAX_TILT_DEG = 16;
 
 const clamp = (v: number, min = 0, max = 100) =>
   Math.min(Math.max(v, min), max);
+
+const clampTilt = (deg: number) =>
+  Math.min(MAX_TILT_DEG, Math.max(-MAX_TILT_DEG, deg));
 
 const adjust = (
   v: number,
@@ -41,18 +46,20 @@ function prefersReducedMotion(): boolean {
   );
 }
 
+type Bounds = { left: number; top: number; width: number; height: number };
+
 /**
  * Carta 3D: tilt + metal holográfico.
- * Mouse: hover/arrasto. Toque: tilt sem capture (scroll vertical cancela).
- * Giroscópio opcional após permissão.
+ * Bounds medidos no scene (estático) — não no nó que rotaciona.
+ * Toque: decide scroll vs tilt; só captura o ponteiro no modo tilt.
  */
 export function HoloTiltCard({
   src,
   alt,
   className = "",
   enableTilt = true,
-  tiltFactor = 22,
-  translateZ = 40,
+  tiltFactor = 16,
+  translateZ = 36,
   enableGyro = true,
   gyroSensitivity = 1.15,
 }: HoloTiltCardProps) {
@@ -62,19 +69,33 @@ export function HoloTiltCard({
   const pointerIdRef = useRef<number | null>(null);
   const touchingRef = useRef(false);
   const touchOriginRef = useRef<{ x: number; y: number } | null>(null);
-  const scrollCanceledRef = useRef(false);
+  /** null = aguardando intenção; true = tilt travado; false = scroll. */
+  const tiltLockedRef = useRef<boolean | null>(null);
+  const boundsRef = useRef<Bounds | null>(null);
   const [active, setActive] = useState(false);
   const [gyroOn, setGyroOn] = useState(false);
 
   const reduced = prefersReducedMotion();
   const canTilt = enableTilt && !reduced;
 
+  const readSceneBounds = useCallback((): Bounds | null => {
+    const scene = sceneRef.current;
+    if (!scene) return null;
+    const { left, top, width, height } = scene.getBoundingClientRect();
+    if (width <= 0 || height <= 0) return null;
+    return { left, top, width, height };
+  }, []);
+
   const applyPointer = useCallback(
-    (px: number, py: number, width: number, height: number) => {
+    (clientX: number, clientY: number, bounds: Bounds) => {
       const scene = sceneRef.current;
       const tilt = tiltRef.current;
       const layer = imageLayerRef.current;
       if (!scene || !tilt) return;
+
+      const px = clientX - bounds.left;
+      const py = clientY - bounds.top;
+      const { width, height } = bounds;
 
       const percentX = clamp((100 / width) * px);
       const percentY = clamp((100 / height) * py);
@@ -101,9 +122,10 @@ export function HoloTiltCard({
       scene.style.setProperty("--glare-pos-y", `${percentY}%`);
 
       if (canTilt) {
-        const rotateY = (px - width / 2) / tiltFactor;
-        const rotateX = (py - height / 2) / tiltFactor;
-        tilt.style.transform = `rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
+        const rotateY = clampTilt((px - width / 2) / tiltFactor);
+        // Invertido no X: dedo sobe → carta inclina “para trás” (mais natural).
+        const rotateX = clampTilt(-(py - height / 2) / tiltFactor);
+        tilt.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
         if (layer) {
           layer.style.transform = `translateZ(${translateZ}px)`;
         }
@@ -116,7 +138,7 @@ export function HoloTiltCard({
     const tilt = tiltRef.current;
     const layer = imageLayerRef.current;
     const scene = sceneRef.current;
-    if (tilt) tilt.style.transform = "rotateY(0deg) rotateX(0deg)";
+    if (tilt) tilt.style.transform = "rotateX(0deg) rotateY(0deg)";
     if (layer) layer.style.transform = "translateZ(0px)";
     if (scene) {
       scene.style.setProperty("--pointer-x", "50%");
@@ -130,6 +152,29 @@ export function HoloTiltCard({
       scene.style.setProperty("--glare-pos-y", "0%");
     }
   }, []);
+
+  const endInteraction = useCallback(
+    (target: HTMLDivElement, pointerId: number | null) => {
+      if (pointerId != null) {
+        try {
+          target.releasePointerCapture(pointerId);
+        } catch {
+          /* sem capture */
+        }
+      }
+      pointerIdRef.current = null;
+      touchingRef.current = false;
+      touchOriginRef.current = null;
+      tiltLockedRef.current = null;
+      boundsRef.current = null;
+
+      if (!gyroOn) {
+        setActive(false);
+        resetTilt();
+      }
+    },
+    [gyroOn, resetTilt],
+  );
 
   const requestGyroPermission = useCallback(async () => {
     if (!enableGyro || reduced) return;
@@ -154,104 +199,103 @@ export function HoloTiltCard({
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!canTilt) return;
 
+      const bounds = readSceneBounds();
+      if (!bounds) return;
+
       const isTouch = e.pointerType === "touch" || e.pointerType === "pen";
       touchingRef.current = true;
       pointerIdRef.current = e.pointerId;
-      scrollCanceledRef.current = false;
+      boundsRef.current = bounds;
       setActive(true);
-
-      const { left, top, width, height } =
-        e.currentTarget.getBoundingClientRect();
-      applyPointer(e.clientX - left, e.clientY - top, width, height);
+      applyPointer(e.clientX, e.clientY, bounds);
 
       if (isTouch) {
-        // Sem capture: o browser continua podendo fazer pan-y.
         touchOriginRef.current = { x: e.clientX, y: e.clientY };
+        tiltLockedRef.current = null;
         void requestGyroPermission();
         return;
       }
 
       touchOriginRef.current = null;
+      tiltLockedRef.current = true;
       e.currentTarget.setPointerCapture(e.pointerId);
     },
-    [canTilt, applyPointer, requestGyroPermission],
+    [canTilt, readSceneBounds, applyPointer, requestGyroPermission],
   );
 
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!canTilt) return;
+      if (pointerIdRef.current != null && pointerIdRef.current !== e.pointerId) {
+        return;
+      }
+
       const isTouch = e.pointerType === "touch" || e.pointerType === "pen";
+      const bounds = boundsRef.current ?? readSceneBounds();
+      if (!bounds) return;
+      boundsRef.current = bounds;
 
       if (isTouch) {
-        if (pointerIdRef.current !== e.pointerId) return;
-        if (scrollCanceledRef.current) return;
+        if (tiltLockedRef.current === false) return;
 
-        const origin = touchOriginRef.current;
-        if (origin) {
+        if (tiltLockedRef.current === null) {
+          const origin = touchOriginRef.current;
+          if (!origin) return;
           const dx = e.clientX - origin.x;
           const dy = e.clientY - origin.y;
-          // Scroll vertical: abandona o tilt e deixa a página rolar.
-          if (
-            Math.abs(dy) > SCROLL_CANCEL_PX &&
-            Math.abs(dy) > Math.abs(dx) * 1.15
-          ) {
-            scrollCanceledRef.current = true;
+          const dist = Math.hypot(dx, dy);
+          if (dist < INTENT_PX) {
+            applyPointer(e.clientX, e.clientY, bounds);
+            return;
+          }
+          // Scroll vertical dominante → libera a página.
+          if (Math.abs(dy) > Math.abs(dx) * 1.25) {
+            tiltLockedRef.current = false;
             touchingRef.current = false;
             pointerIdRef.current = null;
             touchOriginRef.current = null;
+            boundsRef.current = null;
             if (!gyroOn) {
               setActive(false);
               resetTilt();
             }
             return;
           }
+          // Tilt: captura o ponteiro e impede pan.
+          tiltLockedRef.current = true;
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {
+            /* ignore */
+          }
         }
 
-        const { left, top, width, height } =
-          e.currentTarget.getBoundingClientRect();
-        applyPointer(e.clientX - left, e.clientY - top, width, height);
+        applyPointer(e.clientX, e.clientY, bounds);
         return;
       }
 
-      const { left, top, width, height } =
-        e.currentTarget.getBoundingClientRect();
-      setActive(true);
-      applyPointer(e.clientX - left, e.clientY - top, width, height);
+      applyPointer(e.clientX, e.clientY, bounds);
     },
-    [canTilt, applyPointer, gyroOn, resetTilt],
+    [canTilt, readSceneBounds, applyPointer, gyroOn, resetTilt],
   );
 
   const handlePointerUp = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (pointerIdRef.current === e.pointerId) {
-        try {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        } catch {
-          /* já liberado / sem capture */
-        }
-        pointerIdRef.current = null;
-      }
-      touchingRef.current = false;
-      touchOriginRef.current = null;
-      scrollCanceledRef.current = false;
-
-      if (!gyroOn) {
-        setActive(false);
-        resetTilt();
-      }
+      endInteraction(e.currentTarget, e.pointerId);
     },
-    [gyroOn, resetTilt],
+    [endInteraction],
   );
 
   const handlePointerEnter = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!canTilt || e.pointerType !== "mouse") return;
+      const bounds = readSceneBounds();
+      if (!bounds) return;
+      boundsRef.current = bounds;
       setActive(true);
-      const { left, top, width, height } =
-        e.currentTarget.getBoundingClientRect();
-      applyPointer(e.clientX - left, e.clientY - top, width, height);
+      applyPointer(e.clientX, e.clientY, bounds);
     },
-    [canTilt, applyPointer],
+    [canTilt, readSceneBounds, applyPointer],
   );
 
   const handlePointerLeave = useCallback(
@@ -259,6 +303,7 @@ export function HoloTiltCard({
       if (e.pointerType !== "mouse") return;
       if (pointerIdRef.current != null) return;
       setActive(false);
+      boundsRef.current = null;
       resetTilt();
     },
     [resetTilt],
@@ -269,10 +314,10 @@ export function HoloTiltCard({
 
     const onOrient = (event: DeviceOrientationEvent) => {
       if (touchingRef.current) return;
-      const tilt = tiltRef.current;
-      if (!tilt || event.beta == null || event.gamma == null) return;
+      const bounds = readSceneBounds();
+      if (!bounds || event.beta == null || event.gamma == null) return;
 
-      const { width, height } = tilt.getBoundingClientRect();
+      const { width, height, left, top } = bounds;
       const centerX = width / 2;
       const centerY = height / 2;
       const px = clamp(
@@ -286,12 +331,19 @@ export function HoloTiltCard({
         height,
       );
       setActive(true);
-      applyPointer(px, py, width, height);
+      applyPointer(left + px, top + py, bounds);
     };
 
     window.addEventListener("deviceorientation", onOrient);
     return () => window.removeEventListener("deviceorientation", onOrient);
-  }, [gyroOn, canTilt, enableGyro, gyroSensitivity, applyPointer]);
+  }, [
+    gyroOn,
+    canTilt,
+    enableGyro,
+    gyroSensitivity,
+    applyPointer,
+    readSceneBounds,
+  ]);
 
   useEffect(() => {
     if (!canTilt) resetTilt();
