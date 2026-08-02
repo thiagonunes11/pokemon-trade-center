@@ -164,17 +164,24 @@ export function CatalogSetPage() {
   };
 
   const addSelected = () => {
+    let removedFromWantedCount = 0;
     for (const id of selectedIds) {
       const card = gridCards.find((c) => c.id === id);
       if (!card || ownedIds.has(id)) continue;
-      addCardToCollection({
+      const result = addCardToCollection({
         id: card.id,
         name: card.name,
         imageUrl: card.image ? `${card.image}/high.webp` : null,
         setId,
       });
+      if (result.removedFromWanted) removedFromWantedCount += 1;
     }
     setSelectedIds(new Set());
+    if (removedFromWantedCount === 1) {
+      setWantedHint("1 carta removida da busca.");
+    } else if (removedFromWantedCount > 1) {
+      setWantedHint(`${removedFromWantedCount} cartas removidas da busca.`);
+    }
   };
 
   const removeSelected = () => {
