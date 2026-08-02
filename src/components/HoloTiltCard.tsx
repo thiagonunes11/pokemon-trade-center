@@ -41,7 +41,7 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Carta 3D: tilt Aceternity + metal holográfico Profile Card.
- * Mouse, toque e giroscópio (mobile).
+ * Mouse (hover/arrasto), giroscópio no mobile. Toque não captura o scroll.
  */
 export function HoloTiltCard({
   src,
@@ -149,6 +149,15 @@ export function HoloTiltCard({
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!canTilt) return;
+
+      const isTouch = e.pointerType === "touch" || e.pointerType === "pen";
+      // Toque: não captura o ponteiro — senão o scroll da página trava.
+      // O efeito 3D no mobile fica a cargo do giroscópio após permissão.
+      if (isTouch) {
+        void requestGyroPermission();
+        return;
+      }
+
       touchingRef.current = true;
       pointerIdRef.current = e.pointerId;
       setActive(true);
@@ -157,8 +166,6 @@ export function HoloTiltCard({
       const { left, top, width, height } =
         e.currentTarget.getBoundingClientRect();
       applyPointer(e.clientX - left, e.clientY - top, width, height);
-
-      void requestGyroPermission();
     },
     [canTilt, applyPointer, requestGyroPermission],
   );
@@ -166,13 +173,12 @@ export function HoloTiltCard({
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!canTilt) return;
-      // Mouse: move sem pressionar; toque: só com capture ativo
-      const isTouch = e.pointerType === "touch" || e.pointerType === "pen";
-      if (isTouch && pointerIdRef.current !== e.pointerId) return;
+      // Arrastar com o dedo não inclina — libera o scroll; mouse continua.
+      if (e.pointerType === "touch" || e.pointerType === "pen") return;
 
       const { left, top, width, height } =
         e.currentTarget.getBoundingClientRect();
-      if (!isTouch) setActive(true);
+      setActive(true);
       applyPointer(e.clientX - left, e.clientY - top, width, height);
     },
     [canTilt, applyPointer],

@@ -23,6 +23,7 @@ interface CardGridProps {
   binderMode?: boolean;
   markMode?: boolean;
   onCardPress: (id: string) => void;
+  onCardLongPress?: (id: string) => void;
 }
 
 /** Espelhamento dos breakpoints do grid Tailwind (2 → 6 cols). */
@@ -64,6 +65,7 @@ export function CardGrid({
   binderMode = false,
   markMode = false,
   onCardPress,
+  onCardLongPress,
 }: CardGridProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const columns = useGridColumns();
@@ -138,6 +140,7 @@ export function CardGrid({
                   binderMode={binderMode}
                   markMode={markMode}
                   onPress={onCardPress}
+                  onLongPress={onCardLongPress}
                 />
               ))}
             </div>

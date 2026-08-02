@@ -460,11 +460,23 @@ export function CatalogSetPage() {
             }
             navigate(`/card/${id}`);
           }}
+          onCardLongPress={(id) => {
+            if (markMode) {
+              toggleSelected(id);
+              return;
+            }
+            setMarkMode(true);
+            setSelectedIds(new Set([id]));
+          }}
         />
       ) : null}
 
       {markMode ? (
-        <div className="ui-glass-strong fixed inset-x-0 bottom-[4.5rem] z-30 border-t border-[var(--color-border)] px-4 py-3 md:bottom-0 md:left-60">
+        <div
+          role="toolbar"
+          aria-label="Ações das cartas selecionadas"
+          className="ui-glass-strong fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-50 border-t border-[var(--color-border)] px-4 py-3 md:bottom-0 md:left-60"
+        >
           <div className="mx-auto flex max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-[var(--color-text-secondary)]">
               {selectedCount === 0

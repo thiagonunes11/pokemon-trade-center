@@ -1,4 +1,9 @@
+import { useRef } from "react";
+
 type ImageQuality = "low" | "high";
+
+const LONG_PRESS_MS = 450;
+const MOVE_CANCEL_PX = 12;
 
 interface CardItemProps {
   id: string;
@@ -15,6 +20,8 @@ interface CardItemProps {
   isSelected?: boolean;
   compact?: boolean;
   onPress: (id: string) => void;
+  /** Segurar a carta (ex.: entrar no modo marcar). */
+  onLongPress?: (id: string) => void;
 }
 
 function resolveImageUrl(
@@ -47,9 +54,36 @@ export function CardItem({
   isSelected = false,
   compact = false,
   onPress,
+  onLongPress,
 }: CardItemProps) {
   const imageUrl = resolveImageUrl(image, imageQuality);
   const missing = binderMode && !isInCollection;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const originRef = useRef<{ x: number; y: number } | null>(null);
+  const didLongPressRef = useRef(false);
+
+  const clearLongPress = () => {
+    if (timerRef.current != null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    originRef.current = null;
+  };
+
+  const startLongPress = (x: number, y: number) => {
+    if (!onLongPress) return;
+    clearLongPress();
+    didLongPressRef.current = false;
+    originRef.current = { x, y };
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      didLongPressRef.current = true;
+      onLongPress(id);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(12);
+      }
+    }, LONG_PRESS_MS);
+  };
 
   const frameClass = markMode
     ? isSelected
@@ -66,9 +100,33 @@ export function CardItem({
   return (
     <button
       type="button"
-      onClick={() => onPress(id)}
+      onClick={() => {
+        if (didLongPressRef.current) {
+          didLongPressRef.current = false;
+          return;
+        }
+        onPress(id);
+      }}
+      onPointerDown={(e) => {
+        if (!onLongPress || e.button !== 0) return;
+        startLongPress(e.clientX, e.clientY);
+      }}
+      onPointerMove={(e) => {
+        const origin = originRef.current;
+        if (!origin || timerRef.current == null) return;
+        const dx = e.clientX - origin.x;
+        const dy = e.clientY - origin.y;
+        if (dx * dx + dy * dy > MOVE_CANCEL_PX * MOVE_CANCEL_PX) {
+          clearLongPress();
+        }
+      }}
+      onPointerUp={clearLongPress}
+      onPointerCancel={clearLongPress}
+      onContextMenu={(e) => {
+        if (onLongPress) e.preventDefault();
+      }}
       aria-pressed={markMode ? isSelected : undefined}
-      className={`group w-full rounded-xl text-left transition duration-200 hover:-translate-y-1 active:translate-y-0 ${compact ? "" : "space-y-2"}`}
+      className={`group w-full rounded-xl text-left transition duration-200 hover:-translate-y-1 active:translate-y-0 touch-manipulation select-none [-webkit-touch-callout:none] ${compact ? "" : "space-y-2"}`}
     >
       <div
         className={`ui-sheen relative overflow-hidden rounded-xl bg-[var(--color-bg-card)] shadow-[0_10px_28px_-18px_rgba(0,0,0,0.55)] transition duration-200 group-hover:shadow-[0_16px_36px_-14px_color-mix(in_srgb,var(--color-accent)_30%,transparent)] ${frameClass} ${
@@ -79,7 +137,8 @@ export function CardItem({
           <img
             src={imageUrl}
             alt={missing ? `${name} (não possuída)` : name}
-            className={`h-full w-full transition duration-300 group-hover:scale-[1.02] ${compact ? "object-cover" : "object-contain p-1"} ${
+            draggable={false}
+            className={`pointer-events-none h-full w-full transition duration-300 group-hover:scale-[1.02] ${compact ? "object-cover" : "object-contain p-1"} ${
               missing ? "opacity-40 grayscale" : ""
             }`}
             loading="lazy"
