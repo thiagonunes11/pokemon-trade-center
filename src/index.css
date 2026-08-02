@@ -379,6 +379,10 @@ summary:focus:not(:focus-visible) {
 }
 
 .ui-segment-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 2.75rem;
   flex: 1;
   border-radius: 0.5rem;
@@ -397,6 +401,13 @@ summary:focus:not(:focus-visible) {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent),
     0 6px 16px -10px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+/* Pill animado via Motion — o fundo ativo vem do layoutId, não do CSS */
+.ui-segment--motion .ui-segment-item[aria-selected="true"],
+.ui-segment--motion .ui-segment-item[data-active="true"] {
+  background: transparent;
+  box-shadow: none;
 }
 
 .ui-card-lift {

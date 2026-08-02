@@ -7,6 +7,7 @@ import { addCardToWanted, removeCardFromWanted } from "@/features/trades";
 import { BackButton } from "@/components/BackButton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ProgressFolio } from "@/components/ProgressFolio";
+import { SegmentTabs } from "@/components/SegmentTabs";
 import { getCollectionById, isSupportedSetId } from "@/lib/collections";
 import { compareByLocalId } from "@/lib/cardOrder";
 import { useOwnedSetCount } from "@/hooks/useOwnedSetCount";
@@ -379,12 +380,13 @@ export function CatalogSetPage() {
       </header>
 
       {!isLoading && !error && gridCards.length > 0 ? (
-        <div
-          className="ui-segment sticky top-3 z-20 shadow-[0_14px_30px_-24px_rgba(0,0,0,0.5)]"
-          role="tablist"
+        <SegmentTabs
+          layoutId="catalog-set-filter-tab"
           aria-label="Filtrar cartas"
-        >
-          {filterOptions.map((opt) => {
+          value={filter}
+          onChange={setFilter}
+          className="sticky top-3 z-20 shadow-[0_14px_30px_-24px_rgba(0,0,0,0.5)]"
+          options={filterOptions.map((opt) => {
             const count =
               opt.key === "all"
                 ? gridCards.length
@@ -392,21 +394,12 @@ export function CatalogSetPage() {
                   ? owned
                   : missingCount;
             const active = filter === opt.key;
-            return (
-              <button
-                key={opt.key}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                data-active={active}
-                onClick={() => setFilter(opt.key)}
-                className={`ui-segment-item flex flex-col items-center justify-center px-2 py-1.5 text-xs sm:flex-row sm:gap-1.5 sm:text-sm ${
-                  active
-                    ? "text-[var(--color-text)]"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-                }`}
-              >
-                <span>{opt.label}</span>
+            return {
+              key: opt.key,
+              label: opt.label,
+              className:
+                "flex flex-col items-center justify-center px-2 py-1.5 text-xs sm:flex-row sm:gap-1.5 sm:text-sm",
+              trailing: (
                 <span
                   className={`font-[family-name:var(--font-mono)] text-[10px] sm:text-xs ${
                     active
@@ -416,10 +409,10 @@ export function CatalogSetPage() {
                 >
                   {count}
                 </span>
-              </button>
-            );
+              ),
+            };
           })}
-        </div>
+        />
       ) : null}
 
       {isLoading && (
