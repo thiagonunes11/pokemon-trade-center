@@ -94,11 +94,17 @@ function navClass({ isActive }: { isActive: boolean }) {
 export function AppLayout() {
   return (
     <div className="flex min-h-full flex-col md:flex-row">
+      <a href="#main-content" className="ui-skip-link">
+        Pular para o conteúdo
+      </a>
       <aside className="ui-glass hidden w-60 shrink-0 border-r border-[var(--color-border)] p-4 md:flex md:flex-col">
         <div className="mb-8 px-1">
           <p className="font-[family-name:var(--font-display)] text-lg font-extrabold leading-tight text-[var(--color-text)]">
             Pokemon{" "}
-            <span className="text-[var(--color-accent)]">Trade</span> Center
+            <span className="text-[var(--color-accent)] drop-shadow-[0_0_18px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]">
+              Trade
+            </span>{" "}
+            Center
           </p>
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
             Vitrine · coleção · trocas
@@ -115,7 +121,11 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-[4.5rem] md:pb-0">
-        <main className="ui-page mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="ui-page mx-auto w-full max-w-6xl flex-1 px-4 py-6 outline-none sm:px-6"
+        >
           <Outlet />
         </main>
       </div>

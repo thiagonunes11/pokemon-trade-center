@@ -1,3 +1,5 @@
+import { useEffect, useId, useRef } from "react";
+
 type ConfirmDialogProps = {
   open: boolean;
   title: string;
@@ -10,6 +12,7 @@ type ConfirmDialogProps = {
   onCancel: () => void;
 };
 
+/** Modal de confirmação com foco inicial, Escape e trap básico (UI/UX Pro Max). */
 export function ConfirmDialog({
   open,
   title,
@@ -20,6 +23,45 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const descId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.activeElement as HTMLElement | null;
+    confirmRef.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCancel();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      prev?.focus?.();
+    };
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   return (
@@ -29,22 +71,23 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
+        ref={panelRef}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby={message ? "confirm-dialog-desc" : undefined}
+        aria-labelledby={titleId}
+        aria-describedby={message ? descId : undefined}
         className="ui-glass-strong ui-dialog-panel w-full max-w-sm rounded-2xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <h2
-          id="confirm-dialog-title"
+          id={titleId}
           className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]"
         >
           {title}
         </h2>
         {message ? (
           <p
-            id="confirm-dialog-desc"
+            id={descId}
             className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]"
           >
             {message}
@@ -59,6 +102,7 @@ export function ConfirmDialog({
             {cancelLabel}
           </button>
           <button
+            ref={confirmRef}
             type="button"
             onClick={onConfirm}
             className={

@@ -1,6 +1,7 @@
 import { BackButton } from "@/components/BackButton";
 import { EnergyIconRow } from "@/components/EnergyIcon";
 import { HoloTiltCard } from "@/components/HoloTiltCard";
+import { IconStar } from "@/components/IconStar";
 import {
   addCardToCollection,
   removeCardFromCollection,
@@ -218,8 +219,9 @@ export function CardDetailPage() {
                 </span>
               ) : null}
               {inShowcase ? (
-                <span className="rounded-full border border-[var(--color-accent)]/50 bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-accent)]">
-                  ★ Vitrine
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-accent)]/50 bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-accent)]">
+                  <IconStar className="h-3 w-3" filled />
+                  Vitrine
                 </span>
               ) : null}
             </div>
@@ -279,13 +281,14 @@ export function CardDetailPage() {
               <button
                 type="button"
                 onClick={handleShowcaseToggle}
-                className={`min-h-12 flex-1 rounded-xl border px-4 text-sm font-bold transition ${
+                className={`inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-bold transition ${
                   inShowcase
                     ? "ui-btn-accent border-transparent"
                     : "border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text)] hover:border-[var(--color-accent)]"
                 }`}
               >
-                {inShowcase ? "★ Na vitrine" : "☆ Adicionar à vitrine"}
+                <IconStar className="h-4 w-4" filled={inShowcase} />
+                {inShowcase ? "Na vitrine" : "Adicionar à vitrine"}
               </button>
             ) : null}
           </div>

@@ -306,7 +306,10 @@ export function LoginPage() {
             </div>
 
             {!firebaseReady && (
-              <p className="mt-4 rounded-xl border border-[var(--color-error)]/30 bg-[color-mix(in_srgb,var(--color-error)_10%,transparent)] px-3 py-2 text-sm text-[var(--color-error)]">
+              <p
+                role="alert"
+                className="mt-4 rounded-xl border border-[var(--color-error)]/30 bg-[color-mix(in_srgb,var(--color-error)_10%,transparent)] px-3 py-2 text-sm text-[var(--color-error)]"
+              >
                 Firebase não configurado. Copie .env.example → .env e preencha
                 VITE_FIREBASE_*.
               </p>
@@ -388,12 +391,18 @@ export function LoginPage() {
               ) : null}
 
               {error && (
-                <p className="rounded-xl border border-[var(--color-error)]/25 bg-[color-mix(in_srgb,var(--color-error)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-error)]">
+                <p
+                  role="alert"
+                  className="rounded-xl border border-[var(--color-error)]/25 bg-[color-mix(in_srgb,var(--color-error)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-error)]"
+                >
                   {error}
                 </p>
               )}
               {success && (
-                <p className="rounded-xl border border-[var(--color-success)]/25 bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]">
+                <p
+                  role="status"
+                  className="rounded-xl border border-[var(--color-success)]/25 bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]"
+                >
                   {success}
                 </p>
               )}

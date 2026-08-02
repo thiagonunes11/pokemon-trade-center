@@ -44,6 +44,16 @@ body,
   height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -95,6 +105,66 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* —— UI/UX Pro Max checklist: interação & a11y —— */
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a[href],
+summary,
+label[for],
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+button,
+a,
+[role="button"],
+.ui-input,
+.ui-tool-btn,
+.ui-btn-accent,
+.ui-segment-item {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible),
+summary:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.ui-skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 0;
+  z-index: 100;
+  transform: translateY(-120%);
+  border-radius: 0.75rem;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: transform 0.15s ease;
+}
+
+.ui-skip-link:focus {
+  transform: translateY(0.75rem);
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
 }
 
 @keyframes fadeIn {
@@ -327,4 +397,82 @@ body {
 
 .ui-dialog-panel {
   animation: uiDialogIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Empty state — glass dashed (Spotlight/Glass Surface vibe) */
+.ui-empty {
+  border-radius: 1rem;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 90%, transparent);
+  background: color-mix(in srgb, var(--color-bg-card) 55%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* Botões de ferramenta (Marcar, refresh, etc.) */
+.ui-tool-btn {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-card) 88%, transparent);
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  backdrop-filter: blur(10px);
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ui-tool-btn:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  color: var(--color-accent);
+}
+
+.ui-tool-btn[aria-pressed="true"],
+.ui-tool-btn[data-active="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+.ui-tool-btn:disabled {
+  opacity: 0.5;
+}
+
+/* Spotlight Card — brilho radial no ponteiro (React Bits) */
+.ui-spotlight {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  --spot-x: 50%;
+  --spot-y: 0%;
+}
+
+.ui-spotlight::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  background: radial-gradient(
+    420px circle at var(--spot-x) var(--spot-y),
+    color-mix(in srgb, var(--color-accent) 16%, transparent),
+    transparent 55%
+  );
+}
+
+.ui-spotlight:hover::after {
+  opacity: 1;
 }

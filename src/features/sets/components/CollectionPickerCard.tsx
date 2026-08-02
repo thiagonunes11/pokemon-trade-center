@@ -29,9 +29,19 @@ export function CollectionPickerCard({
       onClick={() => openable && onSelect(collection.id)}
       className={`group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left ${
         openable
-          ? "ui-card-lift ui-sheen border-[var(--color-border)] bg-[var(--color-bg-card)]"
+          ? "ui-card-lift ui-sheen ui-spotlight ui-glass border-[var(--color-border)]"
           : "cursor-not-allowed border-[var(--color-border)] bg-[var(--color-bg-card)] opacity-55"
       }`}
+      onMouseMove={
+        openable
+          ? (e) => {
+              const el = e.currentTarget;
+              const r = el.getBoundingClientRect();
+              el.style.setProperty("--spot-x", `${e.clientX - r.left}px`);
+              el.style.setProperty("--spot-y", `${e.clientY - r.top}px`);
+            }
+          : undefined
+      }
     >
       <div className="relative flex aspect-[16/10] items-center justify-center bg-[var(--color-bg-elevated)] px-6 py-8">
         <div

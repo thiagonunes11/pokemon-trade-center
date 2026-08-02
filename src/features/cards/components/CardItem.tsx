@@ -56,7 +56,9 @@ export function CardItem({
       ? "ring-2 ring-[var(--color-accent)] shadow-[0_0_20px_-6px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]"
       : "ring-1 ring-dashed ring-[var(--color-border)]"
     : binderMode
-      ? "ring-1 ring-[var(--color-border)]"
+      ? isInCollection
+        ? "ring-2 ring-[var(--color-success)] shadow-[0_0_18px_-8px_color-mix(in_srgb,var(--color-success)_45%,transparent)]"
+        : "ring-1 ring-[var(--color-border)]"
       : isInCollection
         ? "ring-2 ring-[var(--color-success)]"
         : "ring-1 ring-[var(--color-border)]";

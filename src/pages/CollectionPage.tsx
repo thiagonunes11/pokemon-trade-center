@@ -1,4 +1,5 @@
 import { ProgressFolio } from "@/components/ProgressFolio";
+import { IconStar } from "@/components/IconStar";
 import { CardItem } from "@/features/cards";
 import { toggleCardInShowcase } from "@/features/collection";
 import { ShareProfileButton } from "@/features/share";
@@ -45,13 +46,13 @@ function ShowcasePin({
         e.stopPropagation();
         onToggle();
       }}
-      className={`absolute top-2 left-2 z-10 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shadow-md transition ${
+      className={`absolute top-2 left-2 z-10 flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold shadow-md transition ${
         active
-          ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-          : "bg-black/55 text-white hover:bg-black/70"
+          ? "bg-[var(--color-accent)] text-[var(--color-on-accent)] shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--color-accent)_80%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--color-accent)_40%,transparent)]"
+          : "border border-white/15 bg-black/55 text-white backdrop-blur-sm hover:bg-black/70"
       }`}
     >
-      ★
+      <IconStar className="h-4 w-4" filled={active} />
     </button>
   );
 }
@@ -149,7 +150,7 @@ export function CollectionPage() {
 
         {cards.length > 0 ? (
           <>
-            <div className="space-y-1">
+            <div className="ui-glass ui-spotlight space-y-1 rounded-2xl p-3">
               <label className="sr-only" htmlFor="collection-card-search">
                 Buscar na coleção
               </label>
@@ -162,15 +163,22 @@ export function CollectionPage() {
                 autoComplete="off"
                 spellCheck={false}
                 className="ui-input"
+                onMouseMove={(e) => {
+                  const el = e.currentTarget.closest(".ui-spotlight") as HTMLElement | null;
+                  if (!el) return;
+                  const r = el.getBoundingClientRect();
+                  el.style.setProperty("--spot-x", `${e.clientX - r.left}px`);
+                  el.style.setProperty("--spot-y", `${e.clientY - r.top}px`);
+                }}
               />
               {isSearching ? (
-                <p className="text-xs text-[var(--color-text-muted)]">
+                <p className="px-0.5 pt-1 text-xs text-[var(--color-text-muted)]">
                   {filteredCards.length === 0
                     ? "Nenhuma carta encontrada."
                     : `${filteredCards.length} ocorrência${filteredCards.length === 1 ? "" : "s"}`}
                 </p>
               ) : search.trim().length > 0 ? (
-                <p className="text-xs text-[var(--color-text-muted)]">
+                <p className="px-0.5 pt-1 text-xs text-[var(--color-text-muted)]">
                   Digite pelo menos 2 letras para buscar.
                 </p>
               ) : null}
@@ -207,18 +215,18 @@ export function CollectionPage() {
       </header>
 
       {cards.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-8 text-center text-[var(--color-text-muted)]">
+        <p className="ui-empty text-sm">
           Sua coleção está vazia neste navegador.
         </p>
       ) : isSearching && filteredCards.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-8 text-center text-[var(--color-text-muted)]">
+        <p className="ui-empty text-sm">
           Nenhuma carta com esse nome na sua coleção.
         </p>
       ) : displayMode === "showcase" ? (
         <div className="space-y-4">
           <ShareProfileButton />
           {sortedShowcase.length === 0 ? (
-            <div className="space-y-3 rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center">
+            <div className="ui-empty space-y-3">
               <p className="text-[var(--color-text-secondary)]">
                 {isSearching
                   ? "Nenhuma carta da vitrine corresponde à busca."
@@ -227,7 +235,7 @@ export function CollectionPage() {
               {!isSearching ? (
                 <>
                   <p className="text-sm text-[var(--color-text-muted)]">
-                    Toque na estrela ★ nas cartas da coleção para montar o que
+                    Toque na estrela nas cartas da coleção para montar o que
                     quer mostrar.
                   </p>
                   <button
@@ -293,7 +301,13 @@ export function CollectionPage() {
             return (
               <section
                 key={setId}
-                className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]"
+                className="ui-glass ui-card-lift ui-sheen ui-spotlight overflow-hidden rounded-2xl"
+                onMouseMove={(e) => {
+                  const el = e.currentTarget;
+                  const r = el.getBoundingClientRect();
+                  el.style.setProperty("--spot-x", `${e.clientX - r.left}px`);
+                  el.style.setProperty("--spot-y", `${e.clientY - r.top}px`);
+                }}
               >
                 <div className="space-y-3 p-4">
                   <button

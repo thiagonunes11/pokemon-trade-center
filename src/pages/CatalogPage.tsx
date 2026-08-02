@@ -257,7 +257,7 @@ export function CatalogPage() {
               type="button"
               aria-label="Limpar busca"
               onClick={() => setSearch("")}
-              className="absolute top-1/2 right-2.5 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
+              className="absolute top-1/2 right-2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
             >
               <IconClear className="h-4 w-4" />
             </button>
@@ -360,7 +360,7 @@ export function CatalogPage() {
           />
         ) : null
       ) : visibleSets.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[var(--color-border)] px-4 py-10 text-center text-sm text-[var(--color-text-muted)]">
+        <p className="ui-empty text-sm">
           Nenhuma expansão neste filtro.
         </p>
       ) : (

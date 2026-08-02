@@ -42,6 +42,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | Estado | Zustand |
 | Backend | Firebase Auth + Firestore (Spark) |
 | Env | `VITE_FIREBASE_*` (`.env` gitignored) |
+| UI/UX | Skill `.cursor/skills/ui-ux-pro-max` · regras em `design-system/pokemon-trade-center/MASTER.md` |
 
 ---
 

@@ -293,11 +293,7 @@ export function CatalogSetPage() {
                   else setMarkMode(true);
                 }}
                 aria-pressed={markMode}
-                className={`inline-flex min-h-11 items-center justify-center rounded-xl border px-3 text-sm font-bold transition ${
-                  markMode
-                    ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                    : "border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-                }`}
+                className="ui-tool-btn"
               >
                 {markMode ? "Concluir" : "Marcar"}
               </button>
@@ -308,7 +304,7 @@ export function CatalogSetPage() {
               disabled={isFetching}
               aria-label={isFetching ? "Atualizando" : "Atualizar cartas"}
               title="Atualizar"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-50"
+              className="ui-tool-btn !w-11 !px-0"
             >
               <IconRefresh
                 className={`h-5 w-5 ${isFetching ? "animate-spin" : ""}`}
@@ -423,7 +419,7 @@ export function CatalogSetPage() {
       )}
 
       {!isLoading && !error && filteredCards.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--color-border)] px-4 py-8 text-center text-sm text-[var(--color-text-muted)]">
+        <p className="ui-empty text-sm">
           {filter === "owned"
             ? "Você ainda não tem cartas deste set."
             : filter === "missing"
@@ -450,7 +446,7 @@ export function CatalogSetPage() {
       ) : null}
 
       {markMode ? (
-        <div className="fixed inset-x-0 bottom-[4.5rem] z-30 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-4 py-3 backdrop-blur-md md:bottom-0 md:left-60">
+        <div className="ui-glass-strong fixed inset-x-0 bottom-[4.5rem] z-30 border-t border-[var(--color-border)] px-4 py-3 md:bottom-0 md:left-60">
           <div className="mx-auto flex max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-[var(--color-text-secondary)]">
               {selectedCount === 0
@@ -471,7 +467,7 @@ export function CatalogSetPage() {
                 type="button"
                 disabled={selectedMissingNotWanted === 0}
                 onClick={addSelectedToWanted}
-                className="min-h-11 flex-1 rounded-xl border border-[var(--color-accent)] px-4 text-sm font-bold text-[var(--color-accent)] disabled:opacity-40 sm:flex-none"
+                className="ui-tool-btn min-h-11 flex-1 border-[var(--color-accent)] text-[var(--color-accent)] disabled:opacity-40 sm:flex-none"
               >
                 Adicionar à busca
                 {selectedMissingNotWanted > 0
@@ -490,7 +486,7 @@ export function CatalogSetPage() {
               <button
                 type="button"
                 onClick={exitMarkMode}
-                className="min-h-11 rounded-xl border border-[var(--color-border)] px-4 text-sm font-semibold text-[var(--color-text-secondary)]"
+                className="ui-tool-btn min-h-11"
               >
                 Concluir
               </button>
