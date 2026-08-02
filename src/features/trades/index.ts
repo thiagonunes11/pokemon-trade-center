@@ -1,4 +1,10 @@
 export {
+  hasValidOfferingTerms,
+  normalizeOfferingTerms,
+  type OfferingTerms,
+  type WantCardRef,
+} from "./offeringTerms";
+export {
   pullAndMergeTrades,
   scheduleDeleteTradeCard,
   scheduleUpsertTradeCard,
@@ -9,7 +15,10 @@ export {
   addCardToWanted,
   removeCardFromOffering,
   removeCardFromWanted,
+  updateOfferingTermsAndSync,
 } from "./tradeActions";
+export { OfferingTermsPanel } from "./OfferingTermsPanel";
+export { OfferingTermsSummary } from "./OfferingTermsSummary";
 export { TradeSync } from "./TradeSync";
 export { ExploreBoard } from "./ExploreBoard";
 export { ConversationsList } from "./ConversationsList";

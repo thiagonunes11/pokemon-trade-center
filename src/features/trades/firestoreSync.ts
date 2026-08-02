@@ -11,6 +11,11 @@ import {
   deleteListing,
   upsertListing,
 } from "@/features/trades/listingsSync";
+import {
+  hasValidOfferingTerms,
+  normalizeOfferingTerms,
+  type OfferingTerms,
+} from "@/features/trades/offeringTerms";
 import { getFirestoreDb } from "@/lib/firestore";
 import { useAuthStore } from "@/store/useAuthStore";
 import {
@@ -28,6 +33,8 @@ type PendingUpsert = {
     name: string;
     imageUrl: string | null;
     setId: string;
+    priceBRL?: OfferingTerms["priceBRL"];
+    wantCards?: OfferingTerms["wantCards"];
     updatedAt: Date;
   };
 };
@@ -54,8 +61,11 @@ function displayNameForListings() {
   return useAuthStore.getState().username?.trim() || "Treinador";
 }
 
-function toFirestorePayload(card: PendingUpsert["card"]) {
-  return {
+function toFirestorePayload(
+  kind: TradeListKind,
+  card: PendingUpsert["card"],
+) {
+  const payload = {
     id: card.id,
     name: card.name,
     imageUrl: card.imageUrl,
@@ -66,11 +76,17 @@ function toFirestorePayload(card: PendingUpsert["card"]) {
         : new Date(card.updatedAt),
     ),
   };
+  if (kind !== "offering") return payload;
+  return {
+    ...payload,
+    ...normalizeOfferingTerms(card),
+  };
 }
 
 function parseRemoteCard(
   data: Record<string, unknown>,
   ownerId: string,
+  kind: TradeListKind,
 ): TradeListCard | null {
   if (
     typeof data.id !== "string" ||
@@ -95,7 +111,7 @@ function parseRemoteCard(
     updatedAt = new Date(raw);
   }
 
-  return {
+  const card: TradeListCard = {
     id: data.id,
     name: data.name,
     imageUrl:
@@ -106,6 +122,10 @@ function parseRemoteCard(
     ownerId,
     updatedAt,
   };
+  if (kind === "offering") {
+    Object.assign(card, normalizeOfferingTerms(data));
+  }
+  return card;
 }
 
 async function flushPendingWrites(): Promise<void> {
@@ -125,9 +145,11 @@ async function flushPendingWrites(): Promise<void> {
   await Promise.all([
     ...upserts.map(async ({ kind, card }) => {
       try {
-        await setDoc(listDocRef(uid, kind, card.id), toFirestorePayload(card), {
-          merge: true,
-        });
+        await setDoc(
+          listDocRef(uid, kind, card.id),
+          toFirestorePayload(kind, card),
+          { merge: true },
+        );
         await upsertListing(uid, kind, card, displayName);
       } catch (error) {
         console.warn("[TradeSync] Falha ao enviar:", kind, card.id, error);
@@ -175,6 +197,13 @@ export function scheduleUpsertTradeCard(
   card: PendingUpsert["card"],
 ) {
   if (!activeUid) return;
+  if (
+    kind === "offering" &&
+    !hasValidOfferingTerms(normalizeOfferingTerms(card))
+  ) {
+    console.warn("[TradeSync] Oferta sem preço ou cartas desejadas:", card.id);
+    return;
+  }
   const key = pendingKey(kind, card.id);
   pendingDeletes.delete(key);
   pendingUpserts.set(key, { kind, card });
@@ -193,7 +222,7 @@ async function pullKind(uid: string, kind: TradeListKind): Promise<void> {
   const snapshot = await getDocs(listCollectionRef(uid, kind));
   const remote: TradeListCard[] = [];
   for (const docSnap of snapshot.docs) {
-    const parsed = parseRemoteCard(docSnap.data(), uid);
+    const parsed = parseRemoteCard(docSnap.data(), uid, kind);
     if (parsed) remote.push(parsed);
   }
 
@@ -212,6 +241,12 @@ async function pullKind(uid: string, kind: TradeListKind): Promise<void> {
       name: card.name,
       imageUrl: card.imageUrl,
       setId: card.setId,
+      ...(kind === "offering"
+        ? normalizeOfferingTerms({
+            priceBRL: card.priceBRL,
+            wantCards: card.wantCards,
+          })
+        : {}),
       updatedAt:
         card.updatedAt instanceof Date
           ? card.updatedAt
@@ -225,6 +260,8 @@ function toListingInput(card: TradeListCard): {
   name: string;
   imageUrl: string | null;
   setId: string;
+  priceBRL: number | null;
+  wantCards: OfferingTerms["wantCards"];
   updatedAt: Date;
 } {
   return {
@@ -232,6 +269,10 @@ function toListingInput(card: TradeListCard): {
     name: card.name,
     imageUrl: card.imageUrl,
     setId: card.setId,
+    ...normalizeOfferingTerms({
+      priceBRL: card.priceBRL,
+      wantCards: card.wantCards,
+    }),
     updatedAt:
       card.updatedAt instanceof Date
         ? card.updatedAt

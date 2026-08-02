@@ -140,6 +140,8 @@ Vitrine: `CollectionCard.inShowcase` + espelho `publicShowcases/{uid}/cards`. Pe
 - Chat: `threads/{uidA_uidB}/messages` (texto só; nacional)
 - Comunidade: `communities/{cityId}` (`name`, `whatsappUrl`) — **read-only** no cliente; seed no Console
 - UI Trocas: Explorar (filtro opcional “só o que eu quero”), Conversas, Comunidade
+- **Ofertas (Anunciando):** `priceBRL` e/ou `wantCards` (até 20 refs TCGdex); publicação no mural exige ao menos um termo válido — espelhado em `listings` e perfil; legado incompleto pede completar no painel
+- **Detalhe (`/card/:id`):** links externos **Liga Pokémon** e **MYP Cards** abrem busca pelo nome da carta (nova aba)
 - Sem FCM / geo GPS / WhatsApp pessoal no perfil nesta fatia
 
 ---

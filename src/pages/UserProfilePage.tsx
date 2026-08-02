@@ -12,13 +12,12 @@ import {
   type PublicUserProfile,
 } from "@/features/profile";
 import type { PublicListing } from "@/features/trades/listingsQuery";
+import { hasValidOfferingTerms } from "@/features/trades/offeringTerms";
+import { OfferingTermsSummary } from "@/features/trades/OfferingTermsSummary";
 import { profilePathFor } from "@/lib/handle";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
-const cardGridClass =
-  "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
 
 function ProfileCardGrid({
   cards,
@@ -54,6 +53,52 @@ function ProfileCardGrid({
   );
 }
 
+const cardGridClass =
+  "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
+
+function OfferingListGrid({
+  listings,
+  emptyLabel,
+  onPress,
+}: {
+  listings: PublicListing[];
+  emptyLabel: string;
+  onPress: (id: string) => void;
+}) {
+  if (listings.length === 0) {
+    return (
+      <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-5 text-center text-sm text-[var(--color-text-muted)]">
+        {emptyLabel}
+      </p>
+    );
+  }
+
+  return (
+    <div className={cardGridClass}>
+      {listings.map((listing) => (
+        <div key={listing.id} className="space-y-2">
+          <CardItem
+            id={listing.cardId}
+            name={listing.name}
+            localId={listing.cardId.split("-").pop() ?? ""}
+            image={listing.imageUrl}
+            compact
+            onPress={onPress}
+          />
+          <div className="ui-glass rounded-xl p-2.5">
+            <OfferingTermsSummary
+              terms={{
+                priceBRL: listing.priceBRL,
+                wantCards: listing.wantCards,
+              }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function UserProfilePage() {
   const { uid: profileParam = "" } = useParams();
   const navigate = useNavigate();
@@ -70,6 +115,17 @@ export function UserProfilePage() {
   const [copied, setCopied] = useState(false);
 
   const isSelf = Boolean(myId && resolvedUid && myId === resolvedUid);
+
+  const visibleOffering = useMemo(
+    () =>
+      offering.filter((l) =>
+        hasValidOfferingTerms({
+          priceBRL: l.priceBRL,
+          wantCards: l.wantCards,
+        }),
+      ),
+    [offering],
+  );
 
   useEffect(() => {
     if (!profileParam) return;
@@ -258,12 +314,8 @@ export function UserProfilePage() {
                 Cartas disponíveis para troca.
               </p>
             </div>
-            <ProfileCardGrid
-              cards={offering.map((l) => ({
-                id: l.cardId,
-                name: l.name,
-                imageUrl: l.imageUrl,
-              }))}
+            <OfferingListGrid
+              listings={visibleOffering}
               emptyLabel="Nenhuma carta anunciada."
               onPress={(id) => navigate(`/card/${id}`)}
             />

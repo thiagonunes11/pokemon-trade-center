@@ -6,8 +6,13 @@ import { ExploreBoard } from "@/features/trades/ExploreBoard";
 import {
   addCardToOffering,
   addCardToWanted,
+  hasValidOfferingTerms,
+  OfferingTermsPanel,
+  OfferingTermsSummary,
   removeCardFromOffering,
   removeCardFromWanted,
+  updateOfferingTermsAndSync,
+  type OfferingTerms,
 } from "@/features/trades";
 import { COLLECTIONS, getCollectionById } from "@/lib/collections";
 import {
@@ -60,6 +65,21 @@ type PickerMode =
   | { kind: "offering" }
   | { kind: "wanted"; step: "sets" }
   | { kind: "wanted"; step: "cards"; setId: string };
+
+type OfferingCardInput = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  setId: string;
+};
+
+type TermsPanelState =
+  | null
+  | {
+      mode: "create" | "edit";
+      card: OfferingCardInput;
+      initialTerms?: OfferingTerms;
+    };
 
 function TradeSectionTabs({
   tab,
@@ -142,6 +162,7 @@ export function TradesPage() {
     isTradeTab(tabParam) ? tabParam : "explore",
   );
   const [picker, setPicker] = useState<PickerMode>(null);
+  const [termsPanel, setTermsPanel] = useState<TermsPanelState>(null);
   const [clearWantedOpen, setClearWantedOpen] = useState(false);
 
   const selectTab = (next: TradeTab) => {
@@ -244,32 +265,73 @@ export function TradesPage() {
             />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {list.map((card) => (
-                <div key={card.id} className="relative">
-                  <button
-                    type="button"
-                    aria-label="Remover da lista"
-                    onClick={() =>
-                      tab === "offering"
-                        ? removeCardFromOffering(card.id)
-                        : removeCardFromWanted(card.id)
-                    }
-                    className="absolute top-2 right-2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/65 text-white shadow-md backdrop-blur-sm transition hover:bg-[var(--color-error)]"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden>
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                  <CardItem
-                    id={card.id}
-                    name={card.name}
-                    localId={cardLocalId(card.id, card.setId)}
-                    image={card.imageUrl}
-                    compact
-                    onPress={(id) => navigate(`/card/${id}`)}
-                  />
-                </div>
-              ))}
+              {list.map((card) => {
+                const terms = {
+                  priceBRL: card.priceBRL ?? null,
+                  wantCards: card.wantCards ?? [],
+                };
+                const validTerms =
+                  tab === "offering" && hasValidOfferingTerms(terms);
+
+                return (
+                  <div key={card.id} className="space-y-2">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        aria-label="Remover da lista"
+                        onClick={() =>
+                          tab === "offering"
+                            ? removeCardFromOffering(card.id)
+                            : removeCardFromWanted(card.id)
+                        }
+                        className="absolute top-2 right-2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/65 text-white shadow-md backdrop-blur-sm transition hover:bg-[var(--color-error)]"
+                      >
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden>
+                          <path d="M18 6 6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                      <CardItem
+                        id={card.id}
+                        name={card.name}
+                        localId={cardLocalId(card.id, card.setId)}
+                        image={card.imageUrl}
+                        compact
+                        onPress={(id) => navigate(`/card/${id}`)}
+                      />
+                    </div>
+
+                    {tab === "offering" ? (
+                      <div className="ui-glass space-y-2 rounded-xl p-2.5">
+                        <OfferingTermsSummary terms={terms} />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTermsPanel({
+                              mode: "edit",
+                              card: {
+                                id: card.id,
+                                name: card.name,
+                                imageUrl: card.imageUrl,
+                                setId: card.setId,
+                              },
+                              initialTerms: terms,
+                            })
+                          }
+                          className={
+                            validTerms
+                              ? "ui-tool-btn min-h-11 w-full"
+                              : "ui-btn-accent min-h-11 w-full text-sm"
+                          }
+                        >
+                          {validTerms
+                            ? "Editar condições"
+                            : "Completar condições"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
@@ -283,7 +345,8 @@ export function TradesPage() {
           wantedIds={new Set(myWanted.map((c) => c.id))}
           onClose={() => setPicker(null)}
           onPickOffering={(card) => {
-            addCardToOffering(card);
+            setPicker(null);
+            setTermsPanel({ mode: "create", card });
           }}
           onPickWanted={(card) => {
             addCardToWanted(card);
@@ -294,6 +357,23 @@ export function TradesPage() {
           onBackToSets={() => setPicker({ kind: "wanted", step: "sets" })}
         />
       ) : null}
+
+      <OfferingTermsPanel
+        open={termsPanel != null}
+        mode={termsPanel?.mode ?? "create"}
+        card={termsPanel?.card ?? null}
+        initialTerms={termsPanel?.initialTerms}
+        onCancel={() => setTermsPanel(null)}
+        onSave={(terms) => {
+          if (!termsPanel) return false;
+          const saved =
+            termsPanel.mode === "create"
+              ? addCardToOffering(termsPanel.card, terms)
+              : updateOfferingTermsAndSync(termsPanel.card.id, terms);
+          if (saved) setTermsPanel(null);
+          return saved;
+        }}
+      />
 
       <ConfirmDialog
         open={clearWantedOpen}

@@ -134,9 +134,70 @@ service cloud.firestore {
         (!('inShowcase' in data) || data.inShowcase is bool);
     }
 
-    function isValidTradeCard() {
+    function isValidWantCardRef(card) {
+      return card is map &&
+        card.keys().hasOnly(['id', 'name', 'imageUrl', 'setId']) &&
+        card.keys().hasAll(['id', 'name', 'setId']) &&
+        card.id is string &&
+        card.id.size() >= 1 &&
+        card.id.size() <= 30 &&
+        card.name is string &&
+        card.name.size() >= 1 &&
+        card.name.size() <= 200 &&
+        card.setId is string &&
+        card.setId.size() >= 1 &&
+        card.setId.size() <= 20 &&
+        (!('imageUrl' in card) || card.imageUrl == null ||
+          (card.imageUrl is string && card.imageUrl.size() <= 500 &&
+           card.imageUrl.matches('^https://.*')));
+    }
+
+    function isValidWantCards(data) {
+      return !('wantCards' in data) ||
+        (data.wantCards is list &&
+         data.wantCards.size() <= 20 &&
+         (data.wantCards.size() < 1 || isValidWantCardRef(data.wantCards[0])) &&
+         (data.wantCards.size() < 2 || isValidWantCardRef(data.wantCards[1])) &&
+         (data.wantCards.size() < 3 || isValidWantCardRef(data.wantCards[2])) &&
+         (data.wantCards.size() < 4 || isValidWantCardRef(data.wantCards[3])) &&
+         (data.wantCards.size() < 5 || isValidWantCardRef(data.wantCards[4])) &&
+         (data.wantCards.size() < 6 || isValidWantCardRef(data.wantCards[5])) &&
+         (data.wantCards.size() < 7 || isValidWantCardRef(data.wantCards[6])) &&
+         (data.wantCards.size() < 8 || isValidWantCardRef(data.wantCards[7])) &&
+         (data.wantCards.size() < 9 || isValidWantCardRef(data.wantCards[8])) &&
+         (data.wantCards.size() < 10 || isValidWantCardRef(data.wantCards[9])) &&
+         (data.wantCards.size() < 11 || isValidWantCardRef(data.wantCards[10])) &&
+         (data.wantCards.size() < 12 || isValidWantCardRef(data.wantCards[11])) &&
+         (data.wantCards.size() < 13 || isValidWantCardRef(data.wantCards[12])) &&
+         (data.wantCards.size() < 14 || isValidWantCardRef(data.wantCards[13])) &&
+         (data.wantCards.size() < 15 || isValidWantCardRef(data.wantCards[14])) &&
+         (data.wantCards.size() < 16 || isValidWantCardRef(data.wantCards[15])) &&
+         (data.wantCards.size() < 17 || isValidWantCardRef(data.wantCards[16])) &&
+         (data.wantCards.size() < 18 || isValidWantCardRef(data.wantCards[17])) &&
+         (data.wantCards.size() < 19 || isValidWantCardRef(data.wantCards[18])) &&
+         (data.wantCards.size() < 20 || isValidWantCardRef(data.wantCards[19])));
+    }
+
+    function hasValidOfferingTerms(data) {
+      return (('priceBRL' in data) && data.priceBRL is number && data.priceBRL > 0) ||
+        (('wantCards' in data) && data.wantCards is list && data.wantCards.size() > 0);
+    }
+
+    function hasEmptyOfferingTerms(data) {
+      return (!('priceBRL' in data) || data.priceBRL == null) &&
+        (!('wantCards' in data) ||
+          (data.wantCards is list && data.wantCards.size() == 0));
+    }
+
+    function hasValidOfferingTermsShape(data) {
+      return (!('priceBRL' in data) || data.priceBRL == null ||
+          (data.priceBRL is number && data.priceBRL > 0)) &&
+        isValidWantCards(data);
+    }
+
+    function isValidTradeCard(listKind) {
       let data = request.resource.data;
-      let allowedFields = ['id', 'name', 'imageUrl', 'setId', 'updatedAt'];
+      let allowedFields = ['id', 'name', 'imageUrl', 'setId', 'priceBRL', 'wantCards', 'updatedAt'];
       let requiredFields = ['id', 'name', 'setId', 'updatedAt'];
 
       return hasOnlyAllowedFields(allowedFields) &&
@@ -153,12 +214,15 @@ service cloud.firestore {
         data.setId is string &&
         data.setId.size() >= 1 &&
         data.setId.size() <= 20 &&
-        data.updatedAt is timestamp;
+        data.updatedAt is timestamp &&
+        hasValidOfferingTermsShape(data) &&
+        ((listKind == 'offering' && hasValidOfferingTerms(data)) ||
+         (listKind == 'wanted' && hasEmptyOfferingTerms(data)));
     }
 
     function isValidListing() {
       let data = request.resource.data;
-      let allowedFields = ['ownerId', 'kind', 'cardId', 'name', 'imageUrl', 'setId', 'displayName', 'updatedAt'];
+      let allowedFields = ['ownerId', 'kind', 'cardId', 'name', 'imageUrl', 'setId', 'displayName', 'priceBRL', 'wantCards', 'updatedAt'];
       let requiredFields = ['ownerId', 'kind', 'cardId', 'name', 'setId', 'displayName', 'updatedAt'];
 
       return hasOnlyAllowedFields(allowedFields) &&
@@ -180,7 +244,10 @@ service cloud.firestore {
         data.displayName is string &&
         data.displayName.size() >= 1 &&
         data.displayName.size() <= 100 &&
-        data.updatedAt is timestamp;
+        data.updatedAt is timestamp &&
+        hasValidOfferingTermsShape(data) &&
+        ((data.kind == 'offering' && hasValidOfferingTerms(data)) ||
+         (data.kind == 'wanted' && hasEmptyOfferingTerms(data)));
     }
 
     function isThreadParticipant() {
@@ -292,7 +359,7 @@ service cloud.firestore {
         (listKind == 'offering' || listKind == 'wanted');
       allow create, update: if isOwner(userId) &&
         (listKind == 'offering' || listKind == 'wanted') &&
-        isValidTradeCard() &&
+        isValidTradeCard(listKind) &&
         request.resource.data.id == cardId;
       allow delete: if isOwner(userId) &&
         (listKind == 'offering' || listKind == 'wanted');
@@ -304,7 +371,8 @@ service cloud.firestore {
         isValidListing() &&
         listingId == request.auth.uid + '_' + request.resource.data.kind + '_' + request.resource.data.cardId;
       allow delete: if isAuthenticated() &&
-        resource.data.ownerId == request.auth.uid;
+        (resource == null ||
+          resource.data.ownerId == request.auth.uid);
     }
 
     function isValidUserThreadItem(inboxUserId) {

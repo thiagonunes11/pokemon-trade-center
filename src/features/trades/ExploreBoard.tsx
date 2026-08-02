@@ -1,5 +1,7 @@
 import { CardItem } from "@/features/cards";
 import { EmptyState } from "@/components/EmptyState";
+import { hasValidOfferingTerms } from "@/features/trades/offeringTerms";
+import { OfferingTermsSummary } from "@/features/trades/OfferingTermsSummary";
 import {
   fetchListingsForCardIds,
   fetchListingsPage,
@@ -19,6 +21,14 @@ import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import type { TradeListKind } from "@/store/useTradeStore";
 
 type ExploreKind = TradeListKind;
+
+function isVisibleListing(listing: PublicListing, kind: ExploreKind): boolean {
+  if (kind !== "offering") return true;
+  return hasValidOfferingTerms({
+    priceBRL: listing.priceBRL,
+    wantCards: listing.wantCards,
+  });
+}
 
 function exploreErrorMessage(err: unknown): string {
   const code =
@@ -75,12 +85,20 @@ export function ExploreBoard() {
       if (onlyMine) {
         const ids = kind === "offering" ? myWantedIds : myOfferingIds;
         const list = await fetchListingsForCardIds(kind, ids);
-        setItems(list.filter((l) => l.ownerId !== userId));
+        setItems(
+          list.filter(
+            (l) => l.ownerId !== userId && isVisibleListing(l, kind),
+          ),
+        );
         setCursor(null);
         setHasMore(false);
       } else {
         const page = await fetchListingsPage(kind, null);
-        setItems(page.items.filter((l) => l.ownerId !== userId));
+        setItems(
+          page.items.filter(
+            (l) => l.ownerId !== userId && isVisibleListing(l, kind),
+          ),
+        );
         setCursor(page.lastDoc);
         setHasMore(page.hasMore);
       }
@@ -105,7 +123,10 @@ export function ExploreBoard() {
       setItems((prev) => {
         const ids = new Set(prev.map((p) => p.id));
         const next = page.items.filter(
-          (l) => l.ownerId !== userId && !ids.has(l.id),
+          (l) =>
+            l.ownerId !== userId &&
+            !ids.has(l.id) &&
+            isVisibleListing(l, kind),
         );
         return [...prev, ...next];
       });
@@ -255,14 +276,24 @@ export function ExploreBoard() {
                 </div>
               </div>
               {kind === "offering" ? (
-                <button
-                  type="button"
-                  disabled={startingChat === item.ownerId}
-                  onClick={() => void startChat(item.ownerId, item.displayName)}
-                  className="ui-btn-accent mt-4 min-h-12 w-full text-sm disabled:opacity-50"
-                >
-                  {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
-                </button>
+                <>
+                  <div className="ui-glass mt-3 rounded-xl p-2.5">
+                    <OfferingTermsSummary
+                      terms={{
+                        priceBRL: item.priceBRL,
+                        wantCards: item.wantCards,
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={startingChat === item.ownerId}
+                    onClick={() => void startChat(item.ownerId, item.displayName)}
+                    className="ui-btn-accent mt-3 min-h-12 w-full text-sm disabled:opacity-50"
+                  >
+                    {startingChat === item.ownerId ? "Abrindo…" : "Conversar"}
+                  </button>
+                </>
               ) : null}
             </li>
           ))}
