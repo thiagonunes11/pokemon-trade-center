@@ -6,9 +6,13 @@ import {
   deletePublicShowcaseCard,
   syncPublicShowcaseCard,
 } from "@/features/profile/showcaseMirror";
-import { removeCardFromOffering } from "@/features/trades/tradeActions";
+import {
+  removeCardFromOffering,
+  removeCardFromWanted,
+} from "@/features/trades/tradeActions";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
+import { useTradeStore } from "@/store/useTradeStore";
 
 type NewCard = {
   id: string;
@@ -54,12 +58,24 @@ function syncShowcaseMirror(cardId: string, inShowcase: boolean) {
   ).catch((err) => console.warn("[ShowcaseMirror]", err));
 }
 
-/** Adiciona localmente e agenda escrita no Firestore. */
-export function addCardToCollection(card: NewCard) {
+/** Adiciona localmente e agenda escrita no Firestore.
+ *  Carta nova que estava em Procurando sai da busca automaticamente. */
+export function addCardToCollection(card: NewCard): {
+  added: boolean;
+  removedFromWanted: boolean;
+} {
   const before = useCollectionStore.getState().hasCard(card.id);
   useCollectionStore.getState().addCard(card);
-  if (before) return;
+  if (before) {
+    return { added: false, removedFromWanted: false };
+  }
   scheduleSavedCard(card.id);
+
+  const wasWanted = useTradeStore.getState().hasWanted(card.id);
+  if (wasWanted) {
+    removeCardFromWanted(card.id);
+  }
+  return { added: true, removedFromWanted: wasWanted };
 }
 
 /** Remove localmente e agenda delete no Firestore. */
