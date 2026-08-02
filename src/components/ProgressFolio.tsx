@@ -43,7 +43,7 @@ export function ProgressFolio({
             </span>
           ) : null}
         </p>
-        <span className="shrink-0 rounded-full bg-[var(--color-accent)] px-2.5 py-0.5 text-xs font-bold text-[var(--color-on-accent)]">
+        <span className="shrink-0 rounded-full bg-[var(--color-accent)] px-2.5 py-0.5 text-xs font-bold text-[var(--color-on-accent)] shadow-[0_0_16px_-2px_color-mix(in_srgb,var(--color-accent)_70%,transparent)]">
           {pct}%
         </span>
       </div>
@@ -56,7 +56,7 @@ export function ProgressFolio({
         aria-label={`Progresso da coleção: ${pct}%`}
       >
         <div
-          className="h-full rounded-full bg-[var(--color-accent)] transition-[width] duration-300"
+          className="ui-progress-fill h-full rounded-full transition-[width] duration-500 ease-out"
           style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }}
         />
       </div>

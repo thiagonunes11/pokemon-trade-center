@@ -206,7 +206,7 @@ export function TradesPage() {
                   : { kind: "wanted", step: "sets" },
               )
             }
-            className="flex h-11 w-full items-center justify-center rounded-xl bg-[var(--color-accent)] text-sm font-bold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
+            className="ui-btn-accent flex h-11 w-full items-center justify-center text-sm"
           >
             {tab === "offering"
               ? "Adicionar da coleção"

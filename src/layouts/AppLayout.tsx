@@ -86,7 +86,7 @@ const navItems = [
 function navClass({ isActive }: { isActive: boolean }) {
   return `flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
     isActive
-      ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
+      ? "bg-[var(--color-accent)] text-[var(--color-on-accent)] shadow-[0_8px_24px_-10px_color-mix(in_srgb,var(--color-accent)_70%,transparent)]"
       : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)]"
   }`;
 }
@@ -94,7 +94,7 @@ function navClass({ isActive }: { isActive: boolean }) {
 export function AppLayout() {
   return (
     <div className="flex min-h-full flex-col md:flex-row">
-      <aside className="hidden w-60 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg-secondary)]/80 p-4 backdrop-blur md:flex md:flex-col">
+      <aside className="ui-glass hidden w-60 shrink-0 border-r border-[var(--color-border)] p-4 md:flex md:flex-col">
         <div className="mb-8 px-1">
           <p className="font-[family-name:var(--font-display)] text-lg font-extrabold leading-tight text-[var(--color-text)]">
             Pokemon{" "}
@@ -115,26 +115,36 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-[4.5rem] md:pb-0">
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+        <main className="ui-page mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
           <Outlet />
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="ui-glass fixed inset-x-0 bottom-0 z-40 flex border-t border-[var(--color-border)] pb-[env(safe-area-inset-bottom)] md:hidden">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold ${
+              `relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition ${
                 isActive
                   ? "text-[var(--color-accent)]"
                   : "text-[var(--color-text-muted)]"
               }`
             }
           >
-            <item.Icon className="h-5 w-5" />
-            {item.label}
+            {({ isActive }) => (
+              <>
+                {isActive ? (
+                  <span
+                    className="absolute top-1 h-1 w-6 rounded-full bg-[var(--color-accent)] shadow-[0_0_12px_var(--color-accent)]"
+                    aria-hidden
+                  />
+                ) : null}
+                <item.Icon className="h-5 w-5" />
+                {item.label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

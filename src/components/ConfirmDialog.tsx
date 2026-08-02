@@ -24,7 +24,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/55 p-4 sm:items-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
       role="presentation"
       onClick={onCancel}
     >
@@ -33,7 +33,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby={message ? "confirm-dialog-desc" : undefined}
-        className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-xl"
+        className="ui-glass-strong ui-dialog-panel w-full max-w-sm rounded-2xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <h2
@@ -54,18 +54,18 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="min-h-11 rounded-xl border border-[var(--color-border)] px-4 text-sm font-semibold text-[var(--color-text-secondary)]"
+            className="min-h-11 rounded-xl border border-[var(--color-border)] px-4 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-bg-elevated)]"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`min-h-11 rounded-xl px-4 text-sm font-bold ${
+            className={
               danger
-                ? "border border-[var(--color-error)] text-[var(--color-error)]"
-                : "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-            }`}
+                ? "min-h-11 rounded-xl border border-[var(--color-error)] px-4 text-sm font-bold text-[var(--color-error)] transition hover:bg-[color-mix(in_srgb,var(--color-error)_12%,transparent)]"
+                : "ui-btn-accent min-h-11 px-4 text-sm"
+            }
           >
             {confirmLabel}
           </button>

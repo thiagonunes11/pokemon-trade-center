@@ -161,7 +161,7 @@ export function CollectionPage() {
                 placeholder="Buscar na coleção (ex.: Pikachu)"
                 autoComplete="off"
                 spellCheck={false}
-                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3 text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]"
+                className="ui-input"
               />
               {isSearching ? (
                 <p className="text-xs text-[var(--color-text-muted)]">
@@ -177,7 +177,7 @@ export function CollectionPage() {
             </div>
 
             <div
-              className="flex rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
+              className="ui-segment"
               role="tablist"
               aria-label="Organizar coleção"
             >
@@ -189,10 +189,11 @@ export function CollectionPage() {
                     type="button"
                     role="tab"
                     aria-selected={active}
+                    data-active={active}
                     onClick={() => setDisplayMode(opt.key)}
-                    className={`min-h-11 flex-1 rounded-lg px-1 text-xs font-semibold transition sm:text-sm ${
+                    className={`ui-segment-item px-1 text-xs sm:text-sm ${
                       active
-                        ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
+                        ? "text-[var(--color-text)]"
                         : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
                     }`}
                   >

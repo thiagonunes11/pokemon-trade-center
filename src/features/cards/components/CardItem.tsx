@@ -53,7 +53,7 @@ export function CardItem({
 
   const frameClass = markMode
     ? isSelected
-      ? "ring-2 ring-[var(--color-accent)]"
+      ? "ring-2 ring-[var(--color-accent)] shadow-[0_0_20px_-6px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]"
       : "ring-1 ring-dashed ring-[var(--color-border)]"
     : binderMode
       ? "ring-1 ring-[var(--color-border)]"
@@ -65,10 +65,10 @@ export function CardItem({
     <button
       type="button"
       onClick={() => onPress(id)}
-      className={`group w-full text-left transition hover:-translate-y-0.5 hover:opacity-95 ${compact ? "" : "space-y-2"}`}
+      className={`group w-full text-left transition duration-200 hover:-translate-y-1 ${compact ? "" : "space-y-2"}`}
     >
       <div
-        className={`relative overflow-hidden rounded-xl bg-[var(--color-bg-card)] ${frameClass} ${
+        className={`ui-sheen relative overflow-hidden rounded-xl bg-[var(--color-bg-card)] shadow-[0_10px_28px_-18px_rgba(0,0,0,0.55)] transition duration-200 group-hover:shadow-[0_16px_36px_-14px_color-mix(in_srgb,var(--color-accent)_30%,transparent)] ${frameClass} ${
           compact ? "aspect-[0.715]" : "aspect-[0.72]"
         }`}
       >
@@ -76,7 +76,7 @@ export function CardItem({
           <img
             src={imageUrl}
             alt={missing ? `${name} (não possuída)` : name}
-            className={`h-full w-full ${compact ? "object-cover" : "object-contain p-1"} ${
+            className={`h-full w-full transition duration-300 group-hover:scale-[1.02] ${compact ? "object-cover" : "object-contain p-1"} ${
               missing ? "opacity-40 grayscale" : ""
             }`}
             loading="lazy"
@@ -89,7 +89,7 @@ export function CardItem({
         )}
         {markMode ? (
           <span
-            className={`absolute top-1.5 left-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shadow-sm ${
+            className={`absolute top-1.5 left-1.5 z-[3] flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shadow-sm ${
               isSelected
                 ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
                 : "bg-black/50 text-white/90"
@@ -100,7 +100,7 @@ export function CardItem({
           </span>
         ) : null}
         <span
-          className={`absolute right-1.5 bottom-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold backdrop-blur-sm ${
+          className={`absolute right-1.5 bottom-1.5 z-[3] rounded-md px-1.5 py-0.5 text-[10px] font-semibold backdrop-blur-md ${
             missing
               ? "bg-black/45 text-white/80"
               : "bg-black/55 text-white"

@@ -335,7 +335,7 @@ export function CatalogSetPage() {
                 <button
                   type="button"
                   onClick={addMissingToWanted}
-                  className="min-h-11 w-full flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 text-sm font-bold text-[var(--color-text)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                  className="ui-btn-accent min-h-11 w-full flex-1 px-4 text-sm disabled:opacity-40"
                 >
                   Adicionar à busca ({missingNotWanted.length})
                 </button>
@@ -368,7 +368,7 @@ export function CatalogSetPage() {
 
       {!isLoading && !error && gridCards.length > 0 ? (
         <div
-          className="flex rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-1"
+          className="ui-segment"
           role="tablist"
           aria-label="Filtrar cartas"
         >
@@ -386,10 +386,11 @@ export function CatalogSetPage() {
                 type="button"
                 role="tab"
                 aria-selected={active}
+                data-active={active}
                 onClick={() => setFilter(opt.key)}
-                className={`flex min-h-11 flex-1 flex-col items-center justify-center rounded-lg px-2 py-1.5 text-xs font-semibold transition sm:flex-row sm:gap-1.5 sm:text-sm ${
+                className={`ui-segment-item flex flex-col items-center justify-center px-2 py-1.5 text-xs sm:flex-row sm:gap-1.5 sm:text-sm ${
                   active
-                    ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-accent)]"
+                    ? "text-[var(--color-text)]"
                     : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
                 }`}
               >
@@ -461,7 +462,7 @@ export function CatalogSetPage() {
                 type="button"
                 disabled={selectedMissingCount === 0}
                 onClick={addSelected}
-                className="min-h-11 flex-1 rounded-xl bg-[var(--color-accent)] px-4 text-sm font-bold text-[var(--color-on-accent)] disabled:opacity-40 sm:flex-none"
+                className="ui-btn-accent min-h-11 flex-1 px-4 text-sm disabled:opacity-40 sm:flex-none"
               >
                 Adicionar selecionadas
                 {selectedMissingCount > 0 ? ` (${selectedMissingCount})` : ""}

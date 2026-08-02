@@ -27,34 +27,34 @@ export function CollectionPickerCard({
       type="button"
       disabled={!openable}
       onClick={() => openable && onSelect(collection.id)}
-      className={`group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left transition ${
+      className={`group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left ${
         openable
-          ? "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-accent)] hover:shadow-[0_12px_40px_-12px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]"
+          ? "ui-card-lift ui-sheen border-[var(--color-border)] bg-[var(--color-bg-card)]"
           : "cursor-not-allowed border-[var(--color-border)] bg-[var(--color-bg-card)] opacity-55"
       }`}
     >
       <div className="relative flex aspect-[16/10] items-center justify-center bg-[var(--color-bg-elevated)] px-6 py-8">
         <div
-          className="pointer-events-none absolute inset-0 opacity-60"
+          className="pointer-events-none absolute inset-0 opacity-70 transition duration-300 group-hover:opacity-100"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 65%)",
+              "radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 62%)",
           }}
         />
         <img
           src={collection.logoUrl}
           alt={collection.name}
-          className="relative z-[1] max-h-full max-w-[85%] object-contain drop-shadow-md transition group-hover:scale-[1.03]"
+          className="relative z-[1] max-h-full max-w-[85%] object-contain drop-shadow-md transition duration-300 group-hover:scale-[1.05]"
           loading="lazy"
         />
         {!openable && !isLoading ? (
-          <span className="absolute top-3 right-3 rounded-full bg-[var(--color-bg)]/80 px-2.5 py-1 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">
+          <span className="absolute top-3 right-3 z-[3] rounded-full bg-[var(--color-bg)]/80 px-2.5 py-1 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] backdrop-blur">
             Em breve
           </span>
         ) : null}
       </div>
 
-      <div className="space-y-3 border-t border-[var(--color-border)] p-4">
+      <div className="relative z-[3] space-y-3 border-t border-[var(--color-border)] p-4">
         <div>
           <h2 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-text)]">
             {collection.name}
