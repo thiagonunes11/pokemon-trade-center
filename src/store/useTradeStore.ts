@@ -135,13 +135,13 @@ export const useTradeStore = create<TradeState>()(
 
       updateOfferingTerms: (cardId, terms) => {
         const ownerId = useAuthStore.getState().userId ?? null;
+        const normalized = normalizeOfferingTerms(terms);
         set((s) => ({
           offering: s.offering.map((c) =>
             c.id === cardId && (c.ownerId ?? null) === ownerId
               ? {
                   ...c,
-                  priceBRL: terms.priceBRL,
-                  wantCards: terms.wantCards,
+                  ...normalized,
                   updatedAt: new Date(),
                 }
               : c,
