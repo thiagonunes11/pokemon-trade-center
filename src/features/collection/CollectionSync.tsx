@@ -3,6 +3,7 @@ import {
   setCollectionSyncUser,
 } from "@/features/collection/firestoreSync";
 import { ensurePublicShowcaseSynced } from "@/features/profile/showcaseMirror";
+import { pruneWantedOwnedCards } from "@/features/trades/tradeActions";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useRef } from "react";
 
@@ -22,11 +23,15 @@ export function CollectionSync() {
     }
 
     setCollectionSyncUser(userId);
+    pruneWantedOwnedCards();
 
     if (lastPulledUid.current === userId) return;
     lastPulledUid.current = userId;
     void pullAndMergeCollection(userId)
-      .then(() => ensurePublicShowcaseSynced(userId))
+      .then(() => {
+        pruneWantedOwnedCards();
+        return ensurePublicShowcaseSynced(userId);
+      })
       .catch((err) => console.warn("[CollectionSync] showcase backfill", err));
   }, [userId, isAuthReady]);
 

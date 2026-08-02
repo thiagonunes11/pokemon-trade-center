@@ -2,6 +2,7 @@ import {
   pullAndMergeTrades,
   setTradeSyncUser,
 } from "@/features/trades/firestoreSync";
+import { pruneWantedOwnedCards } from "@/features/trades/tradeActions";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useRef } from "react";
 
@@ -20,9 +21,12 @@ export function TradeSync() {
     }
 
     setTradeSyncUser(userId);
+    pruneWantedOwnedCards();
     if (lastPulledUid.current === userId) return;
     lastPulledUid.current = userId;
-    void pullAndMergeTrades(userId);
+    void pullAndMergeTrades(userId).then(() => {
+      pruneWantedOwnedCards();
+    });
   }, [userId, isAuthReady]);
 
   return null;

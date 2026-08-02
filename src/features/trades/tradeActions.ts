@@ -95,6 +95,11 @@ export function removeCardFromOffering(cardId: string) {
 
 /** Marca carta do catálogo como procurada. */
 export function addCardToWanted(card: TradeCardInput) {
+  if (useCollectionStore.getState().hasCard(card.id)) {
+    console.warn("[Trades] Carta já está na coleção; não entra na busca.");
+    return;
+  }
+
   const before = useTradeStore.getState().hasWanted(card.id);
   useTradeStore.getState().addWanted(card);
   if (!before) scheduleSaved("wanted", card.id);
@@ -104,4 +109,24 @@ export function removeCardFromWanted(cardId: string) {
   const had = useTradeStore.getState().hasWanted(cardId);
   useTradeStore.getState().removeWanted(cardId);
   if (had) scheduleDeleteTradeCard("wanted", cardId);
+}
+
+/** Remove da busca cartas que já estão na coleção (legado + sync). */
+export function pruneWantedOwnedCards(): number {
+  const uid = useAuthStore.getState().userId ?? null;
+  const ownedIds = new Set(
+    useCollectionStore
+      .getState()
+      .cards.filter((c) => (c.ownerId ?? null) === uid)
+      .map((c) => c.id),
+  );
+  const stale = useTradeStore
+    .getState()
+    .wanted.filter(
+      (c) => (c.ownerId ?? null) === uid && ownedIds.has(c.id),
+    );
+  for (const card of stale) {
+    removeCardFromWanted(card.id);
+  }
+  return stale.length;
 }

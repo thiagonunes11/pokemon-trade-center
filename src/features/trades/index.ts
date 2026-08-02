@@ -13,6 +13,7 @@ export {
 export {
   addCardToOffering,
   addCardToWanted,
+  pruneWantedOwnedCards,
   removeCardFromOffering,
   removeCardFromWanted,
   updateOfferingTermsAndSync,

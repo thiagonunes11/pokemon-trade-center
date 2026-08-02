@@ -47,6 +47,10 @@ Falha no delete Firestore da procura: mesmo padrão atual (`console.warn`; UI lo
 - Novos call sites além de detalhe e catálogo do set
 - Alterações de regras/indexes Firebase
 
+## Follow-up (2026-08-02)
+
+Overlap legado (carta já na coleção **e** na busca) é limpo por `pruneWantedOwnedCards` no login/sync. `addCardToWanted` recusa cartas já possuídas.
+
 ## Verification
 
 1. Carta na procura → adicionar no detalhe → some da procura + aviso.
