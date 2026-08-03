@@ -4,6 +4,6 @@ export function ligaPokemonSearchUrl(cardName: string): string {
 }
 
 export function mypCardsSearchUrl(cardName: string): string {
-  const q = encodeURIComponent(cardName.trim());
-  return `https://mypcards.com/pokemon?busca=${q}`;
+  const q = encodeURIComponent(cardName.trim().toLocaleLowerCase("pt-BR"));
+  return `https://mypcards.com/pokemon?ProdutoSearch%5Bmarca%5D=pokemon&ProdutoSearch%5Bquery%5D=${q}`;
 }
