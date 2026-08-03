@@ -8,7 +8,7 @@ import {
   type WantCardRef,
 } from "@/features/trades/offeringTerms";
 import { compareByLocalId } from "@/lib/cardOrder";
-import { resolveCardImageUrl } from "@/lib/cardImages";
+import { resolveCardImageUrl, CARD_BACK_IMAGE_URL } from "@/lib/cardImages";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 type OfferingCard = {
@@ -225,15 +225,14 @@ export function OfferingTermsPanel({
                       key={wanted.id}
                       className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2"
                     >
-                      {wanted.imageUrl ? (
-                        <img
-                          src={wanted.imageUrl}
-                          alt=""
-                          className="h-14 w-10 shrink-0 rounded object-cover"
-                        />
-                      ) : (
-                        <div className="h-14 w-10 shrink-0 rounded bg-[var(--color-bg-card)]" />
-                      )}
+                      <img
+                        src={wanted.imageUrl ?? CARD_BACK_IMAGE_URL}
+                        alt=""
+                        className="h-14 w-10 shrink-0 rounded object-cover"
+                        onError={(event) => {
+                          event.currentTarget.src = CARD_BACK_IMAGE_URL;
+                        }}
+                      />
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--color-text)]">
                         {wanted.name}
                       </span>

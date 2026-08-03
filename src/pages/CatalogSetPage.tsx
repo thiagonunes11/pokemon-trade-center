@@ -340,13 +340,18 @@ export function CatalogSetPage() {
           {!isLoading && !error && setData?.contentLanguage !== "pt" ? (
             <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-xs text-[var(--color-text-secondary)]">
               {setData?.contentLanguage === "en"
-                ? "Esta expansão ainda não tem cartas em português na TCGdex; o conteúdo disponível está em inglês."
-                : "Esta expansão tem tradução parcial; as cartas ausentes em português foram complementadas em inglês."}
+                ? "Textos desta expansão estão em inglês."
+                : "Esta expansão tem tradução parcial; cartas sem português usam o texto em inglês."}
             </p>
           ) : null}
           {!isLoading && !error && (setData?.englishImageCount ?? 0) > 0 ? (
             <p className="text-xs text-[var(--color-text-muted)]">
               {setData?.englishImageCount} imagem{setData?.englishImageCount === 1 ? "" : "s"} complementada{setData?.englishImageCount === 1 ? "" : "s"} pelo catálogo internacional.
+            </p>
+          ) : null}
+          {!isLoading && !error && (setData?.cdnImageCount ?? 0) > 0 ? (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {setData?.cdnImageCount} imagem{setData?.cdnImageCount === 1 ? "" : "s"} recuperada{setData?.cdnImageCount === 1 ? "" : "s"} do CDN da TCGdex.
             </p>
           ) : null}
           {!isLoading && !error && (setData?.pokemonTcgImageCount ?? 0) > 0 ? (
@@ -356,7 +361,7 @@ export function CatalogSetPage() {
           ) : null}
           {!isLoading && !error && (setData?.missingImageCount ?? 0) > 0 ? (
             <p className="text-xs text-[var(--color-text-muted)]">
-              {setData?.missingImageCount} carta{setData?.missingImageCount === 1 ? " ainda está" : "s ainda estão"} sem imagem disponível na TCGdex.
+              {setData?.missingImageCount} carta{setData?.missingImageCount === 1 ? "" : "s"} sem arte oficial — exibindo o verso da carta.
             </p>
           ) : null}
           <ProgressFolio

@@ -9,7 +9,7 @@ import {
 } from "@/features/collection";
 import { useCard, useSetCards } from "@/features/cards";
 import { compareByLocalId } from "@/lib/cardOrder";
-import { resolveCardImageUrl } from "@/lib/cardImages";
+import { resolveCardImageUrl, resolveDisplayCardImageUrl } from "@/lib/cardImages";
 import {
   ligaPokemonSearchUrl,
   mypCardsSearchUrl,
@@ -145,8 +145,13 @@ export function CardDetailPage() {
     );
   }
 
-  const imageUrl = resolveCardImageUrl(card.image, "high", card.imageHigh);
+  const imageUrl = resolveDisplayCardImageUrl(card.image, "high", card.imageHigh);
   const types = (card.types ?? []) as string[];
+  const abilities = (card.abilities ?? []) as Array<{
+    name: string;
+    type?: string;
+    effect?: string;
+  }>;
   const attacks = (card.attacks ?? []) as Array<{
     name: string;
     damage?: string | number;
@@ -164,8 +169,14 @@ export function CardDetailPage() {
   const setId = card.set?.id;
   const setName = card.set?.name ?? null;
   const rarity =
-    typeof card.rarity === "string" && card.rarity.trim()
+    typeof card.rarity === "string" &&
+    card.rarity.trim() &&
+    !/^none$/i.test(card.rarity.trim())
       ? card.rarity
+      : null;
+  const stage =
+    typeof card.stage === "string" && card.stage.trim()
+      ? card.stage
       : null;
 
   const goTo = (cardId: string) => {
@@ -210,13 +221,7 @@ export function CardDetailPage() {
               </button>
             ) : null}
 
-            {imageUrl ? (
-              <HoloTiltCard src={imageUrl} alt={card.name} />
-            ) : (
-              <div className="flex aspect-[0.72] items-center justify-center rounded-2xl bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]">
-                Sem imagem disponível
-              </div>
-            )}
+            <HoloTiltCard src={imageUrl} alt={card.name} />
           </div>
 
           {(isInCollection || inShowcase) && (
@@ -246,13 +251,13 @@ export function CardDetailPage() {
                 {card.id}
                 {card.hp != null ? ` · PS ${card.hp}` : ""}
               </p>
-              {card.contentLanguage === "en" ? (
-                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                  Conteúdo disponível em inglês na TCGdex.
-                </p>
-              ) : card.usesPokemonTcgImage ? (
+              {card.usesPokemonTcgImage ? (
                 <p className="mt-2 text-xs text-[var(--color-text-muted)]">
                   Imagem complementada pela Pokémon TCG API.
+                </p>
+              ) : card.usesTcgdexCdnImage ? (
+                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                  Imagem recuperada do CDN da TCGdex.
                 </p>
               ) : card.usesEnglishImage ? (
                 <p className="mt-2 text-xs text-[var(--color-text-muted)]">
@@ -269,6 +274,11 @@ export function CardDetailPage() {
                 >
                   {setName}
                 </Link>
+              ) : null}
+              {stage ? (
+                <span className="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                  {stage}
+                </span>
               ) : null}
               {rarity ? (
                 <span className="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-muted)]">
@@ -343,6 +353,60 @@ export function CardDetailPage() {
                 Ver busca
               </Link>
             </p>
+          ) : null}
+
+          {typeof card.description === "string" && card.description.trim() ? (
+            <section className="ui-glass space-y-2 rounded-2xl p-3.5">
+              <h2 className="text-xs font-semibold tracking-[0.14em] text-[var(--color-text-muted)] uppercase">
+                Descrição
+              </h2>
+              <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                {card.description.trim()}
+              </p>
+              {typeof card.illustrator === "string" &&
+              card.illustrator.trim() ? (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Ilustrador: {card.illustrator.trim()}
+                </p>
+              ) : null}
+            </section>
+          ) : typeof card.illustrator === "string" &&
+            card.illustrator.trim() ? (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Ilustrador: {card.illustrator.trim()}
+            </p>
+          ) : null}
+
+          {abilities.length > 0 ? (
+            <section className="space-y-3">
+              <h2 className="text-xs font-semibold tracking-[0.14em] text-[var(--color-text-muted)] uppercase">
+                Habilidades
+              </h2>
+              <div className="space-y-2">
+                {abilities.map((ability) => (
+                  <div
+                    key={`${ability.type ?? "ability"}-${ability.name}`}
+                    className="ui-glass rounded-2xl p-3.5 transition hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))]"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      {ability.type ? (
+                        <span className="rounded-md bg-[var(--color-bg-elevated)] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[var(--color-accent)] uppercase">
+                          {ability.type}
+                        </span>
+                      ) : null}
+                      <span className="font-semibold text-[var(--color-text)]">
+                        {ability.name}
+                      </span>
+                    </div>
+                    {ability.effect ? (
+                      <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                        {ability.effect}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </section>
           ) : null}
 
           {attacks.length > 0 && (

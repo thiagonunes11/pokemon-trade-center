@@ -6,7 +6,7 @@ import { fetchCardWithFallback, fetchSetWithFallback } from '@/lib/tcgdex';
  */
 export function useSetCards(setId: string) {
   return useQuery({
-    queryKey: ['set-cards-v2', setId],
+    queryKey: ['set-cards-v4', setId],
     queryFn: async () => {
       return fetchSetWithFallback(setId);
     },
@@ -19,7 +19,7 @@ export function useSetCards(setId: string) {
  */
 export function useCard(cardId: string) {
   return useQuery({
-    queryKey: ['card-v2', cardId],
+    queryKey: ['card-v5', cardId],
     queryFn: async () => {
       return fetchCardWithFallback(cardId);
     },
@@ -32,7 +32,7 @@ export function useCard(cardId: string) {
  */
 export function useSet(setId: string) {
   return useQuery({
-    queryKey: ['set-v2', setId],
+    queryKey: ['set-v3', setId],
     queryFn: async () => {
       return fetchSetWithFallback(setId);
     },

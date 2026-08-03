@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
-  resolveCardImageUrl,
+  CARD_BACK_IMAGE_URL,
+  resolveDisplayCardImageUrl,
   type CardImageQuality,
 } from "@/lib/cardImages";
 
@@ -44,11 +45,20 @@ export function CardItem({
   onPress,
   onLongPress,
 }: CardItemProps) {
-  const imageUrl = resolveCardImageUrl(image, imageQuality, imageHigh);
+  const preferredUrl = resolveDisplayCardImageUrl(
+    image,
+    imageQuality,
+    imageHigh,
+  );
+  const [imageUrl, setImageUrl] = useState(preferredUrl);
   const missing = binderMode && !isInCollection;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const originRef = useRef<{ x: number; y: number } | null>(null);
   const didLongPressRef = useRef(false);
+
+  useEffect(() => {
+    setImageUrl(preferredUrl);
+  }, [preferredUrl]);
 
   const clearLongPress = () => {
     if (timerRef.current != null) {
@@ -121,22 +131,21 @@ export function CardItem({
           compact ? "aspect-[0.715]" : "aspect-[0.72]"
         }`}
       >
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={missing ? `${name} (não possuída)` : name}
-            draggable={false}
-            className={`pointer-events-none h-full w-full transition duration-300 group-hover:scale-[1.02] ${compact ? "object-cover" : "object-contain p-1"} ${
-              missing ? "opacity-40 grayscale" : ""
-            }`}
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-xs text-[var(--color-text-muted)]">
-            Sem imagem
-          </div>
-        )}
+        <img
+          src={imageUrl}
+          alt={missing ? `${name} (não possuída)` : name}
+          draggable={false}
+          className={`pointer-events-none h-full w-full transition duration-300 group-hover:scale-[1.02] ${compact ? "object-cover" : "object-contain p-1"} ${
+            missing ? "opacity-40 grayscale" : ""
+          }`}
+          loading="lazy"
+          decoding="async"
+          onError={() => {
+            if (imageUrl !== CARD_BACK_IMAGE_URL) {
+              setImageUrl(CARD_BACK_IMAGE_URL);
+            }
+          }}
+        />
         {markMode ? (
           <span
             className={`absolute top-1.5 left-1.5 z-[3] flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shadow-sm ${

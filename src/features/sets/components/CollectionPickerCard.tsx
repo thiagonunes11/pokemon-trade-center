@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import {
   getCollectionAvailability,
   type CollectionConfig,
@@ -21,6 +23,22 @@ export function CollectionPickerCard({
 }: CollectionPickerCardProps) {
   const availability = getCollectionAvailability(total, isLoading);
   const openable = availability === "available";
+  const [logoFailed, setLogoFailed] = useState(false);
+  const [symbolFailed, setSymbolFailed] = useState(false);
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  const [symbolLoaded, setSymbolLoaded] = useState(false);
+
+  useEffect(() => {
+    setLogoFailed(false);
+    setSymbolFailed(false);
+    setLogoLoaded(false);
+    setSymbolLoaded(false);
+  }, [collection.id, collection.logoUrl, collection.symbolUrl]);
+
+  const tryLogo = Boolean(collection.logoUrl) && !logoFailed;
+  const trySymbol =
+    !logoLoaded && Boolean(collection.symbolUrl) && !symbolFailed;
+  const brandReady = logoLoaded || symbolLoaded;
 
   return (
     <button
@@ -51,28 +69,33 @@ export function CollectionPickerCard({
               "radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 62%)",
           }}
         />
-        <span className="relative z-[1] max-w-[85%] text-center font-[family-name:var(--font-display)] text-2xl font-extrabold text-[var(--color-text)]">
-          {collection.name}
-        </span>
-        {collection.logoUrl ? (
+        {!brandReady ? (
+          <span className="relative z-[1] max-w-[85%] text-center font-[family-name:var(--font-display)] text-2xl font-extrabold text-[var(--color-text)]">
+            {collection.name}
+          </span>
+        ) : null}
+        {tryLogo ? (
           <img
-            src={collection.logoUrl}
+            src={collection.logoUrl!}
             alt={collection.name}
-            className="absolute z-[2] max-h-[70%] max-w-[75%] object-contain drop-shadow-md transition duration-300 group-hover:scale-[1.05]"
+            className={`absolute z-[2] max-h-[70%] max-w-[75%] object-contain drop-shadow-md transition duration-300 group-hover:scale-[1.05] ${
+              logoLoaded ? "opacity-100" : "opacity-0"
+            }`}
             loading="lazy"
-            onError={(event) => {
-              event.currentTarget.hidden = true;
-            }}
+            onLoad={() => setLogoLoaded(true)}
+            onError={() => setLogoFailed(true)}
           />
-        ) : collection.symbolUrl ? (
+        ) : null}
+        {trySymbol ? (
           <img
-            src={collection.symbolUrl}
+            src={collection.symbolUrl!}
             alt=""
-            className="absolute z-[2] max-h-20 max-w-24 object-contain opacity-80 drop-shadow-md"
+            className={`absolute z-[2] max-h-[55%] max-w-[55%] object-contain drop-shadow-md transition duration-300 group-hover:scale-[1.05] ${
+              symbolLoaded ? "opacity-100" : "opacity-0"
+            }`}
             loading="lazy"
-            onError={(event) => {
-              event.currentTarget.hidden = true;
-            }}
+            onLoad={() => setSymbolLoaded(true)}
+            onError={() => setSymbolFailed(true)}
           />
         ) : null}
         {!openable && !isLoading ? (

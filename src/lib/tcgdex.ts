@@ -1,6 +1,12 @@
 import TCGdex, { Query } from "@tcgdex/sdk";
 
 import {
+  fillMissingImagesFromTcgdexCdn,
+  resolveTcgdexCdnImageBase,
+} from "@/lib/tcgdexAssetProbe";
+import { buildTcgdexSetBrandBaseUrl } from "@/lib/tcgdexAssetUrl";
+import { firstReachableImageUrl, isReachableImageUrl } from "@/lib/cardImages";
+import {
   fetchPokemonTcgCardsForSet,
   findPokemonTcgCard,
   findPokemonTcgSet,
@@ -25,7 +31,7 @@ type TCGdexCardResume = TCGdexSet["cards"][number];
 
 export type CatalogCardResume = TCGdexCardResume & {
   imageHigh?: string;
-  imageSource?: "tcgdex-pt" | "tcgdex-en" | "pokemontcg";
+  imageSource?: "tcgdex-pt" | "tcgdex-en" | "tcgdex-cdn" | "pokemontcg";
 };
 
 export type CatalogContentLanguage = "pt" | "mixed" | "en";
@@ -64,6 +70,7 @@ export type CatalogSet = Omit<TCGdexSet, "cards"> & {
   cards: CatalogCardResume[];
   contentLanguage: CatalogContentLanguage;
   englishImageCount: number;
+  cdnImageCount: number;
   pokemonTcgImageCount: number;
   missingImageCount: number;
 };
@@ -72,6 +79,7 @@ export type CatalogCard = TCGdexCard & {
   contentLanguage: "pt" | "en";
   usesEnglishImage: boolean;
   imageHigh?: string;
+  usesTcgdexCdnImage: boolean;
   usesPokemonTcgImage: boolean;
 };
 
@@ -92,6 +100,22 @@ function isPromoSet(id: string, name: string): boolean {
   return /promo/i.test(name) || /p$/i.test(id);
 }
 
+/** Expansões só de energia básica (sem logo/artes úteis no catálogo). */
+export function isEnergySet(setId: string, name?: string): boolean {
+  if (/^(mee|sve)$/i.test(setId)) return true;
+  return Boolean(name && /energ/i.test(name));
+}
+
+/**
+ * Sets de produto/deck sem arte útil na TCGdex nem na Pokémon TCG
+ * (ex.: My First Battle). Ficam fora do catálogo de coleção/troca.
+ */
+export function isExcludedCatalogSet(setId: string, name?: string): boolean {
+  if (isEnergySet(setId, name)) return true;
+  if (/^mfb$/i.test(setId)) return true;
+  return Boolean(name && /my first battle/i.test(name));
+}
+
 function assetImageUrl(value: string | undefined): string | null {
   if (!value) return null;
   return /\.(?:webp|png|jpe?g)$/i.test(value) ? value : `${value}.webp`;
@@ -109,6 +133,7 @@ function isPhysicalCard(image: string | undefined): boolean {
 /**
  * Busca cartas em todo o catálogo físico sem carregar cada expansão. A API
  * filtra por nome e os resultados em português têm prioridade sobre o inglês.
+ * Imagens ausentes na TCGdex são complementadas via Pokémon TCG por set (cache).
  */
 export async function searchCatalogCards(
   search: string,
@@ -135,7 +160,7 @@ export async function searchCatalogCards(
   const setNames = new Map(enSets.map((set) => [set.id, set.name]));
   for (const set of ptSets) setNames.set(set.id, set.name);
 
-  return [...new Set([...enById.keys(), ...ptById.keys()])]
+  let results = [...new Set([...enById.keys(), ...ptById.keys()])]
     .map((id) => {
       const pt = ptById.get(id);
       const en = enById.get(id);
@@ -150,7 +175,55 @@ export async function searchCatalogCards(
         setName: setNames.get(setId) ?? setId.toUpperCase(),
       };
     })
-    .filter((card) => isPhysicalCard(card.image ?? undefined));
+    .filter(
+      (card) =>
+        isPhysicalCard(card.image ?? undefined) &&
+        !isExcludedCatalogSet(card.setId, card.setName),
+    );
+
+  const missingBySet = new Map<string, typeof results>();
+  for (const card of results) {
+    if (card.image) continue;
+    const list = missingBySet.get(card.setId) ?? [];
+    list.push(card);
+    missingBySet.set(card.setId, list);
+  }
+
+  if (missingBySet.size > 0) {
+    const imageByCardId = new Map<string, string>();
+    const setEntries = [...missingBySet.entries()];
+    const concurrency = 4;
+    let next = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, setEntries.length) }, async () => {
+        while (next < setEntries.length) {
+          const index = next++;
+          const [setId, cards] = setEntries[index];
+          const pokemonCards = await pokemonTcgFallbackForSet(
+            setId,
+            cards[0]?.setName,
+          );
+          for (const card of cards) {
+            const hit = findPokemonTcgCard(pokemonCards, card.localId);
+            const image = await firstReachableImageUrl([
+              hit?.images?.small,
+              hit?.images?.large,
+            ]);
+            if (image) imageByCardId.set(card.id, image);
+          }
+        }
+      }),
+    );
+    if (imageByCardId.size > 0) {
+      results = results.map((card) =>
+        card.image
+          ? card
+          : { ...card, image: imageByCardId.get(card.id) ?? null },
+      );
+    }
+  }
+
+  return results;
 }
 
 function localIdFromCardId(cardId: string, setId: string): string {
@@ -269,40 +342,76 @@ export async function fetchSeriesSets(
   const ids = [...new Set([...enById.keys(), ...ptById.keys()])];
   const seriesName = ptSerie?.name ?? enSerie?.name ?? seriesId;
 
-  return ids.map((id) => {
-    const pt = ptById.get(id);
-    const en = enById.get(id);
-    const name = pt?.name ?? en?.name ?? id;
-    return {
-      id,
-      name,
-      seriesId,
-      seriesName,
-      subtitle: isPromoSet(id, name) ? `${seriesName} · Promos` : seriesName,
-      logoUrl: assetImageUrl(pt?.logo ?? en?.logo),
-      symbolUrl: assetImageUrl(pt?.symbol ?? en?.symbol),
-      cardCount: {
-        total: Math.max(
-          pt?.cardCount.total ?? 0,
-          en?.cardCount.total ?? 0,
-        ),
-        official: Math.max(
-          pt?.cardCount.official ?? 0,
-          en?.cardCount.official ?? 0,
-        ),
-      },
-      isPromo: isPromoSet(id, name),
-    };
-  });
+  const summaries = ids
+    .map((id) => {
+      const pt = ptById.get(id);
+      const en = enById.get(id);
+      const name = pt?.name ?? en?.name ?? id;
+      return {
+        id,
+        name,
+        seriesId,
+        seriesName,
+        subtitle: isPromoSet(id, name) ? `${seriesName} · Promos` : seriesName,
+        apiLogo: assetImageUrl(pt?.logo ?? en?.logo),
+        apiSymbol: assetImageUrl(pt?.symbol ?? en?.symbol),
+        englishName: en?.name ?? name,
+        cardCount: {
+          total: Math.max(
+            pt?.cardCount.total ?? 0,
+            en?.cardCount.total ?? 0,
+          ),
+          official: Math.max(
+            pt?.cardCount.official ?? 0,
+            en?.cardCount.official ?? 0,
+          ),
+        },
+        isPromo: isPromoSet(id, name),
+      };
+    })
+    .filter((set) => !isExcludedCatalogSet(set.id, set.name));
+
+  // Logos/símbolos ausentes na TCGdex: Pokémon TCG (ex. svp) e CDN (ex. mep/symbol).
+  const brands = await Promise.all(
+    summaries.map(async (set) => {
+      let ptcgLogo: string | null = null;
+      let ptcgSymbol: string | null = null;
+      if (!set.apiLogo || !set.apiSymbol) {
+        const ptcg = await findPokemonTcgSet(set.id, set.englishName).catch(
+          () => null,
+        );
+        ptcgLogo = ptcg?.images?.logo ?? null;
+        ptcgSymbol = ptcg?.images?.symbol ?? null;
+      }
+      const cdnSymbol = assetImageUrl(
+        buildTcgdexSetBrandBaseUrl(seriesId, set.id, "symbol"),
+      );
+      return {
+        id: set.id,
+        name: set.name,
+        seriesId: set.seriesId,
+        seriesName: set.seriesName,
+        subtitle: set.subtitle,
+        // Não inventar logo CDN sem confirmação — URL 404 escondia o título.
+        logoUrl: set.apiLogo ?? ptcgLogo,
+        symbolUrl: set.apiSymbol ?? ptcgSymbol ?? cdnSymbol,
+        cardCount: set.cardCount,
+        isPromo: set.isPromo,
+      } satisfies CatalogSetSummary;
+    }),
+  );
+
+  return brands;
 }
 
 /**
  * Carrega um set sob demanda. Textos em português têm prioridade e imagens ou
- * cartas ausentes são complementadas pelo mesmo ID no catálogo inglês.
+ * cartas ausentes são complementadas pelo mesmo ID no catálogo inglês, depois
+ * pelo CDN de assets quando a API omite `image`, e por fim pela Pokémon TCG API.
  */
 export async function fetchSetWithFallback(
   setId: string,
-  options: { includePokemonTcg?: boolean } = {},
+  options: { includePokemonTcg?: boolean; includeCdn?: boolean } = {},
 ): Promise<CatalogSet> {
   const [ptResult, enResult] = await Promise.allSettled([
     tcgdexPt.set.get(setId),
@@ -338,6 +447,39 @@ export async function fetchSetWithFallback(
     } as CatalogCardResume;
   });
 
+  const seriesId = ptSet?.serie?.id ?? enSet?.serie?.id ?? "";
+  let cdnImageCount = 0;
+  if (
+    options.includeCdn !== false &&
+    seriesId &&
+    cards.some((card) => !card.image)
+  ) {
+    const missing = cards
+      .filter((card) => !card.image)
+      .map((card) => ({
+        id: card.id,
+        localId: String(card.localId ?? localIdFromCardId(card.id, setId)),
+      }));
+    const cdnBases = await fillMissingImagesFromTcgdexCdn(
+      seriesId,
+      setId,
+      missing,
+    );
+    if (cdnBases.size > 0) {
+      cards = cards.map((card) => {
+        if (card.image) return card;
+        const image = cdnBases.get(card.id);
+        if (!image) return card;
+        cdnImageCount += 1;
+        return {
+          ...card,
+          image,
+          imageSource: "tcgdex-cdn",
+        } as CatalogCardResume;
+      });
+    }
+  }
+
   let pokemonTcgImageCount = 0;
   if (
     options.includePokemonTcg !== false &&
@@ -345,16 +487,35 @@ export async function fetchSetWithFallback(
   ) {
     const pokemonCards = await pokemonTcgFallbackForSet(setId, enSet?.name);
     if (pokemonCards.length > 0) {
+      const missing = cards.filter((card) => !card.image);
+      const resolved = await Promise.all(
+        missing.map(async (card) => {
+          const fallback = findPokemonTcgCard(pokemonCards, card.localId);
+          if (!fallback) return null;
+          const image = await firstReachableImageUrl([
+            fallback.images?.small,
+            fallback.images?.large,
+          ]);
+          if (!image) return null;
+          const imageHigh =
+            fallback.images?.large &&
+            (await isReachableImageUrl(fallback.images.large))
+              ? fallback.images.large
+              : undefined;
+          return { id: card.id, image, imageHigh };
+        }),
+      );
+      const byId = new Map(
+        resolved.filter(Boolean).map((row) => [row!.id, row!] as const),
+      );
       cards = cards.map((card) => {
-        if (card.image) return card;
-        const fallback = findPokemonTcgCard(pokemonCards, card.localId);
-        const image = fallback?.images?.small ?? fallback?.images?.large;
-        if (!image) return card;
+        const hit = byId.get(card.id);
+        if (!hit) return card;
         pokemonTcgImageCount += 1;
         return {
           ...card,
-          image,
-          imageHigh: fallback?.images?.large,
+          image: hit.image,
+          imageHigh: hit.imageHigh,
           imageSource: "pokemontcg",
         } as CatalogCardResume;
       });
@@ -395,9 +556,52 @@ export async function fetchSetWithFallback(
     cards,
     contentLanguage,
     englishImageCount,
+    cdnImageCount,
     pokemonTcgImageCount,
     missingImageCount: cards.filter((card) => !card.image).length,
   } as CatalogSet;
+}
+
+const seriesIdBySetId = new Map<string, Promise<string>>();
+
+async function resolveSeriesIdForSet(setId: string): Promise<string> {
+  if (!setId) return "";
+  const cached = seriesIdBySetId.get(setId);
+  if (cached) return cached;
+  const request = (async () => {
+    try {
+      const set = await tcgdexEn.set.get(setId);
+      return set?.serie?.id ?? "";
+    } catch {
+      try {
+        const set = await tcgdexPt.set.get(setId);
+        return set?.serie?.id ?? "";
+      } catch {
+        return "";
+      }
+    }
+  })();
+  seriesIdBySetId.set(setId, request);
+  return request;
+}
+
+function isBlankCardText(value: unknown): boolean {
+  if (value == null) return true;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return !trimmed || /^none$/i.test(trimmed);
+  }
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
+}
+
+function pickCardField<T>(
+  ...candidates: Array<T | null | undefined>
+): T | undefined {
+  for (const value of candidates) {
+    if (!isBlankCardText(value)) return value as T;
+  }
+  return undefined;
 }
 
 /** Detalhe compatível com links diretos de cartas antigas. */
@@ -413,36 +617,134 @@ export async function fetchCardWithFallback(
   const ptCard = settledValue(ptResult);
   const enCard = settledValue(enResult);
   const setId = ptCard?.set?.id ?? enCard?.set?.id ?? setIdFromCardId(cardId);
-  let pokemonCard: PokemonTcgCard | null = null;
+  const localId = localIdFromCardId(cardId, setId);
+  // Card.resume.set não inclui serie; resolvemos via set.get quando precisar do CDN.
+  let seriesId = "";
 
-  if ((!ptCard && !enCard) || (!ptCard?.image && !enCard?.image)) {
-    const pokemonCards = await pokemonTcgFallbackForSet(setId, enCard?.set?.name);
-    pokemonCard = findPokemonTcgCard(
-      pokemonCards,
-      localIdFromCardId(cardId, setId),
-    );
+  const apiImage = ptCard?.image ?? enCard?.image ?? null;
+  if (!apiImage && setId) {
+    seriesId = await resolveSeriesIdForSet(setId);
   }
 
-  if (!ptCard && !enCard && !pokemonCard) {
+  let cdnImage: string | null = null;
+  if (!apiImage && seriesId && setId) {
+    cdnImage = await resolveTcgdexCdnImageBase(seriesId, setId, localId);
+  }
+
+  let pokemonCard: PokemonTcgCard | null = null;
+  // Busca Pokémon TCG também para enriquecer texto quando a TCGdex vem incompleta
+  // (ex.: rarity "None") ou quando falta imagem.
+  const needsPokemonEnrichment =
+    (!apiImage && !cdnImage) ||
+    isBlankCardText(ptCard?.rarity ?? enCard?.rarity) ||
+    (!(ptCard?.attacks?.length || enCard?.attacks?.length));
+
+  if (needsPokemonEnrichment && setId) {
+    const pokemonCards = await pokemonTcgFallbackForSet(
+      setId,
+      enCard?.set?.name,
+    );
+    pokemonCard = findPokemonTcgCard(pokemonCards, localId);
+  }
+
+  if (!ptCard && !enCard && !cdnImage && !pokemonCard) {
     throw new Error(`Card ${cardId} not found`);
   }
 
-  const pokemonFields = pokemonCard
-    ? pokemonTcgCardFields(pokemonCard, cardId, setId)
-    : {};
-  const pokemonSet = "set" in pokemonFields ? pokemonFields.set : undefined;
-  const pokemonImage = pokemonCard?.images?.large ?? pokemonCard?.images?.small;
+  const pokemonFields = (
+    pokemonCard ? pokemonTcgCardFields(pokemonCard, cardId, setId) : {}
+  ) as Partial<CatalogCard> & {
+    name?: string;
+    rarity?: string;
+    category?: string;
+    stage?: string;
+    attacks?: CatalogCard["attacks"];
+    types?: CatalogCard["types"];
+    abilities?: CatalogCard["abilities"];
+    description?: string;
+    illustrator?: string;
+    set?: CatalogCard["set"];
+  };
+  const pokemonSet = pokemonFields.set;
+  const pokemonImage = await firstReachableImageUrl([
+    pokemonCard?.images?.small,
+    pokemonCard?.images?.large,
+  ]);
+  const pokemonImageHigh =
+    pokemonCard?.images?.large &&
+    (await isReachableImageUrl(pokemonCard.images.large))
+      ? pokemonCard.images.large
+      : undefined;
 
-  return {
+  const merged = {
     ...pokemonFields,
     ...(enCard ?? {}),
     ...(ptCard ?? {}),
-    image: ptCard?.image ?? enCard?.image ?? pokemonImage,
-    imageHigh: pokemonCard?.images?.large,
+  } as CatalogCard;
+
+  // PT tem prioridade, mas campos vazios/"None" cedem ao inglês e à Pokémon TCG.
+  const name = pickCardField(ptCard?.name, enCard?.name, pokemonFields.name);
+  const rarity = pickCardField(
+    ptCard?.rarity,
+    enCard?.rarity,
+    pokemonFields.rarity,
+  );
+  const category = pickCardField(
+    ptCard?.category,
+    enCard?.category,
+    pokemonFields.category,
+  );
+  const stage = pickCardField(
+    ptCard?.stage,
+    enCard?.stage,
+    pokemonFields.stage,
+  );
+  const attacks = pickCardField(
+    ptCard?.attacks,
+    enCard?.attacks,
+    pokemonFields.attacks,
+  );
+  const types = pickCardField(
+    ptCard?.types,
+    enCard?.types,
+    pokemonFields.types,
+  );
+  const abilities = pickCardField(
+    ptCard?.abilities,
+    enCard?.abilities,
+    pokemonFields.abilities,
+  );
+  const description = pickCardField(
+    ptCard?.description,
+    enCard?.description,
+    pokemonFields.description,
+  );
+  const illustrator = pickCardField(
+    ptCard?.illustrator,
+    enCard?.illustrator,
+    pokemonFields.illustrator,
+  );
+
+  const hasPtText = Boolean(ptCard?.name || ptCard?.attacks?.length);
+
+  return {
+    ...merged,
+    name: name ?? merged.name,
+    rarity: rarity ?? "",
+    category: category ?? merged.category,
+    stage: stage ?? merged.stage,
+    attacks: attacks ?? merged.attacks,
+    types: types ?? merged.types,
+    abilities: abilities ?? merged.abilities,
+    description: description ?? merged.description,
+    illustrator: illustrator ?? merged.illustrator,
+    image: apiImage ?? cdnImage ?? pokemonImage,
+    imageHigh: pokemonImageHigh,
     set: ptCard?.set ?? enCard?.set ?? pokemonSet,
-    contentLanguage: ptCard ? "pt" : "en",
+    contentLanguage: hasPtText ? "pt" : "en",
     usesEnglishImage: !ptCard?.image && Boolean(enCard?.image),
+    usesTcgdexCdnImage: !apiImage && Boolean(cdnImage),
     usesPokemonTcgImage:
-      !ptCard?.image && !enCard?.image && Boolean(pokemonImage),
+      !apiImage && !cdnImage && Boolean(pokemonImage),
   } as CatalogCard;
 }

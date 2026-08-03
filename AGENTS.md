@@ -103,9 +103,9 @@ Shell autenticado: sidebar desktop + bottom nav mobile. Guard: esperar `isAuthRe
 
 Séries e sets físicos são descobertos dinamicamente pela TCGdex; `tcgp` (Pokémon Pocket) é excluído. A tela navega por série → expansão e inclui sets antigos e promocionais. Não reintroduzir uma lista fixa `SUPPORTED_SETS`/`COLLECTIONS`. Disponibilidade via `getCollectionAvailability`. Progresso: `formatCollectionProgress` + hooks `useOwnedSetCount` / `useOwnedCountsBySet`.
 
-Clientes em `src/lib/tcgdex.ts`: `tcgdexPt` (prioritário) + `tcgdexEn` (fallback). A terceira fonte fica em `src/lib/pokemonTcgApi.ts` e usa a Pokémon TCG API sem chave somente quando as duas fontes TCGdex ainda deixam imagens ou a carta ausentes. O pareamento é por set + número, com mapa/normalização de IDs; o ID persistido continua sendo o da TCGdex. Em erro/timeout do REST, usar o JSON do repositório oficial `PokemonTCG/pokemon-tcg-data`, mantendo cache por set. Nunca colocar chave dessa API em `VITE_*`.
+Clientes em `src/lib/tcgdex.ts`: `tcgdexPt` (prioritário) + `tcgdexEn` (fallback). Quando a API omite `image` mas o arquivo existe em `assets.tcgdex.net`, `tcgdexAssetProbe.ts` confirma via GET e preenche a URL-base (`imageSource: tcgdex-cdn`). A quarta fonte fica em `src/lib/pokemonTcgApi.ts` e usa a Pokémon TCG API sem chave somente quando as etapas TCGdex ainda deixam imagens ou a carta ausentes. O pareamento é por set + número, com mapa/normalização de IDs; o ID persistido continua sendo o da TCGdex. Em erro/timeout do REST, usar o JSON do repositório oficial `PokemonTCG/pokemon-tcg-data`, mantendo cache por set. Nunca colocar chave dessa API em `VITE_*`.
 
-`fetchSetWithFallback` combina cartas pelo ID estável, preserva texto PT, completa via EN e por último via Pokémon TCG API; informa `contentLanguage`, `englishImageCount`, `pokemonTcgImageCount` e `missingImageCount`. `fetchCardWithFallback` aplica a mesma regra no detalhe e em links diretos. `cardImages.ts` normaliza URL-base da TCGdex e URLs completas low/high de terceiros. Sets sem cartas PT aparecem em inglês; tradução parcial recebe aviso na UI. Logos/símbolos da SDK são URLs-base e precisam de extensão (`.webp`), com fallback textual quando o ativo não existe.
+`fetchSetWithFallback` combina cartas pelo ID estável, preserva texto PT, completa via EN, CDN de assets e por último via Pokémon TCG API; informa `contentLanguage`, `englishImageCount`, `cdnImageCount`, `pokemonTcgImageCount` e `missingImageCount`. `fetchCardWithFallback` aplica a mesma regra no detalhe e em links diretos. `cardImages.ts` normaliza URL-base da TCGdex e URLs completas low/high de terceiros. Sets sem cartas PT aparecem em inglês; tradução parcial recebe aviso na UI. Logos/símbolos da SDK são URLs-base e precisam de extensão (`.webp`), com fallback textual quando o ativo não existe.
 
 Carregamento: `serie.list()` traz a lista leve; `serie.get(seriesId)` traz resumos dos sets; `set.get(setId)` só roda ao abrir um set ou usá-lo num seletor. A busca por nome é global e usa `card.list(Query.contains("name", termo))` nos locales `pt` e `en`, com debounce e deduplicação por ID; a série selecionada afeta somente a navegação/filtro de expansões. A terceira API só pode rodar ao abrir set/detalhe; busca global e `useSetsByIds` não fazem fallback em massa, respeitando o limite anônimo (1.000/dia, 30/min). Não buscar todas as cartas de todas as séries na abertura do catálogo.
 
@@ -113,7 +113,7 @@ Imagens no grid: `${card.image}/low.webp`. Detalhe/share: `/high.webp` (ou `/hig
 
 `CardGrid` virtualiza linhas com `@tanstack/react-virtual` (scroll de janela).
 
-React Query keys principais: `['catalog-series']`, `['series-sets', seriesId]`, `['catalog-card-search-v1', termo]`, `['set-cards-v2', setId]`, `['set-metadata-v2', setId]`, `['card-v2', cardId]`, `['set-v2', setId]`.
+React Query keys principais: `['catalog-series']`, `['series-sets-v5', seriesId]`, `['catalog-card-search-v4', termo]`, `['set-cards-v4', setId]`, `['set-metadata-v2', setId]`, `['card-v4', cardId]`, `['set-v3', setId]`.
 
 ---
 
@@ -220,4 +220,4 @@ firebase deploy --only firestore:rules
 | Shell / guard | `layouts/AppLayout.tsx`, `AuthGuard.tsx` |
 | Motion (UI) | `lib/motion.ts`, `SegmentTabs.tsx`, `ConfirmDialog`, `ProgressFolio`, `MotionConfig` em `main.tsx` |
 
-_Última revisão: 2026-08-03 — fallback TCGdex `pt → en` + Pokémon TCG API sem chave._
+_Última revisão: 2026-08-03 — fallback TCGdex `pt → en → CDN assets` + Pokémon TCG API sem chave._

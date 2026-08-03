@@ -1,5 +1,6 @@
 import { CardGrid } from "@/features/cards";
 import { EmptyState } from "@/components/EmptyState";
+import { HorizontalScrollRow } from "@/components/HorizontalScrollRow";
 import {
   CollectionPickerCard,
   useCatalogCardSearch,
@@ -244,7 +245,7 @@ export function CatalogPage() {
         </p>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <HorizontalScrollRow label="Séries do catálogo">
         {(seriesQuery.data ?? []).map((series) => (
           <FilterChip
             key={series.id}
@@ -253,7 +254,7 @@ export function CatalogPage() {
             onClick={() => selectSeries(series.id)}
           />
         ))}
-      </div>
+      </HorizontalScrollRow>
 
       {/* Barra de controle — Expandable/glow search (21st) + chips */}
       <div className="ui-glass-strong sticky top-3 z-20 space-y-3 rounded-2xl p-3 sm:p-4">
@@ -286,7 +287,7 @@ export function CatalogPage() {
 
         {isSearching ? (
           <>
-            <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <HorizontalScrollRow label="Filtro de posse">
               <FilterChip
                 active={ownershipFilter === "all"}
                 label="Todas"
@@ -305,8 +306,8 @@ export function CatalogPage() {
                 count={ownershipCounts.missing}
                 onClick={() => setOwnershipFilter("missing")}
               />
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            </HorizontalScrollRow>
+            <HorizontalScrollRow label="Filtro por expansão">
               <FilterChip
                 active={setFilter === "all"}
                 label="Todo o catálogo"
@@ -320,7 +321,7 @@ export function CatalogPage() {
                   onClick={() => setSetFilter(c.id)}
                 />
               ))}
-            </div>
+            </HorizontalScrollRow>
             <p className="text-xs text-[var(--color-text-muted)]">
               {searchLoading
                 ? "Carregando catálogo…"
@@ -331,7 +332,7 @@ export function CatalogPage() {
           </>
         ) : (
           <>
-            <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <HorizontalScrollRow label="Filtro de progresso">
               <FilterChip
                 active={progressFilter === "all"}
                 label="Todas"
@@ -356,7 +357,7 @@ export function CatalogPage() {
                 count={progressCounts.complete}
                 onClick={() => setProgressFilter("complete")}
               />
-            </div>
+            </HorizontalScrollRow>
             {search.trim().length > 0 ? (
               <p className="text-xs text-[var(--color-text-muted)]">
                 Digite pelo menos 2 letras para buscar.

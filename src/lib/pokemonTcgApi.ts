@@ -94,6 +94,11 @@ function probableSetIds(setId: string): string[] {
       `sv${Number(scarletViolet[1])}${setId.includes(".5") ? "pt5" : ""}`,
     );
   }
+  // TCGdex: 2014xy / 2021swsh → Pokémon TCG: mcd14 / mcd21
+  const mcdonalds = setId.match(/^20(\d{2})(?:bw|xy|sm|swsh|sv)$/i);
+  if (mcdonalds) {
+    ids.push(`mcd${mcdonalds[1]}`);
+  }
   return [...new Set(ids)];
 }
 

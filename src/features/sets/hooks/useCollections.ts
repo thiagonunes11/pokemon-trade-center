@@ -16,7 +16,7 @@ export function useCatalogSeries() {
 
 export function useSeriesSets(seriesId: string) {
   return useQuery({
-    queryKey: ["series-sets", seriesId],
+    queryKey: ["series-sets-v5", seriesId],
     queryFn: () => fetchSeriesSets(seriesId),
     enabled: Boolean(seriesId),
   });
@@ -24,7 +24,7 @@ export function useSeriesSets(seriesId: string) {
 
 export function useCatalogCardSearch(search: string, enabled: boolean) {
   return useQuery({
-    queryKey: ["catalog-card-search-v1", search],
+    queryKey: ["catalog-card-search-v4", search],
     queryFn: () => searchCatalogCards(search),
     enabled,
   });
@@ -35,7 +35,10 @@ export function useSetsByIds(setIds: string[]) {
     queries: setIds.map((setId) => ({
       queryKey: ["set-metadata-v2", setId],
       queryFn: () =>
-        fetchSetWithFallback(setId, { includePokemonTcg: false }),
+        fetchSetWithFallback(setId, {
+          includePokemonTcg: false,
+          includeCdn: false,
+        }),
     })),
   });
 }
