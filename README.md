@@ -13,9 +13,10 @@ App **web** para montar sua vitrine de Pokémon TCG, acompanhar expansões, anun
 1. **Login** — e-mail e senha (Firebase Auth)
 2. **Catálogo** — séries físicas da TCGdex, expansões antigas e promos + binder com progresso
 3. **Coleção** — sync Firestore; abas Todas / Por coleção / Vitrine (★)
-4. **Compartilhar** — link do perfil (`/u/slug`: vitrine, Anunciando, Procurando)
-5. **Trocas** — listas próprias, **mural** (Explorar; Conversar só em anúncios), **chat** 1:1, **Comunidade** (WhatsApp por cidade)
-6. **Ajustes** — avatar (5 Pokémon), slug, nome, tema, logout
+4. **Pokédex** — progresso nacional por espécie (automático via cartas da coleção)
+5. **Compartilhar** — link do perfil (`/u/slug`: vitrine, Anunciando, Procurando)
+6. **Trocas** — listas próprias, **mural** (Explorar; Conversar só em anúncios), **chat** 1:1, **Comunidade** (WhatsApp por cidade)
+7. **Ajustes** — avatar (5 Pokémon), slug, nome, tema, logout
 
 > A coleção do antigo app nativo **não migra** automaticamente.
 
@@ -122,6 +123,7 @@ independentemente da série selecionada para navegação.
 | `/catalog` | Expansões |
 | `/catalog/:setId` | Grid do set |
 | `/collection` | Coleção / vitrine |
+| `/pokedex` | Pokédex nacional |
 | `/trades` | Explorar / listas / conversas / comunidade |
 | `/trades/chat/:threadId` | Chat 1:1 |
 | `/u/:slug` | Perfil (slug ou UID) |

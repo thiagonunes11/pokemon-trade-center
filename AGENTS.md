@@ -13,7 +13,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 | **Domínio** | Pokémon TCG — catálogo, coleção/vitrine, mural de trocas, chat 1:1, WhatsApp por cidade |
 | **UI** | Português (Brasil) · marketplace TCG (Outfit / amarelo Pokémon) |
 | **Dados** | TCGdex `pt → en` + Pokémon TCG API sem chave |
-| **Estágio** | MVP web: catálogo multisséries + coleção/vitrine + mural/chat/comunidade + Firebase Auth |
+| **Estágio** | MVP web: catálogo multisséries + coleção/vitrine + Pokédex nacional + mural/chat/comunidade + Firebase Auth |
 | **Repo** | `https://github.com/thiagonunes11/pokemon-trade-center.git` |
 
 ### Objetivo
@@ -23,6 +23,7 @@ Leia este arquivo **antes** de implementar mudanças. Documentação humana: [RE
 3. Detalhe da carta + adicionar/remover da coleção; pin na vitrine
 4. Compartilhar perfil (`/u/:slug`: vitrine + anúncios/procuras); avatar = preset Pokémon (Spark; sem Storage)
 5. Listas Anunciando / Procurando → mural público + chat 1:1 + grupo WhatsApp da cidade
+6. Pokédex nacional (`/pokedex`): progresso por espécie a partir da coleção TCG (`dexId` TCGdex)
 
 **Auth:** Firebase Auth + `users/{uid}` no Firestore.  
 **Coleção:** Zustand local + sync Firestore (`collections/{uid}/cards`) com debounce nas escritas e pull no login. Coleção do antigo app nativo **não migra** automaticamente.
@@ -56,12 +57,13 @@ src/
   App.tsx               ← rotas
   index.css             ← Tailwind + tokens de tema
   layouts/              ← AppLayout (sidebar/bottom nav), AuthGuard
-  pages/                ← Login, Catalog, CatalogSet, Collection, Trades, TradeChat, Settings, CardDetail
+  pages/                ← Login, Catalog, CatalogSet, Collection, Pokedex, Trades, TradeChat, Settings, CardDetail
   features/
     auth/               ← authService, mapFirebaseUser, authErrors, userProfileService
     cards/              ← CardGrid, CardItem (binderMode), useSetCards/useCard/useSet
     sets/               ← CollectionPickerCard, useCollections
     collection/         ← firestoreSync, CollectionSync, add/remove/showcase sync
+    pokedex/            ← PokéAPI species, match dexId, grid virtualizado
     trades/             ← TradeSync, listings, threads, Explore/Community panels
     share/              ← ShareProfileButton (copiar link /u/:uid)
     profile/            ← perfil público, avatarService (presets), avatarPresets
@@ -89,6 +91,7 @@ firebase.json
 | `/catalog` | Lista de expansões |
 | `/catalog/:setId` | Grid do set |
 | `/collection` | Minha coleção (Todas / Por coleção / Vitrine) |
+| `/pokedex` | Pokédex nacional (progresso por espécie via coleção) |
 | `/trades` | Explorar / Anunciando / Procurando / Conversas / Comunidade |
 | `/trades/chat/:threadId` | Chat texto 1:1 |
 | `/u/:slug` | Perfil público por slug (ou UID legado) |
@@ -213,6 +216,7 @@ firebase deploy --only firestore:rules
 | Catálogo | `pages/CatalogPage.tsx`, `CatalogSetPage.tsx`, `features/sets/*`, `lib/tcgdex.ts`, `lib/pokemonTcgApi.ts`, `lib/cardImages.ts` |
 | Detalhe | `pages/CardDetailPage.tsx` |
 | Coleção / vitrine | `pages/CollectionPage.tsx`, `useCollectionStore.ts`, `features/collection/*` |
+| Pokédex | `pages/PokedexPage.tsx`, `features/pokedex/*` |
 | Perfil / avatar | `pages/UserProfilePage.tsx`, `features/profile/*`, `UserAvatar.tsx` |
 | Trocas | `pages/TradesPage.tsx`, `TradeChatPage.tsx`, `useTradeStore.ts`, `features/trades/*` |
 | Compartilhar | `features/share/*` (copiar link `/u/:slug`) |
@@ -220,4 +224,4 @@ firebase deploy --only firestore:rules
 | Shell / guard | `layouts/AppLayout.tsx`, `AuthGuard.tsx` |
 | Motion (UI) | `lib/motion.ts`, `SegmentTabs.tsx`, `ConfirmDialog`, `ProgressFolio`, `MotionConfig` em `main.tsx` |
 
-_Última revisão: 2026-08-03 — fallback TCGdex `pt → en → CDN assets` + Pokémon TCG API sem chave._
+_Última revisão: 2026-08-03 — Pokédex nacional + fallback TCGdex `pt → en → CDN` + Pokémon TCG API._

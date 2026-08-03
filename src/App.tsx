@@ -5,6 +5,7 @@ import { CatalogPage } from "@/pages/CatalogPage";
 import { CatalogSetPage } from "@/pages/CatalogSetPage";
 import { CollectionPage } from "@/pages/CollectionPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { PokedexPage } from "@/pages/PokedexPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { TradeChatPage } from "@/pages/TradeChatPage";
 import { TradesPage } from "@/pages/TradesPage";
@@ -21,6 +22,7 @@ export function App() {
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/catalog/:setId" element={<CatalogSetPage />} />
           <Route path="/collection" element={<CollectionPage />} />
+          <Route path="/pokedex" element={<PokedexPage />} />
           <Route path="/trades" element={<TradesPage />} />
           <Route path="/trades/chat/:threadId" element={<TradeChatPage />} />
           <Route path="/u/:uid" element={<UserProfilePage />} />
