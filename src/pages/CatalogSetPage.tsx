@@ -8,8 +8,8 @@ import { BackButton } from "@/components/BackButton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ProgressFolio } from "@/components/ProgressFolio";
 import { SegmentTabs } from "@/components/SegmentTabs";
-import { getCollectionById, isSupportedSetId } from "@/lib/collections";
 import { compareByLocalId } from "@/lib/cardOrder";
+import { resolveCardImageUrl } from "@/lib/cardImages";
 import { useOwnedSetCount } from "@/hooks/useOwnedSetCount";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { useCollectionStore } from "@/store/useCollectionStore";
@@ -48,8 +48,7 @@ function IconRefresh({ className }: { className?: string }) {
 export function CatalogSetPage() {
   const { setId = "" } = useParams();
   const navigate = useNavigate();
-  const valid = isSupportedSetId(setId);
-  const collection = getCollectionById(setId);
+  const valid = Boolean(setId);
   const { data: setData, isLoading, error, refetch, isFetching } =
     useSetCards(valid ? setId : "");
   const owned = useOwnedSetCount(valid ? setId : null);
@@ -101,6 +100,7 @@ export function CatalogSetPage() {
         name: c.name,
         localId: String(c.localId),
         image: c.image ?? null,
+        imageHigh: c.imageHigh ?? null,
       })) ?? [];
     return mapped.sort(compareByLocalId);
   }, [setData?.cards]);
@@ -155,7 +155,7 @@ export function CatalogSetPage() {
   const toWantedInput = (card: (typeof gridCards)[number]) => ({
     id: card.id,
     name: card.name,
-    imageUrl: card.image ? `${card.image}/high.webp` : null,
+    imageUrl: resolveCardImageUrl(card.image, "high", card.imageHigh),
     setId,
   });
 
@@ -181,7 +181,7 @@ export function CatalogSetPage() {
       const result = addCardToCollection({
         id: card.id,
         name: card.name,
-        imageUrl: card.image ? `${card.image}/high.webp` : null,
+        imageUrl: resolveCardImageUrl(card.image, "high", card.imageHigh),
         setId,
       });
       if (result.removedFromWanted) removedFromWantedCount += 1;
@@ -294,13 +294,16 @@ export function CatalogSetPage() {
 
   const total =
     setData?.cardCount?.total ?? setData?.cards?.length ?? 0;
-  const setName = collection?.name ?? setId;
+  const setName = setData?.name ?? setId;
+  const catalogBackLink = setData?.serie?.id
+    ? `/catalog?series=${setData.serie.id}`
+    : "/catalog";
 
   return (
     <div className={`space-y-5 ${markMode ? "pb-40" : ""}`}>
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <BackButton to="/catalog">Coleções</BackButton>
+          <BackButton to={catalogBackLink}>Coleções</BackButton>
           <div className="flex items-center gap-2">
             {!isLoading && !error && gridCards.length > 0 ? (
               <button
@@ -334,6 +337,28 @@ export function CatalogSetPage() {
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-tight text-[var(--color-text)] sm:text-3xl">
             {setName}
           </h1>
+          {!isLoading && !error && setData?.contentLanguage !== "pt" ? (
+            <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-xs text-[var(--color-text-secondary)]">
+              {setData?.contentLanguage === "en"
+                ? "Esta expansão ainda não tem cartas em português na TCGdex; o conteúdo disponível está em inglês."
+                : "Esta expansão tem tradução parcial; as cartas ausentes em português foram complementadas em inglês."}
+            </p>
+          ) : null}
+          {!isLoading && !error && (setData?.englishImageCount ?? 0) > 0 ? (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {setData?.englishImageCount} imagem{setData?.englishImageCount === 1 ? "" : "s"} complementada{setData?.englishImageCount === 1 ? "" : "s"} pelo catálogo internacional.
+            </p>
+          ) : null}
+          {!isLoading && !error && (setData?.pokemonTcgImageCount ?? 0) > 0 ? (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {setData?.pokemonTcgImageCount} imagem{setData?.pokemonTcgImageCount === 1 ? "" : "s"} complementada{setData?.pokemonTcgImageCount === 1 ? "" : "s"} pela Pokémon TCG API.
+            </p>
+          ) : null}
+          {!isLoading && !error && (setData?.missingImageCount ?? 0) > 0 ? (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {setData?.missingImageCount} carta{setData?.missingImageCount === 1 ? " ainda está" : "s ainda estão"} sem imagem disponível na TCGdex.
+            </p>
+          ) : null}
           <ProgressFolio
             owned={owned}
             total={total > 0 ? total : undefined}

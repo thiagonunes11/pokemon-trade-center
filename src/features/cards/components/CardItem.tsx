@@ -1,6 +1,9 @@
 import { useRef } from "react";
 
-type ImageQuality = "low" | "high";
+import {
+  resolveCardImageUrl,
+  type CardImageQuality,
+} from "@/lib/cardImages";
 
 const LONG_PRESS_MS = 450;
 const MOVE_CANCEL_PX = 12;
@@ -12,7 +15,8 @@ interface CardItemProps {
   image: string | null;
   rarity?: string;
   /** Grid usa low; detalhe/share usam high. */
-  imageQuality?: ImageQuality;
+  imageQuality?: CardImageQuality;
+  imageHigh?: string | null;
   isInCollection?: boolean;
   binderMode?: boolean;
   /** Modo marcar: carta está na seleção atual. */
@@ -24,23 +28,6 @@ interface CardItemProps {
   onLongPress?: (id: string) => void;
 }
 
-function resolveImageUrl(
-  image: string | null,
-  quality: ImageQuality,
-): string | null {
-  if (!image) return null;
-  const lower = image.toLowerCase();
-  if (
-    lower.endsWith("/high.webp") ||
-    lower.endsWith("/high.png") ||
-    lower.endsWith("/low.webp") ||
-    lower.endsWith("/low.png")
-  ) {
-    return image;
-  }
-  return `${image}/${quality}.webp`;
-}
-
 export function CardItem({
   id,
   name,
@@ -48,6 +35,7 @@ export function CardItem({
   image,
   rarity,
   imageQuality = "low",
+  imageHigh,
   isInCollection = false,
   binderMode = false,
   markMode = false,
@@ -56,7 +44,7 @@ export function CardItem({
   onPress,
   onLongPress,
 }: CardItemProps) {
-  const imageUrl = resolveImageUrl(image, imageQuality);
+  const imageUrl = resolveCardImageUrl(image, imageQuality, imageHigh);
   const missing = binderMode && !isInCollection;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const originRef = useRef<{ x: number; y: number } | null>(null);

@@ -1,18 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import tcgdex, { SUPPORTED_SETS } from '@/lib/tcgdex';
+import { fetchCardWithFallback, fetchSetWithFallback } from '@/lib/tcgdex';
 
 /**
  * Fetch all cards from a specific set
  */
-export function useSetCards(setId: string = SUPPORTED_SETS.FOGO_FANTASMAGORICO) {
+export function useSetCards(setId: string) {
   return useQuery({
-    queryKey: ['set-cards', setId],
+    queryKey: ['set-cards-v2', setId],
     queryFn: async () => {
-      const set = await tcgdex.set.get(setId);
-      if (!set) {
-        throw new Error(`Set ${setId} not found`);
-      }
-      return set;
+      return fetchSetWithFallback(setId);
     },
     enabled: !!setId,
   });
@@ -23,13 +19,9 @@ export function useSetCards(setId: string = SUPPORTED_SETS.FOGO_FANTASMAGORICO) 
  */
 export function useCard(cardId: string) {
   return useQuery({
-    queryKey: ['card', cardId],
+    queryKey: ['card-v2', cardId],
     queryFn: async () => {
-      const card = await tcgdex.card.get(cardId);
-      if (!card) {
-        throw new Error(`Card ${cardId} not found`);
-      }
-      return card;
+      return fetchCardWithFallback(cardId);
     },
     enabled: !!cardId,
   });
@@ -38,15 +30,11 @@ export function useCard(cardId: string) {
 /**
  * Fetch set metadata
  */
-export function useSet(setId: string = SUPPORTED_SETS.FOGO_FANTASMAGORICO) {
+export function useSet(setId: string) {
   return useQuery({
-    queryKey: ['set', setId],
+    queryKey: ['set-v2', setId],
     queryFn: async () => {
-      const set = await tcgdex.set.get(setId);
-      if (!set) {
-        throw new Error(`Set ${setId} not found`);
-      }
-      return set;
+      return fetchSetWithFallback(setId);
     },
   });
 }

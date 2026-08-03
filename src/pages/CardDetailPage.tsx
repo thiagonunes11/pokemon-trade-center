@@ -9,7 +9,7 @@ import {
 } from "@/features/collection";
 import { useCard, useSetCards } from "@/features/cards";
 import { compareByLocalId } from "@/lib/cardOrder";
-import { getCollectionById } from "@/lib/collections";
+import { resolveCardImageUrl } from "@/lib/cardImages";
 import {
   ligaPokemonSearchUrl,
   mypCardsSearchUrl,
@@ -101,7 +101,7 @@ export function CardDetailPage() {
       const { removedFromWanted } = addCardToCollection({
         id,
         name: card.name,
-        imageUrl: card.image ? `${card.image}/high.webp` : null,
+        imageUrl: resolveCardImageUrl(card.image, "high", card.imageHigh),
         setId: card.set?.id ?? id.split("-")[0],
       });
       setWantedClearHint(removedFromWanted);
@@ -145,7 +145,7 @@ export function CardDetailPage() {
     );
   }
 
-  const imageUrl = card.image ? `${card.image}/high.png` : null;
+  const imageUrl = resolveCardImageUrl(card.image, "high", card.imageHigh);
   const types = (card.types ?? []) as string[];
   const attacks = (card.attacks ?? []) as Array<{
     name: string;
@@ -162,10 +162,7 @@ export function CardDetailPage() {
     value?: string;
   }>;
   const setId = card.set?.id;
-  const setName =
-    (setId ? getCollectionById(setId)?.name : undefined) ??
-    card.set?.name ??
-    null;
+  const setName = card.set?.name ?? null;
   const rarity =
     typeof card.rarity === "string" && card.rarity.trim()
       ? card.rarity
@@ -249,6 +246,19 @@ export function CardDetailPage() {
                 {card.id}
                 {card.hp != null ? ` · PS ${card.hp}` : ""}
               </p>
+              {card.contentLanguage === "en" ? (
+                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                  Conteúdo disponível em inglês na TCGdex.
+                </p>
+              ) : card.usesPokemonTcgImage ? (
+                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                  Imagem complementada pela Pokémon TCG API.
+                </p>
+              ) : card.usesEnglishImage ? (
+                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                  Imagem complementada pelo catálogo internacional.
+                </p>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">

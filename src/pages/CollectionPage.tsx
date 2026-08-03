@@ -6,14 +6,12 @@ import { CardItem } from "@/features/cards";
 import { toggleCardInShowcase } from "@/features/collection";
 import { ShareProfileButton } from "@/features/share";
 import { ensurePublicShowcaseSynced } from "@/features/profile";
-import { getCollectionById, COLLECTIONS } from "@/lib/collections";
 import {
   cardLocalId,
   compareBySetAndNumber,
   normalizeSearch,
-  setSortIndex,
 } from "@/lib/cardOrder";
-import { useCollections } from "@/features/sets";
+import { useSetsByIds } from "@/features/sets";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
@@ -67,23 +65,35 @@ export function CollectionPage() {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const needle = normalizeSearch(deferredSearch);
-  const queries = useCollections();
   useScrollMemory();
-
-  const totalsBySet = useMemo(() => {
-    const map: Record<string, number | undefined> = {};
-    COLLECTIONS.forEach((c, index) => {
-      const set = queries[index]?.data;
-      map[c.id] = set?.cardCount?.total ?? set?.cards?.length;
-    });
-    return map;
-  }, [queries]);
 
   const cards = useMemo(
     () =>
       allCards.filter((c) => (c.ownerId ?? null) === (authUserId ?? null)),
     [allCards, authUserId],
   );
+  const ownedSetIds = useMemo(
+    () => [...new Set(cards.map((card) => card.setId))],
+    [cards],
+  );
+  const setQueries = useSetsByIds(ownedSetIds);
+
+  const totalsBySet = useMemo(() => {
+    const map: Record<string, number | undefined> = {};
+    ownedSetIds.forEach((setId, index) => {
+      const set = setQueries[index]?.data;
+      map[setId] = set?.cardCount?.total ?? set?.cards?.length;
+    });
+    return map;
+  }, [ownedSetIds, setQueries]);
+
+  const setNamesById = useMemo(() => {
+    const map: Record<string, string> = {};
+    ownedSetIds.forEach((setId, index) => {
+      map[setId] = setQueries[index]?.data?.name ?? setId;
+    });
+    return map;
+  }, [ownedSetIds, setQueries]);
 
   const filteredCards = useMemo(() => {
     if (needle.length < 2) return cards;
@@ -127,7 +137,9 @@ export function CollectionPage() {
       {},
     );
     return Object.entries(groups)
-      .sort(([a], [b]) => setSortIndex(a) - setSortIndex(b))
+      .sort(([a], [b]) =>
+        a.localeCompare(b, "pt-BR", { numeric: true, sensitivity: "base" }),
+      )
       .map(([setId, setCards]) => [
         setId,
         [...setCards].sort(compareBySetAndNumber),
@@ -287,11 +299,10 @@ export function CollectionPage() {
         <div className="space-y-4">
           {cardsBySet.map(([setId, setCards]) => {
             const total = totalsBySet[setId];
-            const setName = getCollectionById(setId)?.name ?? setId;
-            const setLoading = COLLECTIONS.some((c, i) => {
-              if (c.id !== setId) return false;
-              return queries[i]?.isLoading ?? true;
-            });
+            const setName = setNamesById[setId] ?? setId;
+            const setIndex = ownedSetIds.indexOf(setId);
+            const setLoading =
+              setIndex >= 0 ? (setQueries[setIndex]?.isLoading ?? false) : false;
 
             return (
               <section

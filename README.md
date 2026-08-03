@@ -11,7 +11,7 @@ App **web** para montar sua vitrine de Pokémon TCG, acompanhar expansões, anun
 ## O que o app faz hoje
 
 1. **Login** — e-mail e senha (Firebase Auth)
-2. **Catálogo** — expansões Megaevolução (`me01`–`me05`) + binder com progresso
+2. **Catálogo** — séries físicas da TCGdex, expansões antigas e promos + binder com progresso
 3. **Coleção** — sync Firestore; abas Todas / Por coleção / Vitrine (★)
 4. **Compartilhar** — link do perfil (`/u/slug`: vitrine, Anunciando, Procurando)
 5. **Trocas** — listas próprias, **mural** (Explorar; Conversar só em anúncios), **chat** 1:1, **Comunidade** (WhatsApp por cidade)
@@ -28,7 +28,7 @@ App **web** para montar sua vitrine de Pokémon TCG, acompanhar expansões, anun
 | Build | Vite |
 | UI | React 19 + Tailwind CSS + Motion |
 | Rotas | React Router |
-| Dados cartas | `@tcgdex/sdk` (locale `pt`) |
+| Dados cartas | TCGdex (`pt → en`) + Pokémon TCG API sem chave |
 | Cache | TanStack React Query |
 | Virtualização | `@tanstack/react-virtual` |
 | Estado | Zustand |
@@ -81,16 +81,36 @@ Sem `whatsappUrl` (ou vazio), o app mostra “Em breve” para aquela cidade. Es
 
 ---
 
-## Expansões
+## Catálogo TCGdex
 
-| Expansão | ID | Status |
-|----------|-----|--------|
-| Megaevolução | `me01` | Disponível |
-| Fogo Fantasmagórico | `me02` | Disponível |
-| Heróis Excelsos | `me02.5` | Disponível |
-| Equilíbrio Perfeito | `me03` | Disponível |
-| Caos Ascendente | `me04` | Disponível |
-| Escuridão Absoluta | `me05` | Disponível |
+O catálogo descobre dinamicamente as séries e expansões físicas disponíveis na
+TCGdex. Pokémon TCG Pocket não entra nessa listagem. A navegação é feita por
+série → expansão, incluindo coleções antigas e conjuntos promocionais como
+`smp`, `swshp`, `svp` e `mep`.
+
+Os dados em português têm prioridade. Quando uma fonte não possui todas as
+cartas ou imagens, o app usa a ordem TCGdex `pt` → TCGdex `en` → Pokémon TCG
+API sem chave:
+
+- set sem cartas em português: conteúdo exibido em inglês;
+- tradução parcial: cartas ausentes são complementadas em inglês;
+- imagem ausente em português: imagem internacional do mesmo ID;
+- imagem ainda ausente na TCGdex: Pokémon TCG API por set + número;
+- imagem inexistente nas três fontes: cartão “Sem imagem” e aviso no set.
+
+A terceira fonte não altera o ID canônico da TCGdex. Ela é chamada apenas ao
+abrir um set ou detalhe com lacunas; a busca global por nome usa o endpoint de
+cartas da própria TCGdex nos idiomas `pt` e `en`, sem abrir cada expansão e sem
+fallback em massa. Sem chave, a API externa limita o cliente a 1.000
+requisições/dia e 30/minuto. Se o endpoint REST responder com erro, o app lê o
+JSON equivalente no repositório oficial `PokemonTCG/pokemon-tcg-data`. Não
+adicionar chave em variável `VITE_*`.
+
+Os IDs persistidos continuam no formato `{setId}-{localId}`, portanto coleção,
+vitrine e listas de troca não precisam de migração. A lista de séries e os
+resumos dos sets são carregados primeiro; as cartas completas só são buscadas
+ao abrir uma expansão. A pesquisa do catálogo abrange todas as séries físicas,
+independentemente da série selecionada para navegação.
 
 ---
 

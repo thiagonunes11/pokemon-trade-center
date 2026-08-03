@@ -51,12 +51,30 @@ export function CollectionPickerCard({
               "radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 62%)",
           }}
         />
-        <img
-          src={collection.logoUrl}
-          alt={collection.name}
-          className="relative z-[1] max-h-full max-w-[85%] object-contain drop-shadow-md transition duration-300 group-hover:scale-[1.05]"
-          loading="lazy"
-        />
+        <span className="relative z-[1] max-w-[85%] text-center font-[family-name:var(--font-display)] text-2xl font-extrabold text-[var(--color-text)]">
+          {collection.name}
+        </span>
+        {collection.logoUrl ? (
+          <img
+            src={collection.logoUrl}
+            alt={collection.name}
+            className="absolute z-[2] max-h-[70%] max-w-[75%] object-contain drop-shadow-md transition duration-300 group-hover:scale-[1.05]"
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.hidden = true;
+            }}
+          />
+        ) : collection.symbolUrl ? (
+          <img
+            src={collection.symbolUrl}
+            alt=""
+            className="absolute z-[2] max-h-20 max-w-24 object-contain opacity-80 drop-shadow-md"
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.hidden = true;
+            }}
+          />
+        ) : null}
         {!openable && !isLoading ? (
           <span className="absolute top-3 right-3 z-[3] rounded-full bg-[var(--color-bg)]/80 px-2.5 py-1 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] backdrop-blur">
             Em breve
@@ -77,7 +95,7 @@ export function CollectionPickerCard({
           <ProgressFolio owned={owned} total={total} isLoading={isLoading} />
         ) : (
           <p className="text-xs text-[var(--color-text-muted)]">
-            {collection.unavailableMessage ?? "Catálogo em breve"}
+            Catálogo indisponível na TCGdex
           </p>
         )}
       </div>

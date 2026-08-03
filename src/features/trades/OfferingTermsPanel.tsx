@@ -1,13 +1,14 @@
 import { CardItem } from "@/features/cards";
 import { useSetCards } from "@/features/cards";
+import { useCatalogSeries, useSeriesSets } from "@/features/sets";
 import {
   hasValidOfferingTerms,
   parsePriceBRL,
   type OfferingTerms,
   type WantCardRef,
 } from "@/features/trades/offeringTerms";
-import { COLLECTIONS, getCollectionById } from "@/lib/collections";
 import { compareByLocalId } from "@/lib/cardOrder";
+import { resolveCardImageUrl } from "@/lib/cardImages";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 type OfferingCard = {
@@ -26,15 +27,7 @@ type OfferingTermsPanelProps = {
   onSave: (terms: OfferingTerms) => boolean;
 };
 
-type PickerStep = null | { setId?: string };
-
-function toLowImage(image: string | null): string | null {
-  if (!image) return null;
-  const lower = image.toLowerCase();
-  return lower.endsWith(".webp") || lower.endsWith(".png")
-    ? image
-    : `${image}/low.webp`;
-}
+type PickerStep = null | { seriesId?: string; setId?: string };
 
 export function OfferingTermsPanel({
   open,
@@ -54,6 +47,9 @@ export function OfferingTermsPanel({
   const [wantCards, setWantCards] = useState<WantCardRef[]>([]);
   const [picker, setPicker] = useState<PickerStep>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const seriesQuery = useCatalogSeries();
+  const pickerSeriesId = picker?.seriesId ?? "";
+  const setsQuery = useSeriesSets(pickerSeriesId);
   const pickerSetId = picker?.setId ?? "";
   const { data: setData, isLoading } = useSetCards(pickerSetId);
 
@@ -324,16 +320,26 @@ export function OfferingTermsPanel({
               {picker.setId ? (
                 <button
                   type="button"
-                  onClick={() => setPicker({})}
+                  onClick={() => setPicker({ seriesId: picker.seriesId })}
                   className="min-h-11 text-sm font-semibold text-[var(--color-accent)]"
                 >
                   ← Expansões
                 </button>
+              ) : picker.seriesId ? (
+                <button
+                  type="button"
+                  onClick={() => setPicker({})}
+                  className="min-h-11 text-sm font-semibold text-[var(--color-accent)]"
+                >
+                  ← Séries
+                </button>
               ) : null}
               <h2 className="truncate font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
                 {picker.setId
-                  ? (getCollectionById(picker.setId)?.name ?? picker.setId)
-                  : "Escolher expansão"}
+                  ? (setsQuery.data?.find((set) => set.id === picker.setId)?.name ?? picker.setId)
+                  : picker.seriesId
+                    ? (seriesQuery.data?.find((series) => series.id === picker.seriesId)?.name ?? "Escolher expansão")
+                    : "Escolher série"}
               </h2>
             </div>
             <button
@@ -346,26 +352,44 @@ export function OfferingTermsPanel({
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-4">
-            {!picker.setId ? (
+            {!picker.seriesId ? (
               <div className="space-y-2">
-                {COLLECTIONS.map((collection) => (
+                {(seriesQuery.data ?? []).map((series) => (
                   <button
-                    key={collection.id}
+                    key={series.id}
                     type="button"
-                    onClick={() => setPicker({ setId: collection.id })}
+                    onClick={() => setPicker({ seriesId: series.id })}
                     className="flex min-h-11 w-full items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 text-left transition hover:border-[var(--color-accent)]"
                   >
-                    <img
-                      src={collection.logoUrl}
-                      alt=""
-                      className="h-10 w-16 object-contain"
-                    />
+                    {series.logoUrl ? (
+                      <img src={series.logoUrl} alt="" className="h-10 w-16 object-contain" onError={(event) => { event.currentTarget.hidden = true; }} />
+                    ) : null}
                     <span className="font-semibold text-[var(--color-text)]">
-                      {collection.name}
+                      {series.name}
                     </span>
                   </button>
                 ))}
               </div>
+            ) : !picker.setId ? (
+              setsQuery.isLoading ? (
+                <p className="text-sm text-[var(--color-text-muted)]">Carregando expansões…</p>
+              ) : (
+                <div className="space-y-2">
+                  {(setsQuery.data ?? []).map((collection) => (
+                    <button
+                      key={collection.id}
+                      type="button"
+                      onClick={() => setPicker({ seriesId: picker.seriesId, setId: collection.id })}
+                      className="flex min-h-11 w-full items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 text-left transition hover:border-[var(--color-accent)]"
+                    >
+                      {collection.logoUrl ? (
+                        <img src={collection.logoUrl} alt="" className="h-10 w-16 object-contain" onError={(event) => { event.currentTarget.hidden = true; }} />
+                      ) : null}
+                      <span className="font-semibold text-[var(--color-text)]">{collection.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )
             ) : isLoading ? (
               <p className="text-sm text-[var(--color-text-muted)]">
                 Carregando cartas…
@@ -396,7 +420,11 @@ export function OfferingTermsPanel({
                             {
                               id: pickerCard.id,
                               name: pickerCard.name,
-                              imageUrl: toLowImage(pickerCard.image ?? null),
+                              imageUrl: resolveCardImageUrl(
+                                pickerCard.image,
+                                "high",
+                                pickerCard.imageHigh,
+                              ),
                               setId: picker.setId!,
                             },
                           ]);

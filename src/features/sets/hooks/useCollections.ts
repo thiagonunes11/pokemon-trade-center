@@ -1,20 +1,41 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 
-import { COLLECTIONS } from "@/lib/collections";
-import tcgdex from "@/lib/tcgdex";
+import {
+  fetchCatalogSeries,
+  fetchSeriesSets,
+  fetchSetWithFallback,
+  searchCatalogCards,
+} from "@/lib/tcgdex";
 
-export function useCollections() {
+export function useCatalogSeries() {
+  return useQuery({
+    queryKey: ["catalog-series"],
+    queryFn: fetchCatalogSeries,
+  });
+}
+
+export function useSeriesSets(seriesId: string) {
+  return useQuery({
+    queryKey: ["series-sets", seriesId],
+    queryFn: () => fetchSeriesSets(seriesId),
+    enabled: Boolean(seriesId),
+  });
+}
+
+export function useCatalogCardSearch(search: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["catalog-card-search-v1", search],
+    queryFn: () => searchCatalogCards(search),
+    enabled,
+  });
+}
+
+export function useSetsByIds(setIds: string[]) {
   return useQueries({
-    queries: COLLECTIONS.map((collection) => ({
-      queryKey: ["set", collection.id],
-      queryFn: async () => {
-        const set = await tcgdex.set.get(collection.id);
-        if (!set) {
-          throw new Error(`Set ${collection.id} not found`);
-        }
-        return set;
-      },
-      staleTime: 1000 * 60 * 30,
+    queries: setIds.map((setId) => ({
+      queryKey: ["set-metadata-v2", setId],
+      queryFn: () =>
+        fetchSetWithFallback(setId, { includePokemonTcg: false }),
     })),
   });
 }

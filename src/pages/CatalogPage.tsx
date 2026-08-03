@@ -1,13 +1,18 @@
 import { CardGrid } from "@/features/cards";
 import { EmptyState } from "@/components/EmptyState";
-import { CollectionPickerCard, useCollections } from "@/features/sets";
-import { COLLECTIONS } from "@/lib/collections";
+import {
+  CollectionPickerCard,
+  useCatalogCardSearch,
+  useCatalogSeries,
+  useSeriesSets,
+} from "@/features/sets";
 import { compareBySetAndNumber, normalizeSearch } from "@/lib/cardOrder";
+import { CATALOG_DEFAULT_SERIES_ID } from "@/lib/tcgdex";
 import { useOwnedCountsBySet } from "@/hooks/useOwnedSetCount";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { useDeferredValue, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 type SearchHit = {
   id: string;
@@ -20,6 +25,17 @@ type SearchHit = {
 
 type ProgressFilter = "all" | "progress" | "complete" | "empty";
 type OwnershipFilter = "all" | "owned" | "missing";
+
+function useDebouncedValue(value: string, delayMs: number): string {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timer);
+  }, [value, delayMs]);
+
+  return debounced;
+}
 
 /** Controles de catálogo inspirados em Filter Grid / Selector Chips (21st.dev). */
 
@@ -97,7 +113,13 @@ function FilterChip({
 
 export function CatalogPage() {
   const navigate = useNavigate();
-  const queries = useCollections();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSeriesId = searchParams.get("series");
+  const seriesQuery = useCatalogSeries();
+  const selectedSeriesId =
+    requestedSeriesId ?? CATALOG_DEFAULT_SERIES_ID;
+  const setsQuery = useSeriesSets(selectedSeriesId);
+  const collections = useMemo(() => setsQuery.data ?? [], [setsQuery.data]);
   const ownedBySet = useOwnedCountsBySet();
   const userId = useAuthStore((s) => s.userId);
   const collectionCards = useCollectionStore((s) => s.cards);
@@ -106,8 +128,14 @@ export function CatalogPage() {
   const [ownershipFilter, setOwnershipFilter] =
     useState<OwnershipFilter>("all");
   const [setFilter, setSetFilter] = useState<string | "all">("all");
-  const deferredSearch = useDeferredValue(search);
-  const needle = normalizeSearch(deferredSearch);
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const needle = normalizeSearch(debouncedSearch);
+  const isSearching = needle.length >= 2;
+  const cardSearchQuery = useCatalogCardSearch(needle, isSearching);
+
+  const selectedSeries = seriesQuery.data?.find(
+    (series) => series.id === selectedSeriesId,
+  );
 
   const ownedIds = useMemo(() => {
     const ids = new Set<string>();
@@ -117,15 +145,12 @@ export function CatalogPage() {
     return ids;
   }, [collectionCards, userId]);
 
-  const setsLoading = queries.some((q) => q.isLoading);
-  const setsReady = queries.every((q) => !q.isLoading);
-  const setPayloads = queries.map((q) => q.data);
+  const searchLoading = isSearching && cardSearchQuery.isLoading;
+  const searchReady = isSearching && !cardSearchQuery.isLoading;
 
   const setStats = useMemo(() => {
-    return COLLECTIONS.map((collection, index) => {
-      const set = setPayloads[index];
-      const total =
-        set?.cardCount?.total ?? set?.cards?.length ?? undefined;
+    return collections.map((collection) => {
+      const total = collection.cardCount.total || undefined;
       const owned = ownedBySet[collection.id] ?? 0;
       const ready = total != null && total > 0;
       const complete = ready && owned >= total;
@@ -133,17 +158,16 @@ export function CatalogPage() {
       const inProgress = ready && owned > 0 && owned < total;
       return {
         collection,
-        index,
         total,
         owned,
         ready,
         complete,
         empty,
         inProgress,
-        isLoading: queries[index]?.isLoading ?? true,
+        isLoading: setsQuery.isLoading,
       };
     });
-  }, [setPayloads, ownedBySet, queries]);
+  }, [collections, ownedBySet, setsQuery.isLoading]);
 
   const progressCounts = useMemo(() => {
     const ready = setStats.filter((s) => s.ready);
@@ -169,33 +193,24 @@ export function CatalogPage() {
     if (needle.length < 2) return [] as SearchHit[];
 
     const hits: SearchHit[] = [];
-    for (let i = 0; i < COLLECTIONS.length; i++) {
-      const collection = COLLECTIONS[i];
-      if (setFilter !== "all" && collection.id !== setFilter) continue;
-      const set = setPayloads[i];
-      const cards = set?.cards;
-      if (!cards) continue;
-
-      for (const card of cards) {
-        const name = typeof card.name === "string" ? card.name : "";
-        if (!normalizeSearch(name).includes(needle)) continue;
-        const owned = ownedIds.has(card.id);
-        if (ownershipFilter === "owned" && !owned) continue;
-        if (ownershipFilter === "missing" && owned) continue;
-        hits.push({
-          id: card.id,
-          name,
-          localId: String(card.localId),
-          image: card.image ?? null,
-          rarity: collection.name,
-          setId: collection.id,
-        });
-      }
+    for (const card of cardSearchQuery.data ?? []) {
+      if (setFilter !== "all" && card.setId !== setFilter) continue;
+      const owned = ownedIds.has(card.id);
+      if (ownershipFilter === "owned" && !owned) continue;
+      if (ownershipFilter === "missing" && owned) continue;
+      hits.push({
+        id: card.id,
+        name: card.name,
+        localId: card.localId,
+        image: card.image,
+        rarity: card.setName,
+        setId: card.setId,
+      });
     }
 
     hits.sort(compareBySetAndNumber);
     return hits;
-  }, [needle, setPayloads, setFilter, ownershipFilter, ownedIds]);
+  }, [needle, cardSearchQuery.data, setFilter, ownershipFilter, ownedIds]);
 
   const ownershipCounts = useMemo(() => {
     if (needle.length < 2) {
@@ -204,23 +219,19 @@ export function CatalogPage() {
     let all = 0;
     let owned = 0;
     let missing = 0;
-    for (let i = 0; i < COLLECTIONS.length; i++) {
-      const collection = COLLECTIONS[i];
-      if (setFilter !== "all" && collection.id !== setFilter) continue;
-      const cards = setPayloads[i]?.cards;
-      if (!cards) continue;
-      for (const card of cards) {
-        const name = typeof card.name === "string" ? card.name : "";
-        if (!normalizeSearch(name).includes(needle)) continue;
-        all += 1;
-        if (ownedIds.has(card.id)) owned += 1;
-        else missing += 1;
-      }
+    for (const card of cardSearchQuery.data ?? []) {
+      if (setFilter !== "all" && card.setId !== setFilter) continue;
+      all += 1;
+      if (ownedIds.has(card.id)) owned += 1;
+      else missing += 1;
     }
     return { all, owned, missing };
-  }, [needle, setPayloads, setFilter, ownedIds]);
+  }, [needle, cardSearchQuery.data, setFilter, ownedIds]);
 
-  const isSearching = needle.length >= 2;
+  const selectSeries = (seriesId: string) => {
+    setSearchParams({ series: seriesId });
+    setSetFilter("all");
+  };
 
   return (
     <div className="space-y-6">
@@ -229,9 +240,20 @@ export function CatalogPage() {
           Catálogo
         </h1>
         <p className="max-w-xl text-sm text-[var(--color-text-secondary)] sm:text-base">
-          Série Megaevolução · {ownedIds.size} carta{ownedIds.size === 1 ? "" : "s"} na sua coleção
+          Série {selectedSeries?.name ?? selectedSeriesId} · {ownedIds.size} carta{ownedIds.size === 1 ? "" : "s"} na sua coleção
         </p>
       </header>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {(seriesQuery.data ?? []).map((series) => (
+          <FilterChip
+            key={series.id}
+            active={selectedSeriesId === series.id}
+            label={series.name}
+            onClick={() => selectSeries(series.id)}
+          />
+        ))}
+      </div>
 
       {/* Barra de controle — Expandable/glow search (21st) + chips */}
       <div className="ui-glass-strong sticky top-3 z-20 space-y-3 rounded-2xl p-3 sm:p-4">
@@ -287,10 +309,10 @@ export function CatalogPage() {
             <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <FilterChip
                 active={setFilter === "all"}
-                label="Todos os sets"
+                label="Todo o catálogo"
                 onClick={() => setSetFilter("all")}
               />
-              {COLLECTIONS.map((c) => (
+              {collections.map((c) => (
                 <FilterChip
                   key={c.id}
                   active={setFilter === c.id}
@@ -300,7 +322,7 @@ export function CatalogPage() {
               ))}
             </div>
             <p className="text-xs text-[var(--color-text-muted)]">
-              {setsLoading
+              {searchLoading
                 ? "Carregando catálogo…"
                 : searchHits.length === 0
                   ? "Nenhuma carta com esses filtros."
@@ -341,7 +363,7 @@ export function CatalogPage() {
               </p>
             ) : (
               <p className="text-xs text-[var(--color-text-muted)]">
-                Filtre expansões ou busque uma carta em todos os sets.
+                Filtre expansões ou busque uma carta em todo o catálogo.
               </p>
             )}
           </>
@@ -349,7 +371,7 @@ export function CatalogPage() {
       </div>
 
       {isSearching ? (
-        !setsReady ? (
+        !searchReady ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" aria-label="Carregando resultados">
             {Array.from({ length: 10 }, (_, index) => (
               <div key={index} className="space-y-2">
@@ -384,6 +406,22 @@ export function CatalogPage() {
             }
           />
         )
+      ) : setsQuery.isLoading || seriesQuery.isLoading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2" role="status" aria-label="Carregando expansões">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="ui-skeleton aspect-[16/10] rounded-2xl" />
+          ))}
+        </div>
+      ) : setsQuery.error || seriesQuery.error ? (
+        <EmptyState
+          title="Não foi possível carregar o catálogo"
+          description="Verifique sua conexão e tente novamente."
+          action={
+            <button type="button" className="ui-tool-btn" onClick={() => void setsQuery.refetch()}>
+              Tentar novamente
+            </button>
+          }
+        />
       ) : visibleSets.length === 0 ? (
         <EmptyState
           title="Nenhuma expansão neste filtro"

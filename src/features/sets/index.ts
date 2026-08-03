@@ -1,2 +1,7 @@
 export { CollectionPickerCard } from "./components/CollectionPickerCard";
-export { useCollections } from "./hooks/useCollections";
+export {
+  useCatalogSeries,
+  useCatalogCardSearch,
+  useSeriesSets,
+  useSetsByIds,
+} from "./hooks/useCollections";

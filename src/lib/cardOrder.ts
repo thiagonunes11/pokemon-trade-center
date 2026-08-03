@@ -1,5 +1,3 @@
-import { COLLECTIONS } from "@/lib/collections";
-
 /** Extrai o localId de um cardId `{setId}-{localId}` (setId pode ter ponto). */
 export function cardLocalId(cardId: string, setId?: string): string {
   if (setId && cardId.startsWith(`${setId}-`)) {
@@ -14,17 +12,15 @@ export function cardLocalIdNumber(cardId: string, setId?: string): number {
   return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
 }
 
-export function setSortIndex(setId: string): number {
-  const i = COLLECTIONS.findIndex((c) => c.id === setId);
-  return i === -1 ? 999 : i;
-}
-
-/** Ordem de binder: expansão (COLLECTIONS) → número da carta → nome. */
+/** Ordem estável de binder: ID natural do set → número da carta → nome. */
 export function compareBySetAndNumber(
   a: { id: string; setId: string; name?: string },
   b: { id: string; setId: string; name?: string },
 ): number {
-  const bySet = setSortIndex(a.setId) - setSortIndex(b.setId);
+  const bySet = a.setId.localeCompare(b.setId, "pt-BR", {
+    numeric: true,
+    sensitivity: "base",
+  });
   if (bySet !== 0) return bySet;
   const byNum =
     cardLocalIdNumber(a.id, a.setId) - cardLocalIdNumber(b.id, b.setId);

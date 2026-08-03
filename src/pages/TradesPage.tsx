@@ -1,5 +1,6 @@
 import { CardItem } from "@/features/cards";
 import { useSetCards } from "@/features/cards";
+import { useCatalogSeries, useSeriesSets } from "@/features/sets";
 import { CommunityPanel } from "@/features/trades/CommunityPanel";
 import { ConversationsList } from "@/features/trades/ConversationsList";
 import { ExploreBoard } from "@/features/trades/ExploreBoard";
@@ -14,12 +15,12 @@ import {
   updateOfferingTermsAndSync,
   type OfferingTerms,
 } from "@/features/trades";
-import { COLLECTIONS, getCollectionById } from "@/lib/collections";
 import {
   cardLocalId,
   compareByLocalId,
   compareBySetAndNumber,
 } from "@/lib/cardOrder";
+import { resolveCardImageUrl } from "@/lib/cardImages";
 import { tabSpring } from "@/lib/motion";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
@@ -63,8 +64,9 @@ const TAB_DESCRIPTIONS: Record<TradeTab, string> = {
 type PickerMode =
   | null
   | { kind: "offering" }
-  | { kind: "wanted"; step: "sets" }
-  | { kind: "wanted"; step: "cards"; setId: string };
+  | { kind: "wanted"; step: "series" }
+  | { kind: "wanted"; step: "sets"; seriesId: string }
+  | { kind: "wanted"; step: "cards"; seriesId: string; setId: string };
 
 type OfferingCardInput = {
   id: string;
@@ -234,7 +236,7 @@ export function TradesPage() {
               setPicker(
                 tab === "offering"
                   ? { kind: "offering" }
-                  : { kind: "wanted", step: "sets" },
+                  : { kind: "wanted", step: "series" },
               )
             }
             className="ui-btn-accent flex h-11 w-full items-center justify-center text-sm"
@@ -351,10 +353,20 @@ export function TradesPage() {
           onPickWanted={(card) => {
             addCardToWanted(card);
           }}
-          onSelectSet={(setId) =>
-            setPicker({ kind: "wanted", step: "cards", setId })
+          onSelectSeries={(seriesId) =>
+            setPicker({ kind: "wanted", step: "sets", seriesId })
           }
-          onBackToSets={() => setPicker({ kind: "wanted", step: "sets" })}
+          onSelectSet={(seriesId, setId) =>
+            setPicker({ kind: "wanted", step: "cards", seriesId, setId })
+          }
+          onBack={() => {
+            if (picker.kind !== "wanted") return;
+            setPicker(
+              picker.step === "cards"
+                ? { kind: "wanted", step: "sets", seriesId: picker.seriesId }
+                : { kind: "wanted", step: "series" },
+            );
+          }}
         />
       ) : null}
 
@@ -405,8 +417,9 @@ function TradePickerModal({
   onClose,
   onPickOffering,
   onPickWanted,
+  onSelectSeries,
   onSelectSet,
-  onBackToSets,
+  onBack,
 }: {
   mode: Exclude<PickerMode, null>;
   collectionCards: Array<{
@@ -430,12 +443,17 @@ function TradePickerModal({
     imageUrl: string | null;
     setId: string;
   }) => void;
-  onSelectSet: (setId: string) => void;
-  onBackToSets: () => void;
+  onSelectSeries: (seriesId: string) => void;
+  onSelectSet: (seriesId: string, setId: string) => void;
+  onBack: () => void;
 }) {
   const titleId = useId();
   const wantedSetId =
     mode.kind === "wanted" && mode.step === "cards" ? mode.setId : "";
+  const wantedSeriesId =
+    mode.kind === "wanted" && mode.step !== "series" ? mode.seriesId : "";
+  const seriesQuery = useCatalogSeries();
+  const setsQuery = useSeriesSets(wantedSeriesId);
   const { data: setData, isLoading } = useSetCards(wantedSetId);
 
   const wantedSetCards = useMemo(
@@ -446,9 +464,11 @@ function TradePickerModal({
   const title =
     mode.kind === "offering"
       ? "Escolher da coleção"
-      : mode.step === "sets"
-        ? "Escolher expansão"
-        : (getCollectionById(mode.setId)?.name ?? mode.setId);
+      : mode.step === "series"
+        ? "Escolher série"
+        : mode.step === "sets"
+          ? (seriesQuery.data?.find((series) => series.id === mode.seriesId)?.name ?? "Escolher expansão")
+          : (setsQuery.data?.find((set) => set.id === mode.setId)?.name ?? mode.setId);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -467,13 +487,13 @@ function TradePickerModal({
     <div className="fixed inset-0 z-50 flex flex-col bg-[var(--color-bg)]" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div className="ui-glass-strong flex items-center justify-between gap-3 border-x-0 border-t-0 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
-          {mode.kind === "wanted" && mode.step === "cards" ? (
+          {mode.kind === "wanted" && mode.step !== "series" ? (
             <button
               type="button"
-              onClick={onBackToSets}
+              onClick={onBack}
               className="text-sm font-semibold text-[var(--color-accent)]"
             >
-              ← Sets
+              ← {mode.step === "cards" ? "Expansões" : "Séries"}
             </button>
           ) : null}
           <h2 id={titleId} className="truncate font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-text)]">
@@ -528,26 +548,44 @@ function TradePickerModal({
               })}
             </div>
           )
-        ) : mode.step === "sets" ? (
+        ) : mode.step === "series" ? (
           <div className="space-y-2">
-            {COLLECTIONS.map((c) => (
+            {(seriesQuery.data ?? []).map((series) => (
               <button
-                key={c.id}
+                key={series.id}
                 type="button"
-                onClick={() => onSelectSet(c.id)}
+                onClick={() => onSelectSeries(series.id)}
                 className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 text-left hover:border-[var(--color-accent)]"
               >
-                <img
-                  src={c.logoUrl}
-                  alt=""
-                  className="h-10 w-16 object-contain"
-                />
+                {series.logoUrl ? (
+                  <img src={series.logoUrl} alt="" className="h-10 w-16 object-contain" onError={(event) => { event.currentTarget.hidden = true; }} />
+                ) : null}
                 <span className="font-semibold text-[var(--color-text)]">
-                  {c.name}
+                  {series.name}
                 </span>
               </button>
             ))}
           </div>
+        ) : mode.step === "sets" ? (
+          setsQuery.isLoading ? (
+            <p className="text-sm text-[var(--color-text-muted)]">Carregando expansões…</p>
+          ) : (
+            <div className="space-y-2">
+              {(setsQuery.data ?? []).map((set) => (
+                <button
+                  key={set.id}
+                  type="button"
+                  onClick={() => onSelectSet(mode.seriesId, set.id)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 text-left hover:border-[var(--color-accent)]"
+                >
+                  {set.logoUrl ? (
+                    <img src={set.logoUrl} alt="" className="h-10 w-16 object-contain" onError={(event) => { event.currentTarget.hidden = true; }} />
+                  ) : null}
+                  <span className="font-semibold text-[var(--color-text)]">{set.name}</span>
+                </button>
+              ))}
+            </div>
+          )
         ) : isLoading ? (
           <p className="text-sm text-[var(--color-text-muted)]">
             Carregando cartas…
@@ -575,12 +613,11 @@ function TradePickerModal({
                       onPickWanted({
                         id: card.id,
                         name: card.name,
-                        imageUrl: image
-                          ? image.toLowerCase().endsWith(".webp") ||
-                            image.toLowerCase().endsWith(".png")
-                            ? image
-                            : `${image}/high.webp`
-                          : null,
+                        imageUrl: resolveCardImageUrl(
+                          image,
+                          "high",
+                          card.imageHigh,
+                        ),
                         setId: mode.setId,
                       });
                     }}
