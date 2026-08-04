@@ -739,7 +739,10 @@ export async function fetchCardWithFallback(
     description: description ?? merged.description,
     illustrator: illustrator ?? merged.illustrator,
     image: apiImage ?? cdnImage ?? pokemonImage,
-    imageHigh: pokemonImageHigh,
+    // Só usa high de terceiros quando não há base TCGdex (senão o detalhe
+    // preferiria Scrydex e quebrava URLs sem extensão via `/high.webp`).
+    imageHigh:
+      apiImage || cdnImage ? undefined : pokemonImageHigh,
     set: ptCard?.set ?? enCard?.set ?? pokemonSet,
     contentLanguage: hasPtText ? "pt" : "en",
     usesEnglishImage: !ptCard?.image && Boolean(enCard?.image),

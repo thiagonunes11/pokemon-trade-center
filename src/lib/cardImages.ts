@@ -3,12 +3,42 @@ export type CardImageQuality = "low" | "high";
 /** Verso oficial hospedado em `public/` — fallback visual quando não há arte. */
 export const CARD_BACK_IMAGE_URL = "/card-back.png";
 
+const IMAGE_EXT_RE = /\.(?:webp|png|jpe?g|avif)$/i;
+
+function hasImageExtension(pathname: string): boolean {
+  return IMAGE_EXT_RE.test(pathname);
+}
+
+/** URL-base TCGdex (`…/set/localId`) — precisa de `/low.webp` ou `/high.webp`. */
+function isTcgdexAssetBase(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.hostname === "assets.tcgdex.net" && !hasImageExtension(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isAbsoluteHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function isCompleteImageUrl(value: string): boolean {
   try {
-    const pathname = new URL(value, "https://local.invalid").pathname;
-    return /\.(?:webp|png|jpe?g|avif)$/i.test(pathname);
+    const url = new URL(value, "https://local.invalid");
+    if (hasImageExtension(url.pathname)) return true;
+    // CDNs terceiros sem extensão (ex. Scrydex `…/large`) — já são arte final.
+    if (isAbsoluteHttpUrl(value) && !isTcgdexAssetBase(value)) return true;
+    return false;
   } catch {
-    return /\.(?:webp|png|jpe?g|avif)(?:$|\?)/i.test(value);
+    return IMAGE_EXT_RE.test(value);
   }
 }
 
@@ -21,6 +51,7 @@ export function resolveCardImageUrl(
   const selected = quality === "high" && highImage ? highImage : image;
   if (!selected) return null;
   if (isCompleteImageUrl(selected)) return selected;
+  // Só a base TCGdex (ou caminho relativo) recebe sufixo de qualidade.
   return `${selected}/${quality}.webp`;
 }
 

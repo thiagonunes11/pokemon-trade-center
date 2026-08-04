@@ -5,6 +5,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { CARD_BACK_IMAGE_URL } from "@/lib/cardImages";
 import "./HoloTiltCard.css";
 
 type HoloTiltCardProps = {
@@ -74,6 +75,11 @@ export function HoloTiltCard({
   const boundsRef = useRef<Bounds | null>(null);
   const [active, setActive] = useState(false);
   const [gyroOn, setGyroOn] = useState(false);
+  const [displaySrc, setDisplaySrc] = useState(src);
+
+  useEffect(() => {
+    setDisplaySrc(src);
+  }, [src]);
 
   const reduced = prefersReducedMotion();
   const canTilt = enableTilt && !reduced;
@@ -368,10 +374,15 @@ export function HoloTiltCard({
         <div className="tcg-3d-body">
           <div ref={imageLayerRef} className="tcg-3d-layer">
             <img
-              src={src}
+              src={displaySrc}
               alt={alt}
               className="tcg-3d-image"
               draggable={false}
+              onError={() => {
+                if (displaySrc !== CARD_BACK_IMAGE_URL) {
+                  setDisplaySrc(CARD_BACK_IMAGE_URL);
+                }
+              }}
             />
           </div>
           <div className="tcg-3d-metal" aria-hidden />
